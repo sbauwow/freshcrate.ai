@@ -26,7 +26,16 @@ export async function GET(
   const summary = getDependencyAuditSummary(project.id);
 
   logRequest(request, 200, start);
-  return NextResponse.json({ deps, audit, summary });
+  return NextResponse.json(
+    { deps, audit, summary },
+    {
+      headers: {
+        // Deps are scanned ~daily; aggressively cache to absorb crawler volume
+        // (Bingbot/Googlebot were 70%+ of hits on this route).
+        "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    },
+  );
 }
 
 export async function POST(

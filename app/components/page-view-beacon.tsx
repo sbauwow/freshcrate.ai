@@ -1,22 +1,29 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
+/**
+ * Fires a beacon GET to /api/beacon on every route change, including SPA
+ * navigations. Uses Image() so the request is cancellable and never blocks
+ * the page. Path + query are sent so per-query analytics (e.g. /search?q=foo)
+ * stay attributed correctly.
+ */
 export default function PageViewBeacon() {
   const pathname = usePathname() || "/";
-  const searchParams = useSearchParams();
-  const query = searchParams?.toString();
-  const fullPath = query ? `${pathname}?${query}` : pathname;
+  const sp = useSearchParams();
+  const query = sp?.toString() || "";
 
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`/api/beacon?p=${encodeURIComponent(fullPath)}`}
-      alt=""
-      width={1}
-      height={1}
-      className="absolute"
-      aria-hidden="true"
-    />
-  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const fullPath = query ? `${pathname}?${query}` : pathname;
+    try {
+      const img = new Image();
+      img.src = `/api/beacon?p=${encodeURIComponent(fullPath)}`;
+    } catch {
+      // never let tracking throw
+    }
+  }, [pathname, query]);
+
+  return null;
 }
