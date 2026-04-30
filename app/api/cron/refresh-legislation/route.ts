@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { refreshLegislationFromFeeds } from "@/lib/legislation-scraper";
+import { refreshLegislation } from "@/lib/refresh-legislation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 async function handle(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -17,11 +17,14 @@ async function handle(req: NextRequest) {
   }
 
   const url = new URL(req.url);
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 500);
+  const dryRun = url.searchParams.get("dry") === "1";
+  const sourcesParam = url.searchParams.get("sources");
+  const sources = sourcesParam
+    ? (sourcesParam.split(",") as Array<"uk-parliament" | "us-congress" | "us-federal-register" | "eu-eur-lex">)
+    : undefined;
 
   try {
-    const db = getDb();
-    const result = await refreshLegislationFromFeeds(db, { limit });
+    const result = await refreshLegislation(getDb(), { dryRun, sources });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return NextResponse.json(
