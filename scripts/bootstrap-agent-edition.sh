@@ -12,7 +12,7 @@ Usage: bash scripts/bootstrap-agent-edition.sh [--bundle BUNDLE] [--mode headles
 Bundles:
   solo-builder-core | research-node | local-model-box
 
-This script targets Ubuntu 24.04 x86_64 and lays down the minimal agentic substrate:
+This script targets Ubuntu 24.04 on supported Agent Edition architectures and lays down the minimal agentic substrate:
 - creates workspace + ~/.freshcrate layout
 - installs core packages if apt is available
 - ensures uv is installed
@@ -34,7 +34,10 @@ log "bundle=${BUNDLE} mode=${MODE} channel=${CHANNEL}"
 
 require_cmd uname
 ARCH="$(uname -m)"
-[[ "$ARCH" == "x86_64" ]] || die "Agent Edition v0 supports x86_64 only (found: $ARCH)"
+case "$ARCH" in
+  x86_64|aarch64) ;;
+  *) die "Agent Edition v0 supports x86_64 and aarch64 only (found: $ARCH)" ;;
+esac
 
 if [[ -r /etc/os-release ]]; then
   # shellcheck disable=SC1091
@@ -84,7 +87,7 @@ else
 fi
 
 RECEIPT_PATH="${FRESHCRATE_HOME}/receipts/bootstrap-${BUNDLE}.txt"
-cat > "$RECEIPT_PATH" <<EOF
+write_text_file "$RECEIPT_PATH" <<EOF
 bundle=${BUNDLE}
 mode=${MODE}
 channel=${CHANNEL}

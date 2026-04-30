@@ -24,12 +24,24 @@ supports_bundle() {
   esac
 }
 
-bundle_packages() {
+bundle_core_packages() {
   case "$1" in
     solo-builder-core|research-node|local-model-box)
       printf '%s\n' git zsh tmux curl jq ripgrep fd-find sqlite3 python3 python3-venv python3-pip nodejs npm gh
       ;;
   esac
+}
+
+bundle_overlay_packages() {
+  case "$1" in
+    solo-builder-core|research-node|local-model-box)
+      printf '%s\n' docker.io
+      ;;
+  esac
+}
+
+bundle_packages() {
+  bundle_core_packages "$1"
 }
 
 bundle_services() {
@@ -45,6 +57,17 @@ bundle_dirs() {
     "${FRESHCRATE_HOME}/logs" \
     "${FRESHCRATE_HOME}/receipts" \
     "${FRESHCRATE_HOME}/models"
+}
+
+write_text_file() {
+  local output_path="$1"
+  local output_dir tmp_path
+  output_dir="$(dirname "$output_path")"
+  mkdir -p "$output_dir"
+  tmp_path="$(mktemp "${output_dir}/.tmp.XXXXXX")"
+  cat > "$tmp_path"
+  mv "$tmp_path" "$output_path"
+  sync "$output_path" 2>/dev/null || sync
 }
 
 parse_common_args() {

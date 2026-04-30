@@ -50,7 +50,11 @@ check_path() {
 }
 
 ARCH="$(uname -m 2>/dev/null || true)"
-[[ "$ARCH" == "x86_64" ]] && pass "arch is x86_64" || fail "arch mismatch: ${ARCH:-unknown}"
+case "$ARCH" in
+  x86_64) pass "arch is x86_64" ;;
+  aarch64) pass "arch is aarch64" ;;
+  *) fail "arch mismatch: ${ARCH:-unknown}" ;;
+esac
 
 if [[ -r /etc/os-release ]]; then
   # shellcheck disable=SC1091
@@ -111,7 +115,7 @@ else
 fi
 
 VERIFY_RECEIPT_PATH="${FRESHCRATE_HOME}/receipts/verify-${BUNDLE}.txt"
-cat > "$VERIFY_RECEIPT_PATH" <<EOF
+write_text_file "$VERIFY_RECEIPT_PATH" <<EOF
 bundle=${BUNDLE}
 mode=${MODE}
 channel=${CHANNEL}

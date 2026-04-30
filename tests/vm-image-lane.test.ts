@@ -19,6 +19,8 @@ describe("vm qcow2 image lane", () => {
     const template = fs.readFileSync(path.join(process.cwd(), "images", "vm-qcow2-headless.pkr.hcl"), "utf8");
     expect(template).toContain('cd_label         = "cidata"');
     expect(template).toContain('images/cloud-init/vm-qcow2-headless/user-data');
+    expect(template).toContain('variable "rootfs_dir"');
+    expect(template).toContain('rootfs-contract/package-manifest.txt');
     expect(fs.existsSync(path.join(process.cwd(), "images", "cloud-init", "vm-qcow2-headless", "meta-data"))).toBe(true);
     expect(fs.existsSync(path.join(process.cwd(), "images", "cloud-init", "vm-qcow2-headless", "user-data"))).toBe(true);
   });
@@ -32,10 +34,17 @@ describe("vm qcow2 image lane", () => {
   it("keeps verification aligned with bootstrap for python, uv, and optional docker", () => {
     const verify = fs.readFileSync(path.join(process.cwd(), "scripts", "verify-agent-edition.sh"), "utf8");
     const bootstrap = fs.readFileSync(path.join(process.cwd(), "scripts", "bootstrap-agent-edition.sh"), "utf8");
+    const provision = fs.readFileSync(path.join(process.cwd(), "scripts", "provision-agent-edition-image.sh"), "utf8");
+    const common = fs.readFileSync(path.join(process.cwd(), "scripts", "lib", "bootstrap-common.sh"), "utf8");
     expect(verify).toContain('command available: python3');
     expect(verify).not.toContain('python3.11');
     expect(verify).toContain('docker optional for current bootstrap image lane');
     expect(bootstrap).toContain('/usr/local/bin/uv');
+    expect(common).toContain('write_text_file()');
+    expect(bootstrap).toContain('write_text_file "$RECEIPT_PATH"');
+    expect(verify).toContain('write_text_file "$VERIFY_RECEIPT_PATH"');
+    expect(provision).toContain('source "${SCRIPT_DIR}/lib/bootstrap-common.sh"');
+    expect(provision).toContain('write_text_file /opt/freshcrate/image-build-receipt.txt');
   });
 
   it("packages vm artifacts by probing actual disk images, not just filename extensions", () => {
@@ -48,5 +57,15 @@ describe("vm qcow2 image lane", () => {
     const packageJson = fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8");
     expect(packageJson).toContain("image:package");
     expect(packageJson).toContain("image:build:vm");
+  });
+
+  it("supports an experimental arm64 qcow2 target in the build plumbing", () => {
+    const buildScript = fs.readFileSync(path.join(process.cwd(), "scripts", "build-agent-edition-image.sh"), "utf8");
+    const template = fs.readFileSync(path.join(process.cwd(), "images", "vm-qcow2-headless.pkr.hcl"), "utf8");
+    expect(buildScript).toContain("--target TARGET");
+    expect(buildScript).toContain("--rootfs-dir DIR");
+    expect(buildScript).toContain("build-agent-edition-rootfs.sh");
+    expect(template).toContain("ubuntu-24.04-server-cloudimg-arm64.img");
+    expect(template).toContain("output/vm-qcow2-headless-arm64");
   });
 });

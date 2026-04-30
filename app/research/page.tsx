@@ -1,204 +1,24 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import {
+  fetchArxivSections,
+  fetchHFDatasets,
+  fetchHFModels,
+  fetchHFPapers,
+  fetchHFSpaces,
+  formatDownloads,
+  type Paper,
+  type TrendingDataset,
+  type TrendingModel,
+  type TrendingSpace,
+} from "@/lib/research";
 
 export const metadata: Metadata = {
   title: "freshcrate research — Latest AI Agent Papers & Models",
   description: "Live AI agent research from arXiv and HuggingFace. Papers, models, datasets, spaces, benchmarks.",
 };
 
-// — Types —
-
-interface Paper {
-  title: string;
-  url: string;
-  source: string;
-  date: string;
-  authors?: string;
-  abstract?: string;
-  is_new?: boolean;
-  pwc_url?: string;
-}
-
-interface TrendingModel {
-  name: string;
-  url: string;
-  downloads: number;
-  task: string;
-  trendingScore?: number;
-}
-
-interface TrendingDataset {
-  name: string;
-  url: string;
-  downloads: number;
-}
-
-interface TrendingSpace {
-  name: string;
-  url: string;
-  sdk: string;
-  likes: number;
-  trendingScore: number;
-}
-
-// — Helpers —
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-function isNew(dateStr: string): boolean {
-  return !!dateStr && Date.now() - new Date(dateStr).getTime() < SEVEN_DAYS_MS;
-}
-
-function getPwcUrl(arxivUrl: string): string | undefined {
-  const match = arxivUrl.match(/arxiv\.org\/abs\/([\d.]+)/);
-  return match ? `https://paperswithcode.com/paper/${match[1]}` : undefined;
-}
-
-function formatDownloads(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
-}
-
-// — arXiv XML parser —
-
-function parseArxivXml(xml: string, source = "arXiv"): Paper[] {
-  const entries: Paper[] = [];
-  const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-  let match;
-  while ((match = entryRegex.exec(xml)) !== null) {
-    const entry = match[1];
-    const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/\s+/g, " ").trim() || "";
-    const link = entry.match(/<id>(.*?)<\/id>/)?.[1] || "";
-    const published = entry.match(/<published>(.*?)<\/published>/)?.[1] || "";
-    const authorName = entry.match(/<author>\s*<name>(.*?)<\/name>/)?.[1]?.trim() || "";
-    const abstract = entry.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.replace(/\s+/g, " ").trim() || "";
-
-    if (title && link) {
-      const date = published.slice(0, 10);
-      entries.push({
-        title: title.slice(0, 150),
-        url: link,
-        source,
-        date,
-        authors: authorName ? `${authorName} et al.` : undefined,
-        abstract: abstract ? abstract.slice(0, 500) : undefined,
-        is_new: isNew(date),
-        pwc_url: getPwcUrl(link),
-      });
-    }
-  }
-  return entries;
-}
-
-// — Server-side fetchers —
-
-async function fetchArxiv(query: string, max: number): Promise<Paper[]> {
-  try {
-    const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `https://export.arxiv.org/api/query?search_query=${encoded}&sortBy=submittedDate&sortOrder=descending&max_results=${max}`,
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    return parseArxivXml(await res.text());
-  } catch {
-    return [];
-  }
-}
-
-async function fetchHFPapers(): Promise<Paper[]> {
-  try {
-    const res = await fetch("https://huggingface.co/api/daily_papers?limit=10", {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.map(
-      (item: {
-        title?: string;
-        paper?: { id?: string; title?: string; authors?: { name?: string }[] };
-        publishedAt?: string;
-      }) => {
-        const date = (item.publishedAt || "").slice(0, 10);
-        const arxivId = item.paper?.id || "";
-        return {
-          title: (item.title || item.paper?.title || "").slice(0, 150),
-          url: `https://huggingface.co/papers/${arxivId}`,
-          source: "HF Daily",
-          date,
-          authors: item.paper?.authors?.[0]?.name
-            ? `${item.paper.authors[0].name} et al.`
-            : undefined,
-          is_new: isNew(date),
-          pwc_url: arxivId ? `https://paperswithcode.com/paper/${arxivId}` : undefined,
-        };
-      }
-    ).filter((p: Paper) => p.title);
-  } catch {
-    return [];
-  }
-}
-
-async function fetchHFModels(): Promise<TrendingModel[]> {
-  try {
-    const res = await fetch(
-      "https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=10",
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.map(
-      (m: { modelId?: string; id?: string; downloads?: number; pipeline_tag?: string; trendingScore?: number }) => ({
-        name: m.modelId || m.id || "",
-        url: `https://huggingface.co/${m.modelId || m.id}`,
-        downloads: m.downloads || 0,
-        task: m.pipeline_tag || "",
-        trendingScore: m.trendingScore || 0,
-      })
-    );
-  } catch {
-    return [];
-  }
-}
-
-async function fetchHFDatasets(): Promise<TrendingDataset[]> {
-  try {
-    const res = await fetch(
-      "https://huggingface.co/api/datasets?sort=trendingScore&direction=-1&limit=8",
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.map((d: { id?: string; downloads?: number }) => ({
-      name: d.id || "",
-      url: `https://huggingface.co/datasets/${d.id}`,
-      downloads: d.downloads || 0,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-async function fetchHFSpaces(): Promise<TrendingSpace[]> {
-  try {
-    const res = await fetch(
-      "https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=10",
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.map((s: { id?: string; sdk?: string; likes?: number; trendingScore?: number }) => ({
-      name: s.id || "",
-      url: `https://huggingface.co/spaces/${s.id}`,
-      sdk: s.sdk || "",
-      likes: s.likes || 0,
-      trendingScore: s.trendingScore || 0,
-    }));
-  } catch {
-    return [];
-  }
-}
+export const dynamic = "force-dynamic";
 
 // — Section components —
 
@@ -426,7 +246,15 @@ const JUMP_LINKS = [
 // — Page —
 
 export default async function ResearchPage() {
-  const [
+  const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
+    fetchArxivSections(),
+    fetchHFPapers(),
+    fetchHFModels(),
+    fetchHFDatasets(),
+    fetchHFSpaces(),
+  ]);
+
+  const {
     agentResearch,
     llmModels,
     machineLearning,
@@ -435,24 +263,7 @@ export default async function ResearchPage() {
     safety,
     benchmarks,
     toolUse,
-    hfPapers,
-    trendingModels,
-    trendingDatasets,
-    trendingSpaces,
-  ] = await Promise.all([
-    fetchArxiv("all:agent AND cat:cs.AI", 8),
-    fetchArxiv("cat:cs.CL", 8),
-    fetchArxiv("cat:cs.LG", 6),
-    fetchArxiv('all:"retrieval augmented"', 5),
-    fetchArxiv('(all:"code generation" OR all:"code synthesis") AND (cat:cs.SE OR cat:cs.AI)', 5),
-    fetchArxiv("(all:alignment OR all:safety) AND cat:cs.AI", 5),
-    fetchArxiv("(all:benchmark OR all:evaluation) AND (cat:cs.AI OR cat:cs.CL)", 5),
-    fetchArxiv('all:"tool use" OR all:"function calling"', 5),
-    fetchHFPapers(),
-    fetchHFModels(),
-    fetchHFDatasets(),
-    fetchHFSpaces(),
-  ]);
+  } = arxivSections;
 
   return (
     <div>
