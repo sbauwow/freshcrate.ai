@@ -2,6 +2,9 @@ import Link from "next/link";
 import { searchProjects, getCategories } from "@/lib/queries";
 import { getDb } from "@/lib/db";
 import { computeLifecycle } from "@/lib/lifecycle";
+import TrackOnMount from "@/app/components/track-on-mount";
+import TrackedNextLink from "@/app/components/tracked-next-link";
+import TrackedLink from "@/app/components/tracked-link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -77,6 +80,9 @@ export default async function SearchPage({
 
   return (
     <div className="flex flex-col md:flex-row gap-5">
+      {hasQuery && (
+        <TrackOnMount event="search" target={(q || author || "").slice(0, 100)} />
+      )}
       <div className="flex-1 min-w-0">
         <div className="border-b-2 border-fm-green pb-1 mb-3">
           <h2 className="text-[14px] font-bold text-fm-green">
@@ -188,17 +194,22 @@ export default async function SearchPage({
                 className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
-                  <Link
+                  <TrackedNextLink
+                    event="click"
+                    eventTarget={`project:${project.name}@search`}
                     href={`/projects/${project.name}`}
                     className="text-[13px] font-bold text-fm-link hover:text-fm-link-hover"
                   >
                     {project.name}
-                  </Link>
+                  </TrackedNextLink>
                   {project.repo_url && (
-                    <a href={project.repo_url} target="_blank" rel="noopener noreferrer"
-                       className="text-[10px] text-fm-text-light hover:text-fm-link" title="Source">
+                    <TrackedLink
+                      event="outbound"
+                      eventTarget={`repo:${(() => { try { return new URL(project.repo_url).hostname; } catch { return ""; } })()}@search`}
+                      href={project.repo_url} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] text-fm-text-light hover:text-fm-link" title="Source">
                       &#128193;
-                    </a>
+                    </TrackedLink>
                   )}
                   <span className="text-[11px] text-fm-text-light font-mono">{project.latest_version}</span>
                   <span className={`${lc.color} ${lc.textColor} px-1.5 py-0.5 rounded text-[9px] font-bold`} title={lc.reason}>

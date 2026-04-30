@@ -3,6 +3,8 @@ import { getLatestReleases, getCategories, getStats, getLanguages, type ReleaseS
 import { isRankingV2Enabled } from "@/lib/ranking";
 import { computeLifecycle } from "@/lib/lifecycle";
 import ResearchFeed from "./components/research-feed";
+import TrackedLink from "./components/tracked-link";
+import TrackedNextLink from "./components/tracked-next-link";
 
 function LicensePill({ license }: { license: string }) {
   // Permissive = green, Copyleft = yellow, Weak copyleft = blue, Unknown = gray
@@ -103,9 +105,9 @@ export default async function Home({
               <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">research + infra</span>
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              <Link href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">Browse ecosystem</Link>
-              <Link href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">Explore Orchestra</Link>
-              <Link href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">Agent Edition</Link>
+              <TrackedNextLink event="click" eventTarget="browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">Browse ecosystem</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">Explore Orchestra</TrackedNextLink>
+              <TrackedNextLink event="install" eventTarget="agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">Agent Edition</TrackedNextLink>
             </div>
           </div>
 
@@ -164,14 +166,18 @@ export default async function Home({
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <Link
+                    <TrackedNextLink
+                      event="click"
+                      eventTarget={`project:${project.name}@home`}
                       href={`/projects/${project.name}`}
                       className="text-[13px] font-bold text-fm-link hover:text-fm-link-hover"
                     >
                       {project.name}
-                    </Link>
+                    </TrackedNextLink>
                     {project.repo_url && (
-                      <a
+                      <TrackedLink
+                        event="outbound"
+                        eventTarget={`repo:${(() => { try { return new URL(project.repo_url).hostname; } catch { return ""; } })()}@home`}
                         href={project.repo_url}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -179,7 +185,7 @@ export default async function Home({
                         title="View source on GitHub"
                       >
                         &#128193;
-                      </a>
+                      </TrackedLink>
                     )}
                     <span className="text-[11px] text-fm-text-light font-mono">
                       {project.latest_version}
@@ -254,9 +260,9 @@ export default async function Home({
             freshcrate Agent Edition is the Linux operator lane: minimal agentic substrate, Ubuntu 24.04 x86_64, headless first.
           </p>
           <div className="space-y-1.5 text-[10px]">
-            <Link href="/install/agent-edition" className="block text-fm-link hover:text-fm-link-hover">
+            <TrackedLink event="install" eventTarget="agent-edition" href="/install/agent-edition" className="block text-fm-link hover:text-fm-link-hover">
               → Install freshcrate Agent Edition
-            </Link>
+            </TrackedLink>
           </div>
         </div>
 

@@ -7,7 +7,12 @@ import { getDependencyAuditSummary } from "@/lib/deps";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { notFound } from "next/navigation";
 import DepGraph from "@/app/components/dep-graph";
+import TrackedLink from "@/app/components/tracked-link";
 import { parseProvenanceJson } from "@/lib/provenance";
+
+function hostname(url: string): string {
+  try { return new URL(url).hostname; } catch { return url.slice(0, 60); }
+}
 
 export default async function ProjectPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
@@ -387,16 +392,30 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
             <div className="space-y-1 text-[11px]">
               {project.repo_url && (
                 <div>
-                  <a href={project.repo_url} target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">
+                  <TrackedLink
+                    event="outbound"
+                    eventTarget={`repo:${hostname(project.repo_url)}`}
+                    href={project.repo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-fm-link hover:text-fm-link-hover"
+                  >
                     &#128193; Source Code &rarr;
-                  </a>
+                  </TrackedLink>
                 </div>
               )}
               {project.homepage_url && project.homepage_url !== project.repo_url && (
                 <div>
-                  <a href={project.homepage_url} target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">
+                  <TrackedLink
+                    event="outbound"
+                    eventTarget={`home:${hostname(project.homepage_url)}`}
+                    href={project.homepage_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-fm-link hover:text-fm-link-hover"
+                  >
                     &#127760; Homepage &rarr;
-                  </a>
+                  </TrackedLink>
                 </div>
               )}
             </div>

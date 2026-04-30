@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Allow: /api
+Disallow: /admin/
+Disallow: /api/
 
 Sitemap: https://freshcrate.ai/sitemap.xml
