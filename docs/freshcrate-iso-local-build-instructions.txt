@@ -1,0 +1,40 @@
+Freshcrate ISO local build + deploy
+
+Repo
+- cd /home/stathis/freshcrate
+
+One-time dependency
+- sudo apt-get update && sudo apt-get install -y xorriso
+
+Fast path
+- bash scripts/build-and-release-freshcrate-iso-local.sh
+
+What it does
+- runs targeted ISO test
+- builds the autoinstall ISO
+- packages checksum + metadata
+- creates a .zip archive
+
+Artifacts
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.sha256
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.json
+
+Publish rolling GitHub release
+- bash scripts/build-and-release-freshcrate-iso-local.sh --publish
+
+Release tag
+- agent-edition-iso-latest
+
+Serve locally on LAN
+- python3 -m http.server 8000 --directory output/iso-autoinstall-headless
+- then fetch from another machine using the printed hostname/IP
+
+Manual fallback
+- npm test -- --run tests/iso-image-lane.test.ts
+- bash scripts/build-agent-edition-iso.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
+- bash scripts/package-agent-edition-image.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
+
+Helper script
+- scripts/build-and-release-freshcrate-iso-local.sh

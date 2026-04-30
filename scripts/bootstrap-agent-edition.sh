@@ -53,7 +53,23 @@ for dir in $(bundle_dirs); do
 done
 log "created workspace and ~/.freshcrate directories"
 
-if command -v apt-get >/dev/null 2>&1; then
+core_stack_ready=1
+for cmd in git tmux jq sqlite3 node npm python3; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    core_stack_ready=0
+    break
+  fi
+done
+if ! command -v rg >/dev/null 2>&1 && ! command -v ripgrep >/dev/null 2>&1; then
+  core_stack_ready=0
+fi
+if ! command -v fd >/dev/null 2>&1 && ! command -v fdfind >/dev/null 2>&1; then
+  core_stack_ready=0
+fi
+
+if [[ "$core_stack_ready" -eq 1 ]]; then
+  log "bundle core commands already present; skipping apt package installation"
+elif command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   log "refreshing apt metadata"
   sudo apt-get update -y
@@ -61,29 +77,29 @@ if command -v apt-get >/dev/null 2>&1; then
   mapfile -t PKGS < <(bundle_packages "$BUNDLE")
   log "installing bundle packages: ${PKGS[*]}"
   sudo apt-get install -y software-properties-common curl ca-certificates gnupg lsb-release "${PKGS[@]}"
-
-  if ! command -v uv >/dev/null 2>&1; then
-    log "installing uv"
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-  fi
-
-  if [[ -x /root/.local/bin/uv && ! -x /usr/local/bin/uv ]]; then
-    sudo ln -sf /root/.local/bin/uv /usr/local/bin/uv
-  fi
-
-  if [[ -x /root/.local/bin/uvx && ! -x /usr/local/bin/uvx ]]; then
-    sudo ln -sf /root/.local/bin/uvx /usr/local/bin/uvx
-  fi
-
-  if ! command -v docker >/dev/null 2>&1; then
-    log "docker not found; install manually or extend this script with repo setup"
-  fi
-
-  if [[ "$MODE" == "light-desktop" ]]; then
-    log "light-desktop mode selected; no heavy desktop is installed by default"
-  fi
 else
   log "apt-get unavailable; skipped package installation"
+fi
+
+if ! command -v uv >/dev/null 2>&1; then
+  log "installing uv"
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+
+if [[ -x /root/.local/bin/uv && ! -x /usr/local/bin/uv ]]; then
+  sudo ln -sf /root/.local/bin/uv /usr/local/bin/uv
+fi
+
+if [[ -x /root/.local/bin/uvx && ! -x /usr/local/bin/uvx ]]; then
+  sudo ln -sf /root/.local/bin/uvx /usr/local/bin/uvx
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  log "docker not found; install manually or extend this script with repo setup"
+fi
+
+if [[ "$MODE" == "light-desktop" ]]; then
+  log "light-desktop mode selected; no heavy desktop is installed by default"
 fi
 
 RECEIPT_PATH="${FRESHCRATE_HOME}/receipts/bootstrap-${BUNDLE}.txt"

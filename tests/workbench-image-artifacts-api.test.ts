@@ -9,7 +9,7 @@ describe("workbench image artifact apis", () => {
     const response = GET_IMAGE_BUILD(request);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
-    expect(response.headers.get("content-disposition")).toContain("freshcrate-image-build-solo-builder-core-headless-stable-aws-ami-builder.json");
+    expect(response.headers.get("content-disposition")).toContain("freshcrate-image-build-solo-builder-core-headless-stable-ubuntu-24.04-x86_64-aws-ami-builder.json");
 
     const data = await response.json();
     expect(data.artifact).toBe("image-build-manifest");
@@ -21,7 +21,7 @@ describe("workbench image artifact apis", () => {
     const response = GET_CLOUD_INIT(request);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/yaml");
-    expect(response.headers.get("content-disposition")).toContain("freshcrate-cloud-init-research-node-light-desktop-stable.yaml");
+    expect(response.headers.get("content-disposition")).toContain("freshcrate-cloud-init-research-node-light-desktop-stable-ubuntu-24.04-x86_64.yaml");
 
     const text = await response.text();
     expect(text.startsWith("#cloud-config")).toBe(true);

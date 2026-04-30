@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FRESHCRATE_HOME_DEFAULT="${HOME}/.freshcrate"
-WORKSPACE_DEFAULT="${HOME}/workspace"
+HOME_DEFAULT="${HOME:-/root}"
+FRESHCRATE_HOME_DEFAULT="${HOME_DEFAULT}/.freshcrate"
+WORKSPACE_DEFAULT="${HOME_DEFAULT}/workspace"
 
 log() {
   printf '[freshcrate-agent-edition] %s\n' "$*"

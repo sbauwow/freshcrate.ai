@@ -47,7 +47,7 @@ export default function AgentEditionPage() {
       <div className="border-b-2 border-fm-green pb-1">
         <h2 className="text-[14px] font-bold text-fm-green">freshcrate Agent Edition</h2>
         <p className="text-[11px] text-fm-text-light mt-1">
-          Linux for agent operators. A minimal agentic substrate on Ubuntu 24.04 x86_64, headless first.
+          Linux for agent operators. Ubuntu 24.04 x86_64 is the stable lane; generic arm64 is in preparation as the next experimental lane.
         </p>
       </div>
 
@@ -181,7 +181,7 @@ export default function AgentEditionPage() {
         </div>
         <div className="p-2 text-[11px]">
           <ul className="list-disc ml-4 text-fm-text-light space-y-0.5">
-            <li>Ubuntu 24.04 x86_64 only.</li>
+            <li>Ubuntu 24.04 x86_64 is stable; Ubuntu 24.04 arm64 is the next experimental target.</li>
             <li>Headless first. Bootstrap creates workspace, logs, receipts, and model-cache paths.</li>
             <li>Verification exits non-zero if the machine does not match the contract.</li>
             <li>One bundle, one channel. More lanes land when they are actually shipping.</li>

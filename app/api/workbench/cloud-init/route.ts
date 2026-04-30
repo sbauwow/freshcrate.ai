@@ -7,13 +7,14 @@ export function GET(request: NextRequest) {
   const bundle = request.nextUrl.searchParams.get("bundle") || undefined;
   const mode = request.nextUrl.searchParams.get("mode") || undefined;
   const channel = request.nextUrl.searchParams.get("channel") || undefined;
+  const target = request.nextUrl.searchParams.get("target") || undefined;
   const downloadRequested = request.nextUrl.searchParams.get("download") === "1";
-  const seed = getAgentEditionCloudInitSeed({ bundle, mode, channel });
+  const seed = getAgentEditionCloudInitSeed({ bundle, mode, channel, target });
 
   logRequest(request, 200, start);
 
   if (downloadRequested) {
-    const download = getAgentEditionImageArtifactDownload({ artifact: "cloud-init", bundle, mode, channel });
+    const download = getAgentEditionImageArtifactDownload({ artifact: "cloud-init", bundle, mode, channel, target });
     return new NextResponse(seed, {
       headers: {
         "content-type": "text/yaml; charset=utf-8",

@@ -1047,6 +1047,98 @@ The future isn't something that happens to you. It's something you build.`
       { title: "freshcrate — browse real agent packages and tools", url: "https://freshcrate.ai/browse", type: "tool" },
     ],
     funFact: "The first website ever (info.cern.ch) had no images, no JavaScript, no AI — just hyperlinks. That was 1991. Decades later, we have AI agents that can build entire websites from a text description. If progress continues at this rate, in another decade today's AI may look primitive compared with what comes next.",
+    nextCrate: "rag-vs-long-context"
+  },
+
+  // ═══════════════════════════════════════════════
+  // CRATE 11: RAG vs Long-Context
+  // ═══════════════════════════════════════════════
+  {
+    slug: "rag-vs-long-context",
+    number: 11,
+    title: "RAG vs. Long-Context",
+    emoji: "🧵",
+    subtitle: "When retrieval helps, when it hurts, and why bigger context changed the stack",
+    difficulty: "architect",
+    estimatedMinutes: 16,
+    prerequisites: ["nlp-language", "agents-and-the-future"],
+    tags: ["rag", "long-context", "prompt-caching", "retrieval", "architecture"],
+    sections: [
+      {
+        heading: "Why RAG Existed in the First Place",
+        body: `RAG stands for Retrieval-Augmented Generation. Translation: instead of asking a model to remember everything, you store your documents somewhere else and fetch the most relevant pieces right before the model answers.
+
+This became popular because older models had tiny context windows. In 2023, many production systems only had room for a few thousand tokens. A long PDF, a policy manual, or a real codebase would overflow the prompt immediately. So engineers had to split documents into chunks, embed them, search the chunks, and feed back only the best bits.
+
+That was not some weird fad. It was a practical response to a real limit. If your model literally cannot fit the corpus, retrieval is not optional. It is the bridge that lets a small-context model pretend it saw more than it really did.`
+      },
+      {
+        heading: "Why People Are Re-thinking It Now",
+        body: `Context windows got much bigger. Some modern models can read hundreds of thousands or even a million tokens in one shot. Add prompt caching and the economics change too: you pay full price for the big context once, then much less for repeated follow-up queries over the same cached material.
+
+That means a lot of systems that used to need a retrieval layer can now just load the whole corpus directly into context. No chunk boundaries. No missed table that got separated from its explanation. No top-k retrieval failure where the answer was sitting in chunk number 11 while your system only fetched the top 10.
+
+So the new question is not "Is RAG dead?" The real question is: do you still need retrieval for THIS workload, or are you carrying around architecture that was only necessary because old models were cramped?`
+      },
+      {
+        heading: "What Long-Context Simplifies — and What It Does Not",
+        body: `Long-context can simplify the stack brutally. In the best case, you only need: a file loader, a clear system prompt, the full corpus, and prompt caching. That is much easier to reason about than chunking, embeddings, vector storage, filtering, reranking, and recall debugging.
+
+But long-context is not magic. Bigger context windows do NOT guarantee equal attention to every token. Models still show primacy, recency, and "lost in the middle" problems. They may technically see the whole corpus but still reason badly over a messy prompt. Also, sending giant private corpora into one prompt may be too expensive, too slow, or legally impossible.
+
+So the upgrade is real, but the hype can overshoot. Long-context kills a lot of unnecessary retrieval scaffolding. It does not kill the need for careful prompt design, evaluation, access control, or good information architecture.`
+      },
+      {
+        heading: "When RAG Still Wins",
+        body: `RAG still makes sense when the corpus is too large to fit comfortably, changes constantly, or must stay tightly partitioned between users. It also matters when latency is critical and you cannot afford to stuff half a million tokens into every interaction.
+
+A good rule of thumb: if the same stable corpus is queried many times in a row, long-context plus prompt caching becomes very attractive. If the corpus is huge, rapidly changing, tenant-isolated, or only a tiny slice is relevant per request, retrieval still earns its keep.
+
+The mature position is not religious. Do not build RAG because it was fashionable in 2024. Do not delete RAG just because a post said it was dead. Build the simplest architecture that matches your corpus size, update frequency, privacy constraints, latency target, and failure tolerance.`
+      }
+    ],
+    thinkAboutIt: [
+      "If your AI assistant reads a 400-page handbook every day, would you rather pay once to cache the whole thing or repeatedly search tiny fragments? Why?",
+      "What kinds of errors become MORE likely with chunked retrieval? What kinds become MORE likely with giant prompts?",
+      "If you were designing an internal company assistant, what would decide whether you use RAG, long-context, or a hybrid?"
+    ],
+    tryThis: [
+      "Take a long article and split it into 500-word chunks. Then ask a friend to answer a question using only the top 2 chunks. What did they miss that required the full document?",
+      "Pick a tool or workflow you use today because of a technical limitation. Ask yourself: if that limitation disappeared, would the tool still be necessary?",
+      "Sketch two stacks on paper: one using chunking + embeddings + retrieval, and one using full-context + caching. Which one would be easier for your team to debug at 2am?"
+    ],
+    quiz: [
+      {
+        question: "Why did RAG become popular in the first place?",
+        choices: ["Because vector databases are inherently smarter than LLMs", "Because older models could not fit large corpora into context", "Because prompt caching was too cheap", "Because long-context models did not exist at all"],
+        correct: 1,
+        explanation: "RAG was mainly a response to limited context windows. If the model cannot fit the source material, retrieval is the practical workaround."
+      },
+      {
+        question: "What is one major advantage of long-context over chunked retrieval?",
+        choices: ["It guarantees perfect reasoning", "It removes the need for evaluation", "It can avoid missing relevant information due to top-k retrieval cutoffs", "It always runs faster than retrieval"],
+        correct: 2,
+        explanation: "With long-context, the model can read the whole corpus instead of only the top retrieved chunks, which reduces silent recall failures caused by retrieval cutoffs."
+      },
+      {
+        question: "Which scenario still strongly favors RAG?",
+        choices: ["A stable 200-page handbook queried repeatedly all day", "A small codebase reused in the same cached session", "A massive multi-tenant corpus with strict data isolation and fast-changing documents", "A one-user notebook that fits comfortably in context"],
+        correct: 2,
+        explanation: "RAG still wins when the corpus is huge, changes frequently, or must remain strictly isolated between tenants. Those constraints make whole-corpus prompting less practical."
+      },
+      {
+        question: "What does prompt caching mainly change?",
+        choices: ["It makes chunking mandatory", "It lowers repeated-query cost for reused context", "It turns every model into an agent", "It removes privacy concerns"],
+        correct: 1,
+        explanation: "Prompt caching makes repeated use of the same large context much cheaper, which is a big reason long-context workflows have become more viable."
+      }
+    ],
+    goDeeper: [
+      { title: "Prompt caching — Anthropic docs", url: "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching", type: "article" },
+      { title: "Lost in the Middle: How Language Models Use Long Contexts", url: "https://arxiv.org/abs/2307.03172", type: "paper" },
+      { title: "Building effective agents — Anthropic", url: "https://www.anthropic.com/research/building-effective-agents", type: "article" },
+    ],
+    funFact: "A lot of AI architecture arguments are really timing arguments in disguise. The same design can look genius in one model generation and bloated in the next, because the underlying constraints moved.",
     nextCrate: null
   }
 ];

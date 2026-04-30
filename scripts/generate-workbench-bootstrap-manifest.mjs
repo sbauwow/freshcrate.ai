@@ -15,16 +15,37 @@ function parseShellListTokens(raw) {
     .filter(Boolean);
 }
 
+function parseCasePrintfMap(functionBody) {
+  const result = new Map();
+  const cases = Array.from(functionBody.matchAll(/([a-z0-9|-]+(?:\|[a-z0-9|-]+)*)\)\n\s+printf '%s\\n' ([^\n]+)\n\s+;;/g));
+  for (const match of cases) {
+    const bundleIds = match[1]?.split("|").map((item) => item.trim()).filter(Boolean) ?? [];
+    const values = parseShellListTokens(match[2] ?? "");
+    for (const bundleId of bundleIds) {
+      result.set(bundleId, values);
+    }
+  }
+  return result;
+}
+
+function getFunctionBody(text, functionName) {
+  const match = text.match(new RegExp(`${functionName}\\(\\) \\{([\\s\\S]*?)\\n\\}`, "m"));
+  if (!match) {
+    throw new Error(`Failed to locate function ${functionName} in ${sourcePath}`);
+  }
+  return match[1];
+}
+
 function buildManifest(text) {
   const manifest = Object.fromEntries(BUNDLE_IDS.map((bundleId) => [bundleId, { packages: [], services: [] }]));
 
-  const packageCases = Array.from(text.matchAll(/([a-z0-9|-]+(?:\|[a-z0-9|-]+)*)\)\n\s+printf '%s\\n' ([^\n]+)\n\s+;;/g));
-  for (const match of packageCases) {
-    const bundleIds = match[1]?.split("|").map((item) => item.trim()).filter(Boolean) ?? [];
-    const packages = parseShellListTokens(match[2] ?? "");
-    for (const bundleId of bundleIds) {
-      if (bundleId in manifest) manifest[bundleId].packages = packages;
-    }
+  const corePackagesByBundle = parseCasePrintfMap(getFunctionBody(text, "bundle_core_packages"));
+  const overlayPackagesByBundle = parseCasePrintfMap(getFunctionBody(text, "bundle_overlay_packages"));
+
+  for (const bundleId of BUNDLE_IDS) {
+    const corePackages = corePackagesByBundle.get(bundleId) ?? [];
+    const overlayPackages = overlayPackagesByBundle.get(bundleId) ?? [];
+    manifest[bundleId].packages = [...corePackages, ...overlayPackages];
   }
 
   const servicePrintf = text.match(/bundle_services\(\) \{[\s\S]*?printf '%s\\n' ([^\n]+)\n\}/);

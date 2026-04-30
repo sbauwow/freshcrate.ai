@@ -7,13 +7,14 @@ export function GET(request: NextRequest) {
   const bundle = request.nextUrl.searchParams.get("bundle") || undefined;
   const mode = request.nextUrl.searchParams.get("mode") || undefined;
   const channel = request.nextUrl.searchParams.get("channel") || undefined;
+  const target = request.nextUrl.searchParams.get("target") || undefined;
   const downloadRequested = request.nextUrl.searchParams.get("download") === "1";
-  const manifest = getAgentEditionManifest({ bundle, mode, channel });
+  const manifest = getAgentEditionManifest({ bundle, mode, channel, target });
 
   logRequest(request, 200, start);
 
   if (downloadRequested) {
-    const download = getAgentEditionManifestDownload({ bundle, mode, channel });
+    const download = getAgentEditionManifestDownload({ bundle, mode, channel, target });
     return NextResponse.json(manifest, {
       headers: {
         "content-type": "application/json; charset=utf-8",

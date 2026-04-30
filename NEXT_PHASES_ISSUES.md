@@ -161,7 +161,7 @@ Outcome:
 
 ### FC-301: Ranking v2 for search and browse
 Priority: P0
-Status: Next Up
+Status: Shipped
 
 Scope:
 - Composite ranking formula using verification score, recency, stars/forks velocity, release cadence.
@@ -171,6 +171,9 @@ Acceptance criteria:
 - Ranking strategy behind a config flag for rollback.
 - Query-level tests for ranking determinism.
 - Documented scoring weights in repo docs.
+
+Outcome:
+- Ranking v2 now powers search plus browse `sort=rank`/Recommended ordering with rollback flag, focused determinism tests, and documented weights in `docs/ranking-v2.md`.
 
 ---
 
@@ -247,6 +250,26 @@ Acceptance criteria:
 ---
 
 ## Sprint 5 (Weeks 8–10) — Operator Control Plane
+
+### FC-550: Agent Edition generic arm64 foundation
+Priority: P0
+Status: Planned
+
+Scope:
+- Add `ubuntu-24.04-arm64` as a first-class Agent Edition target.
+- Stop hardcoding x86_64-only assumptions in workbench metadata and bootstrap/verify scripts.
+- Prepare the first honest arm64 artifact lane before any phone/Switch-specific claims.
+
+Acceptance criteria:
+- Workbench/API surfaces can represent arm64.
+- Bootstrap + verify allow `aarch64` in addition to `x86_64`.
+- Build pipeline has a documented path toward an arm64 QCOW2/cloud-image lane.
+- Public copy distinguishes generic arm64 from device-specific overlays.
+
+Outcome target:
+- Generic arm64 substrate first; phones/Switch later as experimental overlays.
+
+---
 
 ### FC-501: Minimal admin dashboard
 Priority: P1

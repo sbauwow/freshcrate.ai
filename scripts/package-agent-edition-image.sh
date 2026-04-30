@@ -32,10 +32,10 @@ case "$IMAGE" in
   vm-qcow2-headless)
     FINAL_EXTENSION=".qcow2"
     ;;
-  iso-autoinstall-headless)
+  iso-autoinstall-headless|iso-live-persistent-x86_64)
     FINAL_EXTENSION=".iso"
     ;;
-  *) echo "packaging currently supports vm-qcow2-headless and iso-autoinstall-headless only" >&2; exit 1 ;;
+  *) echo "packaging currently supports vm-qcow2-headless, iso-autoinstall-headless, and iso-live-persistent-x86_64 only" >&2; exit 1 ;;
 esac
 
 if [[ -z "$OUTPUT_DIR" ]]; then
@@ -51,7 +51,7 @@ while IFS= read -r -d '' candidate; do
     *.sha256|*.json|*.txt) continue ;;
   esac
 
-  if [[ "$IMAGE" == "iso-autoinstall-headless" ]]; then
+  if [[ "$IMAGE" == "iso-autoinstall-headless" || "$IMAGE" == "iso-live-persistent-x86_64" ]]; then
     case "$candidate" in
       *.iso) SOURCE_ARTIFACT="$candidate"; break ;;
     esac

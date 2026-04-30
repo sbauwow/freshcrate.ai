@@ -12,7 +12,7 @@ const EXTERNAL_FETCH_TIMEOUT_MS = 7000;
 
 type FetchOptions = RequestInit & { next?: { revalidate?: number } };
 
-type FetchLike = typeof fetch;
+type FetchLike = (input: string | URL | Request, init?: FetchOptions) => Promise<Response>;
 
 async function fetchWithTimeout(input: string | URL | Request, init?: FetchOptions): Promise<Response> {
   const controller = new AbortController();
