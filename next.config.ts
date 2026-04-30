@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
     return [
       { source: "/workbench", destination: "/agent-edition", permanent: true },
       { source: "/install/agent-edition", destination: "/agent-edition", permanent: true },
+      // Apex → www. Requires freshcrate.ai to be added as a custom domain
+      // in Railway so the request reaches Next.js with a valid TLS cert.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "freshcrate.ai" }],
+        destination: "https://www.freshcrate.ai/:path*",
+        permanent: true,
+      },
     ];
   },
   async headers() {

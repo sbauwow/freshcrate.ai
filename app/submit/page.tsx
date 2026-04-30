@@ -169,7 +169,7 @@ export default function SubmitPage() {
                 onChange={(e) => setUrl(e.target.value)}
                 required
                 className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white"
-                placeholder="package-name or https://freshcrate.ai/projects/..."
+                placeholder="package-name or https://www.freshcrate.ai/projects/..."
               />
             </div>
             <div>

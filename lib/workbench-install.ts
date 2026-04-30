@@ -182,7 +182,7 @@ export function buildAgentEditionCommands(input: { bundle?: string; mode?: strin
     mode,
     channel: channel.id,
     version: channel.version,
-    hosted: `curl -fsSL https://freshcrate.ai/api/install/agent-edition | bash -s -- ${bundleArg} ${modeArg} ${channelArg}`,
+    hosted: `curl -fsSL https://www.freshcrate.ai/api/install/agent-edition | bash -s -- ${bundleArg} ${modeArg} ${channelArg}`,
     local: `bash scripts/bootstrap-agent-edition.sh ${bundleArg} ${modeArg} ${channelArg}`,
     verify: `bash scripts/verify-agent-edition.sh ${bundleArg} ${modeArg} ${channelArg}`,
   };

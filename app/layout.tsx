@@ -7,7 +7,7 @@ import NavClock from "./components/nav-clock";
 import PageViewBeacon from "./components/page-view-beacon";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://freshcrate.ai"),
+  metadataBase: new URL("https://www.freshcrate.ai"),
   title: "freshcrate — open source packages for agents",
   description:
     "freshcrate is the open source package directory for the agent ecosystem: MCP servers, orchestration frameworks, coding agents, research tooling, infrastructure, and operator playbooks.",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "freshcrate — open source packages for agents",
     description:
       "The open source package directory for the agent ecosystem: MCP servers, orchestration frameworks, coding agents, research tooling, infrastructure, and operator playbooks.",
-    url: "https://freshcrate.ai",
+    url: "https://www.freshcrate.ai",
     images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "freshcrate" }],
   },
   twitter: {

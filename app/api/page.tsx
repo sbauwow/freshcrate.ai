@@ -26,7 +26,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://freshcrate.ai/api/projects?limit=5`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://www.freshcrate.ai/api/projects?limit=5`}</pre>
             </div>
           </div>
         </section>
@@ -43,7 +43,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://freshcrate.ai/api/search?q=mcp`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://www.freshcrate.ai/api/search?q=mcp`}</pre>
             </div>
           </div>
         </section>
@@ -54,7 +54,7 @@ export default function ApiDocsPage() {
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/categories</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns all categories with package counts.</div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://freshcrate.ai/api/categories`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://www.freshcrate.ai/api/categories`}</pre>
             </div>
           </div>
         </section>
@@ -72,7 +72,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://freshcrate.ai/api/projects/langchain/deps`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://www.freshcrate.ai/api/projects/langchain/deps`}</pre>
             </div>
           </div>
         </section>
@@ -84,7 +84,7 @@ export default function ApiDocsPage() {
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns a single-file shell installer suitable for <code className="font-mono">curl | bash</code> for freshcrate Agent Edition.</div>
             <div className="text-[10px] text-fm-text-light mb-2">Default release lane is <code className="font-mono">stable</code>. Installer arguments support deterministic bundle/mode/channel selection.</div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -fsSL https://freshcrate.ai/api/install/agent-edition | bash -s -- --bundle solo-builder-core --mode headless --channel stable`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -fsSL https://www.freshcrate.ai/api/install/agent-edition | bash -s -- --bundle solo-builder-core --mode headless --channel stable`}</pre>
             </div>
           </div>
         </section>
@@ -102,7 +102,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/workbench/recommend?persona=security&task=audit+logs+and+isolate+tooling"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/workbench/recommend?persona=security&task=audit+logs+and+isolate+tooling"`}</pre>
             </div>
           </div>
         </section>
@@ -122,7 +122,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -OJ "https://freshcrate.ai/api/workbench/manifest?bundle=solo-builder-core&mode=headless&channel=stable&download=1"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -OJ "https://www.freshcrate.ai/api/workbench/manifest?bundle=solo-builder-core&mode=headless&channel=stable&download=1"`}</pre>
             </div>
           </div>
         </section>
@@ -135,21 +135,21 @@ export default function ApiDocsPage() {
               <div className="text-[10px] text-fm-text-light mt-1">Returns a versioned image-build manifest for Packer/cloud-image pipelines. Supports <code className="font-mono">bundle</code>, <code className="font-mono">mode</code>, <code className="font-mono">channel</code>, <code className="font-mono">image</code>, and <code className="font-mono">download=1</code>. Concrete starter templates live under <code className="font-mono">images/*.pkr.hcl</code>, local builds run through <code className="font-mono">scripts/build-agent-edition-image.sh</code>, and the first publish-ready Linux image lane is <code className="font-mono">vm-qcow2-headless</code> with packaging via <code className="font-mono">scripts/package-agent-edition-image.sh</code>.</div>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -OJ "https://freshcrate.ai/api/workbench/image-build?bundle=solo-builder-core&mode=headless&channel=beta&image=aws-ami-builder&download=1"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -OJ "https://www.freshcrate.ai/api/workbench/image-build?bundle=solo-builder-core&mode=headless&channel=beta&image=aws-ami-builder&download=1"`}</pre>
             </div>
             <div>
               <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/workbench/image-artifact</code>
               <div className="text-[10px] text-fm-text-light mt-1">Returns live artifact status for a built image lane, including whether the qcow2 exists locally, file size, sha256, local download URLs, and rolling GitHub release URLs. For the stable vm lane, the public release artifact is the zipped qcow2. Add <code className="font-mono">download=1</code> plus <code className="font-mono">kind=artifact|checksum|metadata</code> to fetch the built file when present.</div>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/workbench/image-artifact?bundle=solo-builder-core&mode=headless&channel=stable&image=vm-qcow2-headless"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/workbench/image-artifact?bundle=solo-builder-core&mode=headless&channel=stable&image=vm-qcow2-headless"`}</pre>
             </div>
             <div>
               <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/workbench/cloud-init</code>
               <div className="text-[10px] text-fm-text-light mt-1">Returns a cloud-init seed YAML using the same Agent Edition bundle/mode/channel contract. Supports <code className="font-mono">download=1</code> for attachment delivery.</div>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -OJ "https://freshcrate.ai/api/workbench/cloud-init?bundle=research-node&mode=light-desktop&channel=stable&download=1"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -OJ "https://www.freshcrate.ai/api/workbench/cloud-init?bundle=research-node&mode=light-desktop&channel=stable&download=1"`}</pre>
             </div>
             <div className="text-[10px] text-fm-text-light">Roadmap cards still live on <code className="font-mono">/workbench#cloud-images</code> and <code className="font-mono">/install/agent-edition#cloud-images</code>.</div>
           </div>
@@ -170,7 +170,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/workbench?persona=automation&mode=headless"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/workbench?persona=automation&mode=headless"`}</pre>
             </div>
           </div>
         </section>
@@ -189,7 +189,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/orchestra?theme=delegation&stage=production"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/orchestra?theme=delegation&stage=production"`}</pre>
             </div>
           </div>
         </section>
@@ -209,7 +209,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://freshcrate.ai/api/legislation?region=Europe&status=in_force`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://www.freshcrate.ai/api/legislation?region=Europe&status=in_force`}</pre>
             </div>
           </div>
         </section>
@@ -233,7 +233,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/agent/recommend?task=mcp+security+policy&category=MCP%20Servers&language=TypeScript&runtime=local&risk_tolerance=low&verified_only=true"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/agent/recommend?task=mcp+security+policy&category=MCP%20Servers&language=TypeScript&runtime=local&risk_tolerance=low&verified_only=true"`}</pre>
             </div>
           </div>
         </section>
@@ -257,7 +257,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/agent/compare?a=langchain&b=llama-index&task=rag+pipeline"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/agent/compare?a=langchain&b=llama-index&task=rag+pipeline"`}</pre>
             </div>
           </div>
         </section>
@@ -275,7 +275,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://freshcrate.ai/api/agent/preflight?name=langchain"`}</pre>
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl "https://www.freshcrate.ai/api/agent/preflight?name=langchain"`}</pre>
             </div>
           </div>
         </section>
@@ -295,7 +295,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://freshcrate.ai/api/agent/decision \\
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://www.freshcrate.ai/api/agent/decision \\
   -H "Content-Type: application/json" \\
   -d '{"mode":"recommend","task":"mcp security","runtime":"local","risk_tolerance":"low","verified_only":true,"limit":5}'`}</pre>
             </div>
@@ -327,12 +327,12 @@ export default function ApiDocsPage() {
               <div className="text-[10px] text-fm-text-light mt-1">Receipt constraints: <code className="font-mono">action_id</code> must look like <code className="font-mono">act_*</code>; <code className="font-mono">action_type</code> must be one of <code className="font-mono">tool_execution</code>, <code className="font-mono">deployment</code>, <code className="font-mono">submission</code>, <code className="font-mono">review</code>, <code className="font-mono">policy_check</code>; <code className="font-mono">policy_decision</code> must be <code className="font-mono">allow</code>, <code className="font-mono">deny</code>, or <code className="font-mono">review_required</code>; <code className="font-mono">outcome</code> must be <code className="font-mono">success</code>, <code className="font-mono">blocked</code>, or <code className="font-mono">failure</code>; hashes must use <code className="font-mono">sha256:...</code>; receipt risk tier cannot exceed the manifest risk tier.</div>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://freshcrate.ai/api/agents/verify-manifest \\
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://www.freshcrate.ai/api/agents/verify-manifest \\
   -H "Content-Type: application/json" \\
   -d '{"manifest_id":"mfst_example_123456"}'`}</pre>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://freshcrate.ai/api/agents/receipt \\
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://www.freshcrate.ai/api/agents/receipt \\
   -H "Content-Type: application/json" \\
   -d '{
     "manifest_id": "mfst_example_123456",
@@ -380,7 +380,7 @@ export default function ApiDocsPage() {
               </ul>
             </div>
             <div className="mt-2 bg-fm-bg rounded p-2">
-              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://freshcrate.ai/api/projects \\
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl -X POST https://www.freshcrate.ai/api/projects \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "my-agent-tool",

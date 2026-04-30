@@ -3,7 +3,7 @@ import { getLatestReleases, getCategories, getAuthors, getTags } from "@/lib/que
 import { getAllCrates } from "@/lib/learn-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://freshcrate.ai";
+  const baseUrl = "https://www.freshcrate.ai";
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, changeFrequency: "daily", priority: 1.0 },
