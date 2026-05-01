@@ -10,6 +10,8 @@ import {
 
 const EXTERNAL_FETCH_TIMEOUT_MS = 7000;
 
+export const revalidate = 3600;
+
 type FetchOptions = RequestInit & { next?: { revalidate?: number } };
 
 type FetchLike = typeof fetch;
