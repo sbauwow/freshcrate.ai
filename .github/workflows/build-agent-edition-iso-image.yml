@@ -16,7 +16,7 @@ on:
       - scripts/lib/bootstrap-common.sh
       - lib/workbench-install.ts
       - app/workbench/page.tsx
-      - app/install/agent-edition/page.tsx
+      - app/agent-edition/page.tsx
       - app/api/page.tsx
       - tests/workbench-install.test.ts
       - tests/iso-image-lane.test.ts
