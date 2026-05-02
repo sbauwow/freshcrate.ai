@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedForm from "@/app/components/tracked-form";
 import { getProjectByName, getProjectReleases, getLatestReleases } from "@/lib/queries";
 
 function CompareRow({
@@ -53,7 +54,7 @@ export default async function ComparePage({
           Select two packages to compare side-by-side.
         </p>
 
-        <form action="/compare" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded p-4 max-w-[500px]">
+        <TrackedForm event="submit" eventTarget="submit:compare" action="/compare" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded p-4 max-w-[500px]">
           <div className="mb-3">
             <label className="text-[11px] font-bold text-fm-text block mb-1">Package A:</label>
             <select
@@ -92,7 +93,7 @@ export default async function ComparePage({
           >
             Compare
           </button>
-        </form>
+        </TrackedForm>
       </div>
     );
   }

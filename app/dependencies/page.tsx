@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedForm from "@/app/components/tracked-form";
 import { getDb } from "@/lib/db";
 import { getDependencyScanHealth } from "@/lib/deps";
 import type { Metadata } from "next";
@@ -333,7 +334,7 @@ export default async function DependenciesPage({
       <div className="text-[10px] text-fm-text-light mb-2">
         {scanHealth.scanned_projects_with_unknowns.toLocaleString()} audited projects still have unresolved license metadata.
       </div>
-      <form method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-3 py-2 mb-3 text-[10px]">
+      <TrackedForm event="search" eventTarget="search:dependencies" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-3 py-2 mb-3 text-[10px]">
         <div className="flex flex-wrap items-center gap-1.5 mb-2">
           <span className="text-fm-text-light">Presets:</span>
           {[
@@ -376,7 +377,7 @@ export default async function DependenciesPage({
           <a href="/dependencies#scan-health" className="text-fm-link hover:text-fm-link-hover">Reset</a>
           <span className="ml-auto text-fm-text-light">Showing {auditProjects.length} projects</span>
         </div>
-      </form>
+      </TrackedForm>
       <div className="overflow-x-auto mb-4">
         <table className="border-collapse text-[10px] w-full">
           <thead>

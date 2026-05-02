@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import TrackedLink from "@/app/components/tracked-link";
+import TrackedNextLink from "@/app/components/tracked-next-link";
 import {
   fetchArxivSections,
   fetchHFDatasets,
@@ -355,13 +357,13 @@ export default async function ResearchPage() {
       {/* Footer note */}
       <div className="text-[9px] text-fm-text-light mt-4 border-t border-fm-border pt-2">
         Data fetched server-side from{" "}
-        <a href="https://arxiv.org" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">arXiv</a>
+        <TrackedLink event="outbound" eventTarget="outbound:arxiv.org@research-footer" href="https://arxiv.org" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">arXiv</TrackedLink>
         ,{" "}
-        <a href="https://huggingface.co" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">HuggingFace</a>
+        <TrackedLink event="outbound" eventTarget="outbound:huggingface.co@research-footer" href="https://huggingface.co" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">HuggingFace</TrackedLink>
         , and{" "}
-        <a href="https://paperswithcode.com" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">Papers With Code</a>
+        <TrackedLink event="outbound" eventTarget="outbound:paperswithcode.com@research-footer" href="https://paperswithcode.com" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">Papers With Code</TrackedLink>
         . Cached 1 hour.{" "}
-        <Link href="/api/research" className="text-fm-link hover:underline">Raw JSON →</Link>
+        <TrackedNextLink event="click" eventTarget="json:research@research-footer" href="/api/research" className="text-fm-link hover:underline">Raw JSON →</TrackedNextLink>
       </div>
     </div>
   );

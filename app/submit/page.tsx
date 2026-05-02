@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { track } from "@/app/components/track";
 
 type Tab = "suggest" | "report" | "about";
 
@@ -37,6 +38,7 @@ export default function SubmitPage() {
         throw new Error(data?.error || "Could not send message.");
       }
 
+      try { track("submit", `submit:${tab}${tab === "report" ? `:${type}` : ""}`); } catch { /* never block */ }
       setSubmitted(true);
       setUrl("");
       setMessage("");

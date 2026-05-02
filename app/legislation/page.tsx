@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import TrackedForm from "@/app/components/tracked-form";
 import {
   getGovernanceIssues,
   getLegislation,
@@ -95,7 +96,7 @@ export default async function LegislationPage({
         </div>
       </div>
 
-      <form method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2 text-[10px]">
+      <TrackedForm event="search" eventTarget="search:legislation" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2 text-[10px]">
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-0.5 min-w-[220px]">
             <span className="text-fm-text-light">Keyword</span>
@@ -144,7 +145,7 @@ export default async function LegislationPage({
           <a href="/legislation" className="text-fm-link hover:text-fm-link-hover">Reset</a>
           <span className="ml-auto text-fm-text-light">Showing {laws.length} instruments</span>
         </div>
-      </form>
+      </TrackedForm>
 
       <section className="bg-white border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">

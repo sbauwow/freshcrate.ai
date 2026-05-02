@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import NavClock from "./components/nav-clock";
 import PageViewBeacon from "./components/page-view-beacon";
+import TrackedForm from "./components/tracked-form";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.freshcrate.ai"),
@@ -93,7 +94,7 @@ export default function RootLayout({
         <div className="bg-[#bbddff] border-b border-[#6f6f6f]">
           <div className="max-w-[1100px] mx-auto px-4 py-1.5 flex flex-wrap items-center gap-2">
             <label className="text-[11px] font-bold text-black">Search for</label>
-            <form action="/search" method="GET" className="flex items-center gap-1">
+            <TrackedForm event="search" eventTarget="search:header" action="/search" method="GET" className="flex items-center gap-1">
               <input
                 type="text"
                 name="q"
@@ -105,7 +106,7 @@ export default function RootLayout({
               >
                 Go
               </button>
-            </form>
+            </TrackedForm>
           </div>
         </div>
 

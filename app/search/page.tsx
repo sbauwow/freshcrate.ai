@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedForm from "@/app/components/tracked-form";
 import { cleanAuthor } from "@/lib/author-slug";
 import { searchProjects, getCategories } from "@/lib/queries";
 import { getDb } from "@/lib/db";
@@ -96,7 +97,7 @@ export default async function SearchPage({
         </div>
 
         {/* Search form */}
-        <form action="/search" method="GET" className="mb-4 space-y-2">
+        <TrackedForm event="search" eventTarget="search:search-page" action="/search" method="GET" className="mb-4 space-y-2">
           <div className="flex gap-2">
             <input
               type="text"
@@ -143,7 +144,7 @@ export default async function SearchPage({
               </Link>
             )}
           </div>
-        </form>
+        </TrackedForm>
 
         {/* Author profile card */}
         {authorStats && (

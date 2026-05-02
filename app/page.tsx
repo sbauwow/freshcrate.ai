@@ -4,6 +4,7 @@ import { getLatestReleases, getCategories, getStats, getLanguages, type ReleaseS
 import { isRankingV2Enabled } from "@/lib/ranking";
 import { computeLifecycle } from "@/lib/lifecycle";
 import ResearchFeed from "./components/research-feed";
+import TrackedForm from "./components/tracked-form";
 import TrackedLink from "./components/tracked-link";
 import TrackedNextLink from "./components/tracked-next-link";
 
@@ -106,13 +107,13 @@ export default async function Home({
               <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">research + infra</span>
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              <TrackedNextLink event="click" eventTarget="browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">Browse ecosystem</TrackedNextLink>
-              <TrackedNextLink event="click" eventTarget="orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">Explore Orchestra</TrackedNextLink>
-              <TrackedNextLink event="install" eventTarget="agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">Agent Edition</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">Browse ecosystem</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="nav:orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">Explore Orchestra</TrackedNextLink>
+              <TrackedNextLink event="install" eventTarget="install:agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">Agent Edition</TrackedNextLink>
             </div>
           </div>
 
-          <form method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2 mb-3 text-[10px]">
+          <TrackedForm event="search" eventTarget="search:home-filter" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2 mb-3 text-[10px]">
 <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-0.5">
               <span className="text-fm-text-light">Sort</span>
@@ -151,7 +152,7 @@ export default async function Home({
             <Link href="/" className="text-fm-link hover:text-fm-link-hover">Reset</Link>
             <span className="ml-auto text-fm-text-light">Showing {releases.length} results</span>
           </div>
-        </form>
+        </TrackedForm>
 
         <div className="space-y-0">
           {releases.length === 0 && (
@@ -261,7 +262,7 @@ export default async function Home({
             freshcrate Agent Edition is the Linux operator lane: minimal agentic substrate, Ubuntu 24.04 x86_64, headless first.
           </p>
           <div className="space-y-1.5 text-[10px]">
-            <TrackedLink event="install" eventTarget="agent-edition" href="/install/agent-edition" className="block text-fm-link hover:text-fm-link-hover">
+            <TrackedLink event="install" eventTarget="install:agent-edition@home-sidebar" href="/install/agent-edition" className="block text-fm-link hover:text-fm-link-hover">
               → Install freshcrate Agent Edition
             </TrackedLink>
           </div>
@@ -312,43 +313,43 @@ export default async function Home({
           </h3>
           <ul className="space-y-1.5 text-[11px]">
             <li>
-              <a href="https://huggingface.co/models" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">HuggingFace Models</a>
+              <TrackedLink event="outbound" eventTarget="outbound:huggingface.co/models@home-resources" href="https://huggingface.co/models" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">HuggingFace Models</TrackedLink>
               <span className="text-fm-text-light"> &mdash; weights &amp; checkpoints</span>
             </li>
             <li>
-              <a href="https://huggingface.co/datasets" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">HuggingFace Datasets</a>
+              <TrackedLink event="outbound" eventTarget="outbound:huggingface.co/datasets@home-resources" href="https://huggingface.co/datasets" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">HuggingFace Datasets</TrackedLink>
               <span className="text-fm-text-light"> &mdash; training &amp; eval data</span>
             </li>
             <li>
-              <a href="https://arxiv.org/list/cs.AI/recent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">arXiv cs.AI</a>
+              <TrackedLink event="outbound" eventTarget="outbound:arxiv.org/cs.ai@home-resources" href="https://arxiv.org/list/cs.AI/recent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">arXiv cs.AI</TrackedLink>
               <span className="text-fm-text-light"> &mdash; latest AI papers</span>
             </li>
             <li>
-              <a href="https://arxiv.org/list/cs.CL/recent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">arXiv cs.CL</a>
+              <TrackedLink event="outbound" eventTarget="outbound:arxiv.org/cs.cl@home-resources" href="https://arxiv.org/list/cs.CL/recent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">arXiv cs.CL</TrackedLink>
               <span className="text-fm-text-light"> &mdash; NLP &amp; LLM papers</span>
             </li>
             <li>
-              <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">MCP Spec</a>
+              <TrackedLink event="outbound" eventTarget="outbound:modelcontextprotocol.io@home-resources" href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">MCP Spec</TrackedLink>
               <span className="text-fm-text-light"> &mdash; protocol docs</span>
             </li>
             <li>
-              <a href="https://github.com/modelcontextprotocol/servers" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">MCP Servers</a>
+              <TrackedLink event="outbound" eventTarget="outbound:github.com/mcp-servers@home-resources" href="https://github.com/modelcontextprotocol/servers" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">MCP Servers</TrackedLink>
               <span className="text-fm-text-light"> &mdash; official registry</span>
             </li>
             <li>
-              <a href="https://pypi.org/search/?q=agent&amp;o=-created" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">PyPI Agents</a>
+              <TrackedLink event="outbound" eventTarget="outbound:pypi.org/agents@home-resources" href="https://pypi.org/search/?q=agent&amp;o=-created" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">PyPI Agents</TrackedLink>
               <span className="text-fm-text-light"> &mdash; Python packages</span>
             </li>
             <li>
-              <a href="https://www.npmjs.com/search?q=mcp%20agent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">npm Agents</a>
+              <TrackedLink event="outbound" eventTarget="outbound:npmjs.com/mcp-agent@home-resources" href="https://www.npmjs.com/search?q=mcp%20agent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">npm Agents</TrackedLink>
               <span className="text-fm-text-light"> &mdash; JS/TS packages</span>
             </li>
             <li>
-              <a href="https://paperswithcode.com/area/agents" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Papers With Code</a>
+              <TrackedLink event="outbound" eventTarget="outbound:paperswithcode.com/agents@home-resources" href="https://paperswithcode.com/area/agents" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Papers With Code</TrackedLink>
               <span className="text-fm-text-light"> &mdash; benchmarks &amp; SotA</span>
             </li>
             <li>
-              <a href="https://github.com/topics/ai-agent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">GitHub #ai-agent</a>
+              <TrackedLink event="outbound" eventTarget="outbound:github.com/topics/ai-agent@home-resources" href="https://github.com/topics/ai-agent" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">GitHub #ai-agent</TrackedLink>
               <span className="text-fm-text-light"> &mdash; trending repos</span>
             </li>
           </ul>
@@ -364,17 +365,17 @@ export default async function Home({
           </h3>
           <ul className="space-y-1.5 text-[11px]">
             <li>
-              <a href="https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Open LLM Leaderboard</a>
+              <TrackedLink event="outbound" eventTarget="outbound:huggingface.co/open-llm-leaderboard@home-leaderboards" href="https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Open LLM Leaderboard</TrackedLink>
             </li>
             <li>
-              <a href="https://lmarena.ai/?leaderboard" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">LM Arena (Chatbot Arena)</a>
+              <TrackedLink event="outbound" eventTarget="outbound:lmarena.ai@home-leaderboards" href="https://lmarena.ai/?leaderboard" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">LM Arena (Chatbot Arena)</TrackedLink>
             </li>
             <li>
-              <a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">SWE-bench</a>
+              <TrackedLink event="outbound" eventTarget="outbound:swebench.com@home-leaderboards" href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">SWE-bench</TrackedLink>
               <span className="text-fm-text-light"> &mdash; coding evals</span>
             </li>
             <li>
-              <a href="https://aider.chat/docs/leaderboards/" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Aider Leaderboard</a>
+              <TrackedLink event="outbound" eventTarget="outbound:aider.chat/leaderboards@home-leaderboards" href="https://aider.chat/docs/leaderboards/" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Aider Leaderboard</TrackedLink>
               <span className="text-fm-text-light"> &mdash; code editing</span>
             </li>
           </ul>
@@ -387,39 +388,39 @@ export default async function Home({
           </h3>
           <ul className="space-y-1.5 text-[11px]">
             <li>
-              <a href="https://opensource.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Open Source Initiative</a>
+              <TrackedLink event="outbound" eventTarget="outbound:opensource.org@home-oss" href="https://opensource.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Open Source Initiative</TrackedLink>
               <span className="text-fm-text-light"> &mdash; OSI license standards</span>
             </li>
             <li>
-              <a href="https://www.fsf.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Free Software Foundation</a>
+              <TrackedLink event="outbound" eventTarget="outbound:fsf.org@home-oss" href="https://www.fsf.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Free Software Foundation</TrackedLink>
               <span className="text-fm-text-light"> &mdash; FSF &amp; GNU project</span>
             </li>
             <li>
-              <a href="https://www.linuxfoundation.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Linux Foundation</a>
+              <TrackedLink event="outbound" eventTarget="outbound:linuxfoundation.org@home-oss" href="https://www.linuxfoundation.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Linux Foundation</TrackedLink>
               <span className="text-fm-text-light"> &mdash; kernel &amp; projects</span>
             </li>
             <li>
-              <a href="https://www.apache.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Apache Software Foundation</a>
+              <TrackedLink event="outbound" eventTarget="outbound:apache.org@home-oss" href="https://www.apache.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Apache Software Foundation</TrackedLink>
               <span className="text-fm-text-light"> &mdash; ASF projects</span>
             </li>
             <li>
-              <a href="https://www.eclipse.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Eclipse Foundation</a>
+              <TrackedLink event="outbound" eventTarget="outbound:eclipse.org@home-oss" href="https://www.eclipse.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Eclipse Foundation</TrackedLink>
               <span className="text-fm-text-light"> &mdash; enterprise OSS</span>
             </li>
             <li>
-              <a href="https://www.cncf.io" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">CNCF</a>
+              <TrackedLink event="outbound" eventTarget="outbound:cncf.io@home-oss" href="https://www.cncf.io" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">CNCF</TrackedLink>
               <span className="text-fm-text-light"> &mdash; cloud native projects</span>
             </li>
             <li>
-              <a href="https://kernel.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">kernel.org</a>
+              <TrackedLink event="outbound" eventTarget="outbound:kernel.org@home-oss" href="https://kernel.org" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">kernel.org</TrackedLink>
               <span className="text-fm-text-light"> &mdash; Linux kernel source</span>
             </li>
             <li>
-              <a href="https://lwn.net" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">LWN.net</a>
+              <TrackedLink event="outbound" eventTarget="outbound:lwn.net@home-oss" href="https://lwn.net" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">LWN.net</TrackedLink>
               <span className="text-fm-text-light"> &mdash; Linux &amp; FOSS news</span>
             </li>
             <li>
-              <a href="https://choosealicense.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Choose a License</a>
+              <TrackedLink event="outbound" eventTarget="outbound:choosealicense.com@home-oss" href="https://choosealicense.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Choose a License</TrackedLink>
               <span className="text-fm-text-light"> &mdash; license picker</span>
             </li>
           </ul>
@@ -480,27 +481,27 @@ export default async function Home({
             <p className="text-[10px] font-bold text-fm-text">Learn more:</p>
             <ul className="space-y-1 text-[10px]">
               <li>
-                <a href="https://choosealicense.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">choosealicense.com</a>
+                <TrackedLink event="outbound" eventTarget="outbound:choosealicense.com@home-licensing" href="https://choosealicense.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">choosealicense.com</TrackedLink>
                 <span className="text-fm-text-light"> &mdash; plain-English comparison</span>
               </li>
               <li>
-                <a href="https://opensource.org/licenses" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">OSI Approved Licenses</a>
+                <TrackedLink event="outbound" eventTarget="outbound:opensource.org/licenses@home-licensing" href="https://opensource.org/licenses" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">OSI Approved Licenses</TrackedLink>
                 <span className="text-fm-text-light"> &mdash; canonical list</span>
               </li>
               <li>
-                <a href="https://www.gnu.org/licenses/license-list.html" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">GNU License List</a>
+                <TrackedLink event="outbound" eventTarget="outbound:gnu.org/licenses@home-licensing" href="https://www.gnu.org/licenses/license-list.html" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">GNU License List</TrackedLink>
                 <span className="text-fm-text-light"> &mdash; FSF compatibility matrix</span>
               </li>
               <li>
-                <a href="https://spdx.org/licenses/" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">SPDX License List</a>
+                <TrackedLink event="outbound" eventTarget="outbound:spdx.org/licenses@home-licensing" href="https://spdx.org/licenses/" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">SPDX License List</TrackedLink>
                 <span className="text-fm-text-light"> &mdash; standard identifiers</span>
               </li>
               <li>
-                <a href="https://tldrlegal.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">tl;drLegal</a>
+                <TrackedLink event="outbound" eventTarget="outbound:tldrlegal.com@home-licensing" href="https://tldrlegal.com" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">tl;drLegal</TrackedLink>
                 <span className="text-fm-text-light"> &mdash; can/can&apos;t/must summaries</span>
               </li>
               <li>
-                <a href="https://www.apache.org/legal/resolved.html" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Apache Legal</a>
+                <TrackedLink event="outbound" eventTarget="outbound:apache.org/legal@home-licensing" href="https://www.apache.org/legal/resolved.html" target="_blank" rel="noopener noreferrer" className="text-fm-link hover:text-fm-link-hover">Apache Legal</TrackedLink>
                 <span className="text-fm-text-light"> &mdash; compatibility policy</span>
               </li>
             </ul>
@@ -520,7 +521,9 @@ export default async function Home({
         </div>
 
         {/* 📻 */}
-        <a
+        <TrackedLink
+          event="outbound"
+          eventTarget="outbound:plaza.one@home-sidebar"
           href="https://plaza.one/"
           target="_blank"
           rel="noopener noreferrer"
@@ -537,7 +540,7 @@ export default async function Home({
           <div className="text-[7px] mt-0.5" style={{ color: "#05ffa1", opacity: 0.6 }}>
             ░▒▓ 24/7 vaporwave for your token window ▓▒░
           </div>
-        </a>
+        </TrackedLink>
       </aside>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import TrackedLink from "@/app/components/tracked-link";
 import { buildAgentEditionCommands } from "@/lib/workbench-install";
 import { getAgentEditionPublishedImageArtifact } from "@/lib/workbench-install-files";
 import { getWorkbenchBundles } from "@/lib/workbench";
@@ -128,9 +129,9 @@ export default function AgentEditionPage() {
             Autoinstall ISO with freshcrate bootstrap baked in. Boot it on bare metal or a VM and verification runs on first boot.
           </p>
           <div className="flex flex-wrap gap-3 text-[10px]">
-            <a href={isoDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download ISO</a>
-            {isoTorrentUrl ? <a href={isoTorrentUrl} className="text-fm-link hover:text-fm-link-hover">torrent</a> : null}
-            <a href={isoChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</a>
+            <TrackedLink event="install" eventTarget="install:iso@agent-edition" href={isoDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download ISO</TrackedLink>
+            {isoTorrentUrl ? <TrackedLink event="install" eventTarget="install:iso-torrent@agent-edition" href={isoTorrentUrl} className="text-fm-link hover:text-fm-link-hover">torrent</TrackedLink> : null}
+            <TrackedLink event="click" eventTarget="checksum:iso@agent-edition" href={isoChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</TrackedLink>
             <span className="text-fm-text-light">Status: {iso.available ? "built" : "pending first publish"}</span>
           </div>
 
@@ -172,8 +173,8 @@ export default function AgentEditionPage() {
             Pre-built VM disk image for labs and homelab clusters. Boot once and verify receipts under <code className="font-mono">~/.freshcrate</code>.
           </p>
           <div className="flex flex-wrap gap-3 text-[10px]">
-            <a href={qcowDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download QCOW2</a>
-            <a href={qcowChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</a>
+            <TrackedLink event="install" eventTarget="install:qcow2@agent-edition" href={qcowDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download QCOW2</TrackedLink>
+            <TrackedLink event="click" eventTarget="checksum:qcow2@agent-edition" href={qcowChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</TrackedLink>
             <span className="text-fm-text-light">Status: {qcow.available ? "built" : "pending first publish"}</span>
           </div>
         </div>

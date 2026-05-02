@@ -15,7 +15,7 @@ describe("orchestra page metadata and framing", () => {
     const page = fs.readFileSync(path.join(process.cwd(), "app", "orchestra", "page.tsx"), "utf8");
     expect(page).toContain("openGraph");
     expect(page).toContain("twitter");
-    expect(page).toContain("https://freshcrate.ai/orchestra");
+    expect(page).toContain("https://www.freshcrate.ai/orchestra");
     expect(page).toContain("freshcrate orchestra");
   });
 });
