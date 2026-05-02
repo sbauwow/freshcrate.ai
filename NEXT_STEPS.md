@@ -2,36 +2,46 @@
 
 Last updated: 2026-05-02
 
-Open follow-ups from the 2026-05-02 log-analysis session (commits `60eed48` admin redirect fix + `d374760` GoogleOther/author/request_log).
+Live worklist for the analytics + observability push that started 2026-05-02. Drop closed items as they ship.
 
 ---
 
-## Post-deploy actions (after merging `feature/apex-www-redirect`)
+## Shipped
 
-- [ ] **Open PR** for `feature/apex-www-redirect` → `main`. Branch contains the admin-redirect fix, GoogleOther classifier patch, author email-stripping, and the new admin analytics sections — none are on prod yet.
-- [ ] **Run author cleanup on prod DB**: after Railway redeploy,
+- `60eed48` admin redirects from `x-forwarded-host` (no more localhost:8080)
+- `d374760` GoogleOther + `Google-*` agents reclassified as `crawler_bot`
+- `d374760` `cleanAuthor()` strips `<email>` from `/author/<slug>` URLs (5 link sites + sitemap dedupe + insert path)
+- `d374760` `request_log` analytics on `/admin/analytics` (status mix / top errors / slowest paths — API only)
+- `d1e3a5b` emoji fallback fonts in `globals.css` for Linux without `noto-fonts-emoji`
+- `7190231` 70 tracked actions across the site (outbound, install, search, submit) + `TrackedForm` wrapper. Convention: `eventTarget = <kind>:<id>[@<context>]`
+- `f527763` 410 Gone for phantom `/projects/<name>/{docs,…}/*` paths + `robots.txt` rules
+- `f527763` `render_404` / `render_500` beacons from `not-found.tsx` + new `app/error.tsx`, surfaced in admin analytics
+
+## Open follow-ups
+
+### Post-deploy verification (one-shot)
+
+- [ ] **Re-pull Railway logs in 24h** and confirm GoogleOther rows now show `traffic_type: crawler_bot`. The 2026-05-02 morning window (981 GoogleOther hits, all `human_browser`) entirely predates the fix.
+- [ ] **Run author cleanup on prod DB** once a redeploy includes `f527763`:
   ```
   node scripts/clean-authors.mjs --dry      # preview
   node scripts/clean-authors.mjs            # apply
   ```
-  Rewrites `projects.author` to drop `<email>` and `(homepage)` chunks. New inserts are already cleaned by `lib/queries.ts:insertProject`.
-- [ ] **Verify admin redirect**: hit `/admin/analytics`, submit `FRESHCRATE_ADMIN_TOKEN`, confirm bounce lands on `https://www.freshcrate.ai/admin/analytics` (not `localhost:8080`). Confirm logout redirect too.
-- [ ] **Resubmit sitemap** to Google Search Console once author URLs settle — old `/author/Name%20%3Cemail%40...` URLs should drop out and 404. Optionally add a 410 for the `<` pattern in `next.config.ts` to speed deindex.
+- [ ] **Resubmit sitemap** to Google Search Console after the cleanup so old `/author/Name%20%3Cemail%40...` URLs deindex. The 410 gate already covers the phantom-doc class.
+- [ ] **Watch `/admin/analytics`** for the new event types (`outbound:*`, `install:*`, `search:*`, `submit:*`, `render_404`, `render_500`) appearing under "Top event targets" + "Page-render status".
 
-## Bugs still open
+### Bugs still open
 
-- [ ] **`app/random/route.ts:15-18`** has the same forwarded-host bug class as the admin redirects (uses `request.nextUrl.clone()` whose origin = internal `localhost:8080`). Patch with the `externalUrl()` helper from `lib/admin-auth.ts` or build `NextResponse.redirect` from `x-forwarded-host`.
-- [ ] **404 surge from bots crawling stale doc paths** (`/projects/docs/*.md`, `/projects/SETUP.md`, `/projects/.github/CODE_OF_CONDUCT.md`, …). Suspected source: README/sitemap leak. Audit what's emitting these links and either 410 them or stop generating.
-- [ ] **Chrome/105 fingerprint (62 hits in 32 min)** still classified as `human_browser`. Decide whether to add a stale-Chrome-version heuristic to `lib/traffic-classification.ts` (anything below current major − 5 = likely scraper) or leave it.
+- [ ] **`app/random/route.ts:15-18`** — same forwarded-host bug class as the admin redirects (`request.nextUrl.clone()` resolves origin to internal `localhost:8080`). Patch with the `externalUrl()` helper from `lib/admin-auth.ts`.
+- [ ] **Chrome/105 fingerprint** still classified as `human_browser`. Decide whether to add a stale-Chrome-version heuristic to `lib/traffic-classification.ts` (anything below current major − 5 = scraper) or leave it.
 
-## Observability gaps
+### Observability gaps still standing
 
-- [ ] **Page renders aren't in `request_log`** — `logRequest()` is only called from API routes, so the new admin sections (status mix, top errors, slowest paths) only show API traffic. Page 4xx/5xx are invisible. Options:
-  - Use Next.js `instrumentation.ts` to wrap every request with timing + status.
-  - Or add a wrapper in `proxy.ts` that defers logging until after `NextResponse.next()` resolves and reads the status from the response.
-- [ ] **Proxy log only emits `request_in`** (no status, no duration). The Railway log we analyzed (`logs.1777684579453.csv`) couldn't tell us a single 4xx/5xx. Once page-render logging is wired, re-pull a window and look at error rate by path.
+- [ ] **SSR errors that crash before React mounts** still aren't logged — `app/error.tsx` only fires its beacon if the boundary itself renders. For full server-side capture, register an OpenTelemetry SDK in `instrumentation.ts` (heavy lift) or accept the gap.
+- [ ] **Per-traffic-type breakdown** in `getStatusBreakdown()` and the new render-status helpers — split counts by `traffic_type` so we can see if errors skew toward bots vs humans.
+- [ ] **Drop the `Crawler` regex catch-all** below the named patterns in `traffic-classification.ts` so PerplexityBot, GPTBot, etc. surface in the UA family breakdown instead of being lumped into "Crawler".
 
-## Nice-to-haves
+### Future tracking work
 
-- [ ] Per-traffic-type breakdown in `getStatusBreakdown()` — split `2xx/4xx/5xx` by `traffic_type` so we can see if errors skew toward bots vs humans.
-- [ ] Drop the `Crawler` regex catch-all (`bot|crawler|spider|scraper|lighthouse`) below the named patterns so Perplexity, GPTBot, etc. surface in the UA family breakdown instead of getting lumped into "Crawler".
+- [ ] **`copy` event type** has no firing site — there's no install-command copy button on project pages yet. Add one (commands appear at `/agent-edition`) and fire `track('copy', 'install:<bundle>')`.
+- [ ] **`share` event type** also unused — no share UI exists.

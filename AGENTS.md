@@ -108,6 +108,31 @@ Category assignment uses regex-based rules (duplicated in `api/enrich/route.ts` 
 2. For dev: delete `data/freshcrate.db` and restart (auto-recreates)
 3. For prod: write a migration (not yet implemented — see ROADMAP)
 
+### Tagging a New User Action (Analytics)
+Beacon endpoint: `/api/beacon` (skipped from proxy logs; writes to `page_views`). Allowed event types: `pageview, click, install, copy, search, outbound, submit, share, render_404, render_500` — anything else is coerced to `pageview` server-side.
+
+**Convention** for `eventTarget`: `<kind>:<id>[@<context>]`
+- `outbound:plaza.one@home-sidebar`
+- `install:iso@agent-edition`
+- `nav:browse@home`
+- `search:header`, `search:legislation`
+- `submit:suggest`, `submit:report:missing-package`
+- `repo:hostname@<context>` for outbound to a project's repo URL
+- `render_404` / `render_500` set `eventTarget` = path
+
+**Wrappers** (all in `app/components/`):
+- `<TrackedLink>` — drop-in replacement for `<a>` (raw external links)
+- `<TrackedNextLink>` — drop-in replacement for next/link
+- `<TrackedForm>` — drop-in replacement for `<form>` in server components; fires on submit
+- `track(event, target)` — call directly from client components for fetch-based flows (e.g. `app/submit/page.tsx` fires after the POST resolves)
+
+**Status beacons**: `app/components/render-status-beacon.tsx` is mounted in `not-found.tsx` (status=404) and `app/error.tsx` (status=500). The Edge proxy never sees response status, so this client-side beacon is the only signal for non-API page errors.
+
+**Where to inspect data**: `/admin/analytics` (token-gated by `FRESHCRATE_ADMIN_TOKEN`). New helpers live in `lib/analytics.ts` — `getStatusBreakdown`, `getTopErrorPaths`, `getSlowestPaths`, `getRenderStatusBuckets`, `getTopRenderErrorPaths`, plus the older funnel/retention helpers.
+
+### Phantom-doc 410 Gate
+`proxy.ts` returns 410 Gone for `/projects/<name>/{docs,documentation,i18n,.github}/*`, `SETUP*`, `CHANGELOG*`, `CODE_OF_CONDUCT*`, `CONTRIBUTING*`, `README-*`, and `*.md` / `*.yaml(.example)`. Bots scrape README links and walk these paths; the gate skips React's 404 cost and accelerates Google deindex. If you intentionally add real content under one of these patterns, narrow the regex.
+
 ## Testing
 
 **No test suite exists yet.** When adding tests:
