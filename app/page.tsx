@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { cleanAuthor } from "@/lib/author-slug";
 import { getLatestReleases, getCategories, getStats, getLanguages, type ReleaseSort } from "@/lib/queries";
 import { isRankingV2Enabled } from "@/lib/ranking";
 import { computeLifecycle } from "@/lib/lifecycle";
+import { getActivePoll, getExistingVote } from "@/lib/polls";
+import PollWidget from "./components/poll-widget";
 import ResearchFeed from "./components/research-feed";
 import TrackedForm from "./components/tracked-form";
 import TrackedLink from "./components/tracked-link";
@@ -84,6 +87,18 @@ export default async function Home({
       : undefined;
 
   const releases = getLatestReleases(50, 0, { sort, category, language });
+
+  const poll = getActivePoll();
+  let pollVoted: string | null = null;
+  if (poll) {
+    const cookieStore = await cookies();
+    const headerStore = await headers();
+    const sid = cookieStore.get("fc_sid")?.value || "";
+    const ip = (headerStore.get("x-forwarded-for") || "").split(",")[0].trim()
+      || headerStore.get("x-real-ip")
+      || "";
+    pollVoted = getExistingVote(poll.id, sid, ip);
+  }
 
   return (
     <div className="flex flex-col md:flex-row gap-5">
@@ -254,6 +269,8 @@ export default async function Home({
 
       {/* Sidebar */}
       <aside className="w-full md:w-[220px] md:shrink-0">
+        {poll && <PollWidget poll={poll} initialVotedOption={pollVoted} />}
+
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
             Agent Edition

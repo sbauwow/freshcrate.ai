@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ShareLinks from "@/app/components/share-links";
 import { cleanAuthor } from "@/lib/author-slug";
 import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects } from "@/lib/queries";
 import { getVerificationStatus } from "@/lib/verify";
@@ -422,6 +423,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
             </div>
           </div>
         )}
+
+        <ShareLinks projectName={project.name} shortDesc={project.short_desc || ""} />
       </aside>
     </div>
   );
