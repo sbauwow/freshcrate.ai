@@ -39,6 +39,9 @@ export default function AgentEditionPage() {
 
   const isoDownloadUrl = iso.github_download_urls?.artifact ?? `${iso.download_urls.artifact}&download=1`;
   const isoChecksumUrl = iso.github_download_urls?.checksum ?? iso.download_urls.checksum;
+  const isoTorrentUrl = iso.github_release_tag
+    ? `https://github.com/sbauwow/freshcrate.ai/releases/download/${iso.github_release_tag}/freshcrate-solo-builder-core-stable.iso.torrent`
+    : null;
   const qcowDownloadUrl = qcow.github_download_urls?.artifact ?? `${qcow.download_urls.artifact}&download=1`;
   const qcowChecksumUrl = qcow.github_download_urls?.checksum ?? qcow.download_urls.checksum;
 
@@ -126,6 +129,7 @@ export default function AgentEditionPage() {
           </p>
           <div className="flex flex-wrap gap-3 text-[10px]">
             <a href={isoDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download ISO</a>
+            {isoTorrentUrl ? <a href={isoTorrentUrl} className="text-fm-link hover:text-fm-link-hover">torrent</a> : null}
             <a href={isoChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</a>
             <span className="text-fm-text-light">Status: {iso.available ? "built" : "pending first publish"}</span>
           </div>

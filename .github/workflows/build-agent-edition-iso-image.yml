@@ -44,7 +44,7 @@ jobs:
         run: npm test --silent -- tests/workbench-install.test.ts tests/workbench-image-artifact-api.test.ts tests/iso-image-lane.test.ts
 
       - name: Install ISO tooling
-        run: sudo apt-get update && sudo apt-get install -y xorriso p7zip-full curl
+        run: sudo apt-get update && sudo apt-get install -y xorriso p7zip-full curl mktorrent
 
       - name: Build iso-autoinstall-headless
         run: bash scripts/build-agent-edition-iso.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
@@ -73,6 +73,7 @@ jobs:
           path: |
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip
+            output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.torrent
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.sha256
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.json
 
@@ -83,10 +84,19 @@ jobs:
           RELEASE_TAG: agent-edition-iso-latest
         run: |
           gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
-          gh release create "$RELEASE_TAG" \
+          split -d -b 1900m \
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip \
+            output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip.part-
+          cat > output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip.reassemble.txt <<'EOF'
+          cat freshcrate-solo-builder-core-stable.iso.zip.part-* > freshcrate-solo-builder-core-stable.iso.zip
+          unzip freshcrate-solo-builder-core-stable.iso.zip
+          EOF
+          gh release create "$RELEASE_TAG" \
+            output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip.part-* \
+            output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip.reassemble.txt \
+            output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.torrent \
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.sha256 \
             output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.json \
             --title "freshcrate Agent Edition ISO (latest)" \
-            --notes "Rolling latest autoinstall ISO for freshcrate Agent Edition stable iso-autoinstall-headless. Release ships the zipped ISO plus checksum and metadata." \
+            --notes "Rolling latest autoinstall ISO for freshcrate Agent Edition stable iso-autoinstall-headless. Release ships split zip parts (GitHub size limit), torrent file, checksum, and metadata." \
             --latest

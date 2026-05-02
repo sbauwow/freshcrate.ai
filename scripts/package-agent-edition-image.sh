@@ -92,9 +92,36 @@ sha256sum "$FINAL_ARTIFACT" > "${FINAL_ARTIFACT}.sha256"
 SHA256="$(cut -d' ' -f1 < "${FINAL_ARTIFACT}.sha256")"
 SIZE_BYTES="$(stat -c '%s' "$FINAL_ARTIFACT")"
 UPDATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-cat > "${FINAL_ARTIFACT}.json" <<EOF
+TORRENT_FILE=""
+if [[ "$IMAGE" == "iso-autoinstall-headless" || "$IMAGE" == "iso-live-persistent-x86_64" ]]; then
+  if command -v mktorrent >/dev/null 2>&1; then
+    TORRENT_FILE="${FINAL_ARTIFACT}.torrent"
+    rm -f "$TORRENT_FILE"
+    mktorrent \
+      -p \
+      -l 22 \
+      -a "udp://tracker.opentrackr.org:1337/announce" \
+      -a "udp://open.stealth.si:80/announce" \
+      -a "udp://tracker.torrent.eu.org:451/announce" \
+      -o "$TORRENT_FILE" \
+      "$FINAL_ARTIFACT"
+  else
+    echo "warning: mktorrent not installed; skipping torrent generation" >&2
+  fi
+fi
+
+if [[ -n "$TORRENT_FILE" ]]; then
+  cat > "${FINAL_ARTIFACT}.json" <<EOF
+{"image":"${IMAGE}","bundle":"${BUNDLE}","mode":"${MODE}","channel":"${CHANNEL}","artifact":"${FINAL_ARTIFACT}","checksum_file":"${FINAL_ARTIFACT}.sha256","torrent_file":"${TORRENT_FILE}","sha256":"${SHA256}","file_size_bytes":${SIZE_BYTES},"updated_at":"${UPDATED_AT}"}
+EOF
+else
+  cat > "${FINAL_ARTIFACT}.json" <<EOF
 {"image":"${IMAGE}","bundle":"${BUNDLE}","mode":"${MODE}","channel":"${CHANNEL}","artifact":"${FINAL_ARTIFACT}","checksum_file":"${FINAL_ARTIFACT}.sha256","sha256":"${SHA256}","file_size_bytes":${SIZE_BYTES},"updated_at":"${UPDATED_AT}"}
 EOF
+fi
 
 echo "$FINAL_ARTIFACT"
 echo "${FINAL_ARTIFACT}.sha256"
+if [[ -n "$TORRENT_FILE" ]]; then
+  echo "$TORRENT_FILE"
+fi
