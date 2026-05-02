@@ -12,6 +12,8 @@ const TOKEN_PATH = path.join(PROJECT_ROOT, ".freshcrate-token");
 const DB_PATH = getDbPath();
 const DRY_RUN = process.argv.includes("--dry-run");
 const LIMIT = Number(process.argv[process.argv.indexOf("--limit") + 1] || 0) || 0;
+const SOURCE_ONLY = process.argv.includes("--source-only");
+const SLEEP_MS = Number(process.argv[process.argv.indexOf("--sleep-ms") + 1] || 0) || 75;
 
 function loadToken() {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
@@ -37,8 +39,7 @@ async function ghFetchJson(url) {
     const reset = Number(res.headers.get("x-ratelimit-reset") || 0);
     const waitMs = Math.max(reset * 1000 - Date.now(), 1000);
     console.log(`  ⏳ Rate limited, waiting ${Math.ceil(waitMs / 1000)}s...`);
-    await sleep(waitMs + 1000);
-    return ghFetchJson(url);
+    return { __rate_limited: true, wait_ms: waitMs };
   }
   if (!res.ok) return null;
   return res.json();
@@ -64,25 +65,45 @@ function fallbackLanguageMeta(row) {
   return { language: "Docs / Meta", source: "docs_meta" };
 }
 
+function getRows(db) {
+  const where = SOURCE_ONLY
+    ? "(language_source IS NULL OR TRIM(language_source) = '')"
+    : "(language IS NULL OR TRIM(language) = '') OR (language_source IS NULL OR TRIM(language_source) = '')";
+  return db.prepare(`
+    SELECT id, name, repo_url, description, language, language_source, source_type
+    FROM projects
+    WHERE ${where}
+    ORDER BY CASE
+      WHEN source_type = 'github' AND COALESCE(language, '') != '' THEN 0
+      WHEN source_type IN ('npm', 'pypi') THEN 1
+      WHEN COALESCE(language, '') = 'Docs / Meta' THEN 2
+      ELSE 3
+    END,
+    COALESCE(stars, 0) DESC, name ASC
+    ${LIMIT > 0 ? `LIMIT ${LIMIT}` : ""}
+  `).all();
+}
+
 async function main() {
   console.log(`🔤 freshcrate language inference ${DRY_RUN ? "(DRY RUN)" : ""}`);
   ensureDbDir();
   const db = new Database(DB_PATH);
-  const rows = db.prepare(`
-    SELECT id, name, repo_url, description, language, language_source, source_type
-    FROM projects
-    WHERE (language IS NULL OR TRIM(language) = '')
-       OR (language_source IS NULL OR TRIM(language_source) = '')
-    ORDER BY COALESCE(stars, 0) DESC, name ASC
-    ${LIMIT > 0 ? `LIMIT ${LIMIT}` : ""}
-  `).all();
+  const rows = getRows(db);
 
   console.log(`Found ${rows.length} repos needing language metadata`);
   const updateStmt = db.prepare("UPDATE projects SET language = ?, language_source = ?, last_github_sync = ? WHERE id = ?");
   let updated = 0;
   let unresolved = 0;
+  let rateLimited = 0;
 
   for (const row of rows) {
+    if (!row.language_source && row.source_type === "github" && row.language) {
+      console.log(`  ✅ ${row.name} -> ${row.language} [github] (fast-path)`);
+      if (!DRY_RUN) updateStmt.run(row.language, "github", new Date().toISOString(), row.id);
+      updated++;
+      continue;
+    }
+
     const registryMeta = registryLanguageMeta(row);
     if (registryMeta) {
       console.log(`  ✅ ${row.name} -> ${registryMeta.language} [${registryMeta.source}]`);
@@ -102,6 +123,11 @@ async function main() {
 
     const slug = `${parsed.owner}/${parsed.repo}`;
     const repo = await ghFetchJson(`https://api.github.com/repos/${slug}`);
+    if (repo?.__rate_limited) {
+      rateLimited++;
+      console.log(`  ⏸ ${row.name}: rate limited; stop batch here`);
+      break;
+    }
     if (!repo) {
       const fallbackMeta = fallbackLanguageMeta(row);
       console.log(`  ⚠ ${row.name}: repo fetch failed, fallback -> ${fallbackMeta.language} [${fallbackMeta.source}]`);
@@ -114,12 +140,22 @@ async function main() {
       console.log(`  ✅ ${row.name} -> ${row.language} [github]`);
       if (!DRY_RUN) updateStmt.run(row.language, "github", new Date().toISOString(), row.id);
       updated++;
-      await sleep(GITHUB_TOKEN ? 40 : 400);
+      await sleep(GITHUB_TOKEN ? Math.max(10, Math.floor(SLEEP_MS / 2)) : Math.max(100, SLEEP_MS * 4));
       continue;
     }
 
     const rootContents = await ghFetchJson(`https://api.github.com/repos/${slug}/contents`) || [];
+    if (rootContents?.__rate_limited) {
+      rateLimited++;
+      console.log(`  ⏸ ${row.name}: rate limited on contents; stop batch here`);
+      break;
+    }
     const readme = await ghFetchJson(`https://api.github.com/repos/${slug}/readme`);
+    if (readme?.__rate_limited) {
+      rateLimited++;
+      console.log(`  ⏸ ${row.name}: rate limited on readme; stop batch here`);
+      break;
+    }
     const readmeText = typeof readme?.content === "string"
       ? Buffer.from(readme.content, "base64").toString("utf-8")
       : "";
@@ -132,11 +168,11 @@ async function main() {
       console.log(`  · ${row.name} -> still unresolved`);
       unresolved++;
     }
-    await sleep(GITHUB_TOKEN ? 75 : 750);
+    await sleep(GITHUB_TOKEN ? SLEEP_MS : Math.max(250, SLEEP_MS * 8));
   }
 
   db.close();
-  console.log(`Done: ${updated} updated, ${unresolved} unresolved`);
+  console.log(`Done: ${updated} updated, ${unresolved} unresolved, ${rateLimited} rate-limited stops`);
 }
 
 main().catch((err) => {

@@ -1,0 +1,64 @@
+#cloud-config
+write_files:
+  - path: /etc/freshcrate-live-usb.json
+    permissions: '0644'
+    content: |
+      {"product":"freshcrate-agent-edition","lane":"iso-live-persistent-x86_64","bundle":"__BUNDLE__","mode":"__MODE__","channel":"__CHANNEL__"}
+  - path: /etc/motd.d/99-freshcrate-live-usb
+    permissions: '0644'
+    content: |
+      freshcrate live usb mode
+      persistence expects a casper-rw partition on the USB device.
+  - path: /usr/local/bin/freshcrate-live-bootstrap.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      state_dir=/var/lib/freshcrate-live
+      count_file=${state_dir}/boot-count
+      marker_file=${state_dir}/bootstrap-complete
+      log_file=${state_dir}/bootstrap.log
+      mkdir -p "$state_dir" /opt/freshcrate/home /opt/freshcrate/workspace /opt/freshcrate
+      count=1
+      if [[ -f "$count_file" ]]; then
+        count="$(cat "$count_file")"
+      else
+        printf '%s\n' "$count" > "$count_file"
+      fi
+      printf 'freshcrate-live boot_count=%s\n' "$count" | tee -a "$log_file" /dev/ttyS0
+      if [[ -f "$marker_file" ]]; then
+        printf 'freshcrate-live bootstrap already complete\n' | tee -a "$log_file" /dev/ttyS0
+        exit 0
+      fi
+      cp -a /cdrom/freshcrate-live/scripts /opt/freshcrate/
+      chmod +x /opt/freshcrate/scripts/bootstrap-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh
+      bash /opt/freshcrate/scripts/bootstrap-agent-edition.sh --bundle __BUNDLE__ --mode __MODE__ --channel __CHANNEL__ 2>&1 | tee -a "$log_file" /dev/ttyS0
+      bash /opt/freshcrate/scripts/verify-agent-edition.sh --bundle __BUNDLE__ --mode __MODE__ --channel __CHANNEL__ 2>&1 | tee -a "$log_file" /dev/ttyS0
+      date -u +%Y-%m-%dT%H:%M:%SZ > "$marker_file"
+      printf 'freshcrate-live bootstrap complete\n' | tee -a "$log_file" /dev/ttyS0
+  - path: /etc/systemd/system/freshcrate-live-bootstrap.service
+    permissions: '0644'
+    owner: root:root
+    content: |
+      [Unit]
+      Description=Freshcrate live USB bootstrap
+      Wants=cloud-final.service
+      After=cloud-final.service multi-user.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/freshcrate-live-bootstrap.sh
+      StandardOutput=journal+console
+      StandardError=journal+console
+
+      [Install]
+      WantedBy=multi-user.target
+bootcmd:
+  - [ bash, -lc, "mkdir -p /var/lib/freshcrate-live && count=0 && test -f /var/lib/freshcrate-live/boot-count && count=$(cat /var/lib/freshcrate-live/boot-count) || true && count=$((count+1)) && printf '%s\\n' \"$count\" > /var/lib/freshcrate-live/boot-count && printf 'freshcrate-live boot_count=%s sentinel=present\\n' \"$count\" | tee -a /var/log/freshcrate-live-bootstrap.log /dev/ttyS0" ]
+runcmd:
+  - [ bash, -lc, "mkdir -p /opt/freshcrate/home /opt/freshcrate/workspace /var/lib/freshcrate-live" ]
+  - [ bash, -lc, "systemctl daemon-reload" ]
+  - [ bash, -lc, "systemctl enable freshcrate-live-bootstrap.service" ]
+  - [ bash, -lc, "/usr/local/bin/freshcrate-live-bootstrap.sh" ]
+final_message: "freshcrate live usb booted for __BUNDLE__ __CHANNEL__"

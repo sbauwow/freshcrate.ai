@@ -106,19 +106,45 @@ describe("workbench hosted install script", () => {
 
   it("builds deterministic manifest download metadata", () => {
     const download = getAgentEditionManifestDownload({ bundle: "solo-builder-core", mode: "headless", channel: "stable" });
-    expect(download.fileName).toBe("freshcrate-agent-edition-solo-builder-core-headless-stable.json");
+    expect(download.fileName).toBe("freshcrate-agent-edition-solo-builder-core-headless-stable-ubuntu-24.04-x86_64.json");
     expect(download.href).toContain("download=1");
     expect(download.href).toContain("channel=stable");
+    expect(download.href).toContain("target=ubuntu-24.04-x86_64");
     expect(download.label).toContain("manifest JSON");
   });
 
   it("exports cloud image roadmap cards", () => {
     const images = getAgentEditionCloudImages();
-    expect(images.length).toBeGreaterThanOrEqual(4);
+    expect(images.length).toBeGreaterThanOrEqual(5);
     expect(images.some((image) => image.id === "railway-dev-box")).toBe(true);
     expect(images.some((image) => image.id === "vm-qcow2-headless")).toBe(true);
     expect(images.some((image) => image.id === "iso-autoinstall-headless")).toBe(true);
+    expect(images.some((image) => image.id === "iso-live-persistent-x86_64")).toBe(true);
     expect(images.every((image) => image.status.length > 0)).toBe(true);
+  });
+
+  it("exports a live-usb image lane contract separate from autoinstall", () => {
+    const manifest = getAgentEditionImageBuildManifest({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "iso-live-persistent-x86_64" });
+    expect(manifest.image.id).toBe("iso-live-persistent-x86_64");
+    expect(manifest.packer.output_directory).toBe("output/iso-live-persistent-x86_64");
+    expect(manifest.packer.expected_artifact).toBe("output/iso-live-persistent-x86_64/freshcrate-solo-builder-core-stable.iso");
+    expect(manifest.packer.checksum_file).toBe("output/iso-live-persistent-x86_64/freshcrate-solo-builder-core-stable.iso.sha256");
+    expect(manifest.packer.publish_ready).toBe(false);
+
+    const command = getAgentEditionImageBuildCommand({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "iso-live-persistent-x86_64" });
+    expect(command.script_path).toBe("scripts/build-agent-edition-live-usb.sh");
+    expect(command.command).toContain("scripts/build-agent-edition-live-usb.sh");
+    expect(command.command).toContain("--image iso-live-persistent-x86_64");
+    expect(command.package_command).toContain("iso-live-persistent-x86_64");
+
+    const published = getAgentEditionPublishedImageArtifact({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "iso-live-persistent-x86_64" });
+    expect(published.artifact_path).toBe("output/iso-live-persistent-x86_64/freshcrate-solo-builder-core-stable.iso");
+    expect(published.github_release_tag).toBe(null);
+    expect(published.publish_ready).toBe(false);
+
+    const resolved = resolveAgentEditionImageArtifactPath({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "iso-live-persistent-x86_64" }, "artifact");
+    expect(resolved.fileName).toBe("freshcrate-solo-builder-core-stable.iso");
+    expect(resolved.contentType).toBe("application/octet-stream");
   });
 
   it("builds image-build manifest and artifact download metadata", () => {
@@ -135,9 +161,10 @@ describe("workbench hosted install script", () => {
     expect(manifest.packer.verify_script).toBe("scripts/verify-agent-edition.sh");
 
     const download = getAgentEditionImageArtifactDownload({ artifact: "image-build", bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "aws-ami-builder" });
-    expect(download.fileName).toBe("freshcrate-image-build-solo-builder-core-headless-stable-aws-ami-builder.json");
+    expect(download.fileName).toBe("freshcrate-image-build-solo-builder-core-headless-stable-ubuntu-24.04-x86_64-aws-ami-builder.json");
     expect(download.href).toContain("artifact=image-build");
     expect(download.href).toContain("image=aws-ami-builder");
+    expect(download.href).toContain("target=ubuntu-24.04-x86_64");
 
     const command = getAgentEditionImageBuildCommand({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "aws-ami-builder" });
     expect(command.script_path).toBe("scripts/build-agent-edition-image.sh");
@@ -162,12 +189,15 @@ describe("workbench hosted install script", () => {
     expect(manifest.packer.checksum_file).toBe("output/vm-qcow2-headless/freshcrate-solo-builder-core-stable.qcow2.sha256");
     expect(manifest.packer.package_script).toBe("scripts/package-agent-edition-image.sh");
     expect(manifest.packer.publish_ready).toBe(true);
+    expect(manifest.packer.minimal_rootfs_contract.rootfs_dir).toBe("output/ubuntu-24.04-rootfs/solo-builder-core/stable/rootfs");
+    expect(manifest.packer.variables.rootfs_dir).toBe("output/ubuntu-24.04-rootfs/solo-builder-core/stable/rootfs");
 
     const command = getAgentEditionImageBuildCommand({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "vm-qcow2-headless" });
     expect(command.package_script_path).toBe("scripts/package-agent-edition-image.sh");
     expect(command.package_command).toContain("vm-qcow2-headless");
     expect(command.package_command).toContain("--bundle solo-builder-core");
     expect(command.package_command).toContain("--channel stable");
+    expect(command.command).toContain("--rootfs-dir output/ubuntu-24.04-rootfs/solo-builder-core/stable/rootfs");
 
     const published = getAgentEditionPublishedImageArtifact({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "vm-qcow2-headless" });
     expect(published.artifact_path).toBe("output/vm-qcow2-headless/freshcrate-solo-builder-core-stable.qcow2");
@@ -215,8 +245,26 @@ describe("workbench hosted install script", () => {
     expect(seed).toContain("bash scripts/bootstrap-agent-edition.sh --bundle research-node --mode light-desktop --channel stable");
 
     const download = getAgentEditionImageArtifactDownload({ artifact: "cloud-init", bundle: "research-node", mode: "light-desktop", channel: "stable" });
-    expect(download.fileName).toBe("freshcrate-cloud-init-research-node-light-desktop-stable.yaml");
+    expect(download.fileName).toBe("freshcrate-cloud-init-research-node-light-desktop-stable-ubuntu-24.04-x86_64.yaml");
     expect(download.href).toContain("artifact=cloud-init");
+    expect(download.href).toContain("target=ubuntu-24.04-x86_64");
     expect(download.label).toContain("cloud-init");
+  });
+
+  it("keeps arm64 image metadata target-specific so routes and release tags do not collide with x86_64", () => {
+    const manifest = getAgentEditionImageBuildManifest({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "vm-qcow2-headless", target: "ubuntu-24.04-arm64" });
+    expect(manifest.packer.output_directory).toBe("output/vm-qcow2-headless-arm64");
+    expect(manifest.packer.cloud_init_url).toContain("target=ubuntu-24.04-arm64");
+
+    const download = getAgentEditionImageArtifactDownload({ artifact: "image-build", bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "vm-qcow2-headless", target: "ubuntu-24.04-arm64" });
+    expect(download.fileName).toBe("freshcrate-image-build-solo-builder-core-headless-stable-ubuntu-24.04-arm64-vm-qcow2-headless.json");
+    expect(download.href).toContain("target=ubuntu-24.04-arm64");
+
+    const published = getAgentEditionPublishedImageArtifact({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "vm-qcow2-headless", target: "ubuntu-24.04-arm64" });
+    expect(published.github_release_tag).toBe("agent-edition-vm-qcow2-arm64-latest");
+    expect(published.download_urls.artifact).toContain("target=ubuntu-24.04-arm64");
+
+    const resolved = resolveAgentEditionImageArtifactPath({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "vm-qcow2-headless", target: "ubuntu-24.04-arm64" }, "artifact");
+    expect(resolved.fileName).toBe("freshcrate-solo-builder-core-stable.qcow2");
   });
 });

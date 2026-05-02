@@ -31,5 +31,38 @@ describe("iso image lane", () => {
   it("exposes package.json commands for the ISO image lane", () => {
     const packageJson = fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8");
     expect(packageJson).toContain("image:build:iso");
+    expect(packageJson).toContain("image:smoke:iso");
+    expect(packageJson).toContain("image:verify:iso");
+  });
+
+  it("initializes packer plugins and passes only lane-specific vars during template validation", () => {
+    const scriptPath = path.join(process.cwd(), "scripts", "validate-agent-edition-templates.sh");
+    expect(fs.existsSync(scriptPath)).toBe(true);
+    const script = fs.readFileSync(scriptPath, "utf8");
+    expect(script).toContain("command -v packer");
+    expect(script).toContain('packer init "$template" >/dev/null');
+    expect(script).toContain('if [[ "${template##*/}" == "aws-ami-builder.pkr.hcl" ]]; then');
+    expect(script).toContain("PACKER_VALIDATE_ARGS+=( -var 'region=us-east-1' )");
+    expect(script).toContain("packer validate");
+  });
+
+  it("ships a qemu smoke test script for BIOS and UEFI boot validation", () => {
+    const scriptPath = path.join(process.cwd(), "scripts", "qemu-smoke-test-agent-edition-iso.sh");
+    expect(fs.existsSync(scriptPath)).toBe(true);
+    const script = fs.readFileSync(scriptPath, "utf8");
+    expect(script).toContain("qemu-system-x86_64");
+    expect(script).toContain("--firmware");
+    expect(script).toContain("OVMF");
+    expect(script).toContain("freshcrate-solo-builder-core-stable.iso");
+  });
+
+  it("ships an end-to-end qemu install verification script with disk inspection and ssh validation", () => {
+    const scriptPath = path.join(process.cwd(), "scripts", "qemu-install-verify-agent-edition-iso.sh");
+    expect(fs.existsSync(scriptPath)).toBe(true);
+    const script = fs.readFileSync(scriptPath, "utf8");
+    expect(script).toContain("losetup");
+    expect(script).toContain("authorized_keys");
+    expect(script).toContain("SSH verification: PASS");
+    expect(script).toContain("freshcrate-solo-builder-core-stable.iso");
   });
 });

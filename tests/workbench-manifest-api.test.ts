@@ -22,7 +22,7 @@ describe("workbench manifest api", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("content-disposition")).toContain("attachment;");
-    expect(response.headers.get("content-disposition")).toContain("freshcrate-agent-edition-solo-builder-core-headless-stable.json");
+    expect(response.headers.get("content-disposition")).toContain("freshcrate-agent-edition-solo-builder-core-headless-stable-ubuntu-24.04-x86_64.json");
 
     const data = await response.json();
     expect(data.bundle.id).toBe("solo-builder-core");

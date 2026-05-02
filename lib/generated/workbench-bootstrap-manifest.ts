@@ -14,7 +14,8 @@ export const BOOTSTRAP_MANIFEST = {
       "python3-pip",
       "nodejs",
       "npm",
-      "gh"
+      "gh",
+      "docker.io"
     ],
     "services": [
       "docker"
@@ -35,7 +36,8 @@ export const BOOTSTRAP_MANIFEST = {
       "python3-pip",
       "nodejs",
       "npm",
-      "gh"
+      "gh",
+      "docker.io"
     ],
     "services": [
       "docker"
@@ -56,7 +58,8 @@ export const BOOTSTRAP_MANIFEST = {
       "python3-pip",
       "nodejs",
       "npm",
-      "gh"
+      "gh",
+      "docker.io"
     ],
     "services": [
       "docker"

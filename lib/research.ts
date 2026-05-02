@@ -42,7 +42,7 @@ export interface ResearchSections {
   toolUse: Paper[];
 }
 
-type FetchLike = typeof fetch;
+type FetchLike = (input: string | URL | Request, init?: RequestInit & { next?: { revalidate?: number } }) => Promise<Response>;
 
 type SectionKey = keyof ResearchSections;
 

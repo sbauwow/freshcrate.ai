@@ -14,7 +14,7 @@ export const revalidate = 3600;
 
 type FetchOptions = RequestInit & { next?: { revalidate?: number } };
 
-type FetchLike = typeof fetch;
+type FetchLike = (input: string | URL | Request, init?: FetchOptions) => Promise<Response>;
 
 async function fetchWithTimeout(input: string | URL | Request, init?: FetchOptions): Promise<Response> {
   const controller = new AbortController();

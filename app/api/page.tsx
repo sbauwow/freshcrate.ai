@@ -164,7 +164,7 @@ export default function ApiDocsPage() {
               <span className="font-bold">Parameters:</span>
               <ul className="ml-4 mt-1 space-y-0.5">
                 <li><code className="font-mono">persona</code> (optional) - solo-dev, research, automation, security, local-models</li>
-                <li><code className="font-mono">target</code> (optional) - currently <code className="font-mono">ubuntu-24.04-x86_64</code></li>
+                <li><code className="font-mono">target</code> (optional) - <code className="font-mono">ubuntu-24.04-x86_64</code> (stable) or <code className="font-mono">ubuntu-24.04-arm64</code> (experimental)</li>
                 <li><code className="font-mono">mode</code> (optional) - <code className="font-mono">headless</code> or <code className="font-mono">light-desktop</code></li>
                 <li><code className="font-mono">q</code> (optional) - keyword search across philosophy, packages, checks, and anti-goals</li>
               </ul>

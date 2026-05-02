@@ -24,10 +24,10 @@ import crypto from "crypto";
  */
 
 // 1x1 transparent GIF (43 bytes)
-const PIXEL = Buffer.from(
+const PIXEL = Uint8Array.from(Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   "base64"
-);
+));
 
 const BOT_PATTERNS = /bot|crawler|spider|scraper|curl|wget|python|go-http|java|fetch|headless|phantom|lighthouse|googlebot|bingbot|yandex|baidu|semrush|ahrefs|mj12/i;
 

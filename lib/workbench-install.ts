@@ -1,4 +1,4 @@
-import { getWorkbenchBundles, getWorkbenchFilterOptions, type WorkbenchMode } from "@/lib/workbench";
+import { getWorkbenchBundles, getWorkbenchFilterOptions, type WorkbenchMode, type WorkbenchTarget } from "@/lib/workbench";
 
 export type AgentEditionChannel = "stable" | "beta" | "nightly";
 export type AgentEditionArtifactKind = "manifest" | "image-build" | "cloud-init";
@@ -53,6 +53,12 @@ export interface AgentEditionImageBuildManifest {
     publish_ready: boolean;
     base_image: string;
     output_format: string;
+    minimal_rootfs_contract: {
+      output_directory: string;
+      rootfs_dir: string;
+      package_manifest: string;
+      receipt: string;
+    };
     variables: Record<string, string>;
   };
 }
@@ -135,6 +141,17 @@ const CLOUD_IMAGES: AgentEditionCloudImage[] = [
     nextStep: "Boot the ISO, let autoinstall finish, and verify the installed system emits freshcrate receipts.",
   },
   {
+    id: "iso-live-persistent-x86_64",
+    name: "Persistent Live USB ISO",
+    provider: "Generic bare metal / USB boot",
+    format: "iso",
+    status: "roadmap",
+    summary: "Planned true live-USB lane for booting directly from removable media with a separate casper persistence partition.",
+    target: "solo-builder-core",
+    audience: "operators who want a portable agent environment without installing to disk first",
+    nextStep: "Build a dedicated live-USB lane with casper persistence and reboot-surviving state verification.",
+  },
+  {
     id: "aws-ami-builder",
     name: "AWS AMI Builder",
     provider: "AWS",
@@ -169,29 +186,38 @@ function normalizeImage(input?: string): AgentEditionCloudImage {
   return CLOUD_IMAGES.find((image) => image.id === input) ?? CLOUD_IMAGES[0];
 }
 
-export function buildAgentEditionCommands(input: { bundle?: string; mode?: string; channel?: string } = {}) {
+function normalizeTarget(input?: string): WorkbenchTarget {
+  const options = getWorkbenchFilterOptions();
+  return options.targets.includes(input as WorkbenchTarget) ? (input as WorkbenchTarget) : "ubuntu-24.04-x86_64";
+}
+
+export function buildAgentEditionCommands(input: { bundle?: string; mode?: string; channel?: string; target?: string } = {}) {
   const bundle = normalizeBundle(input.bundle).id;
   const mode = normalizeMode(input.mode);
   const channel = normalizeChannel(input.channel);
+  const target = normalizeTarget(input.target);
   const modeArg = `--mode ${mode}`;
   const bundleArg = `--bundle ${bundle}`;
   const channelArg = `--channel ${channel.id}`;
+  const targetArg = `--target ${target}`;
 
   return {
     bundle,
     mode,
     channel: channel.id,
+    target,
     version: channel.version,
     hosted: `curl -fsSL https://www.freshcrate.ai/api/install/agent-edition | bash -s -- ${bundleArg} ${modeArg} ${channelArg}`,
     local: `bash scripts/bootstrap-agent-edition.sh ${bundleArg} ${modeArg} ${channelArg}`,
     verify: `bash scripts/verify-agent-edition.sh ${bundleArg} ${modeArg} ${channelArg}`,
+    imageBuild: `bash scripts/build-agent-edition-image.sh ${bundleArg} ${modeArg} ${channelArg} ${targetArg}`,
   };
 }
 
-export function getAgentEditionManifestDownload(input: { bundle?: string; mode?: string; channel?: string } = {}): AgentEditionManifestDownload {
+export function getAgentEditionManifestDownload(input: { bundle?: string; mode?: string; channel?: string; target?: string } = {}): AgentEditionManifestDownload {
   const commands = buildAgentEditionCommands(input);
-  const fileName = `freshcrate-agent-edition-${commands.bundle}-${commands.mode}-${commands.channel}.json`;
-  const href = `/api/workbench/manifest?bundle=${commands.bundle}&mode=${commands.mode}&channel=${commands.channel}&download=1`;
+  const fileName = `freshcrate-agent-edition-${commands.bundle}-${commands.mode}-${commands.channel}-${commands.target}.json`;
+  const href = `/api/workbench/manifest?bundle=${commands.bundle}&mode=${commands.mode}&channel=${commands.channel}&target=${commands.target}&download=1`;
 
   return {
     href,
@@ -206,31 +232,36 @@ export function getAgentEditionImageArtifactDownload(input: {
   mode?: string;
   channel?: string;
   image?: string;
+  target?: string;
 }): AgentEditionManifestDownload {
   const commands = buildAgentEditionCommands(input);
   if (input.artifact === "cloud-init") {
-    const fileName = `freshcrate-cloud-init-${commands.bundle}-${commands.mode}-${commands.channel}.yaml`;
+    const fileName = `freshcrate-cloud-init-${commands.bundle}-${commands.mode}-${commands.channel}-${commands.target}.yaml`;
     return {
-      href: `/api/workbench/cloud-init?artifact=cloud-init&bundle=${commands.bundle}&mode=${commands.mode}&channel=${commands.channel}&download=1`,
+      href: `/api/workbench/cloud-init?artifact=cloud-init&bundle=${commands.bundle}&mode=${commands.mode}&channel=${commands.channel}&target=${commands.target}&download=1`,
       fileName,
       label: `Download cloud-init seed (${fileName})`,
     };
   }
 
   const image = normalizeImage(input.image);
-  const fileName = `freshcrate-image-build-${commands.bundle}-${commands.mode}-${commands.channel}-${image.id}.json`;
+  const fileName = `freshcrate-image-build-${commands.bundle}-${commands.mode}-${commands.channel}-${commands.target}-${image.id}.json`;
   return {
-    href: `/api/workbench/image-build?artifact=image-build&bundle=${commands.bundle}&mode=${commands.mode}&channel=${commands.channel}&image=${image.id}&download=1`,
+    href: `/api/workbench/image-build?artifact=image-build&bundle=${commands.bundle}&mode=${commands.mode}&channel=${commands.channel}&target=${commands.target}&image=${image.id}&download=1`,
     fileName,
     label: `Download image-build manifest (${fileName})`,
   };
 }
 
-export function getAgentEditionImageBuildCommand(input: { bundle?: string; mode?: string; channel?: string; image?: string } = {}): AgentEditionImageBuildCommand {
+export function getAgentEditionImageBuildCommand(input: { bundle?: string; mode?: string; channel?: string; image?: string; target?: string } = {}): AgentEditionImageBuildCommand {
   const commands = buildAgentEditionCommands(input);
   const image = normalizeImage(input.image);
   const template = `images/${image.id}.pkr.hcl`;
-  const scriptPath = image.id === "iso-autoinstall-headless" ? "scripts/build-agent-edition-iso.sh" : "scripts/build-agent-edition-image.sh";
+  const scriptPath = image.id === "iso-autoinstall-headless"
+    ? "scripts/build-agent-edition-iso.sh"
+    : image.id === "iso-live-persistent-x86_64"
+      ? "scripts/build-agent-edition-live-usb.sh"
+      : "scripts/build-agent-edition-image.sh";
   const validateScriptPath = "scripts/validate-agent-edition-templates.sh";
   const packageScriptPath = "scripts/package-agent-edition-image.sh";
 
@@ -239,7 +270,7 @@ export function getAgentEditionImageBuildCommand(input: { bundle?: string; mode?
     validate_script_path: validateScriptPath,
     package_script_path: packageScriptPath,
     template,
-    command: `bash ${scriptPath} --image ${image.id} --bundle ${commands.bundle} --mode ${commands.mode} --channel ${commands.channel}`,
+    command: `bash ${scriptPath} --image ${image.id} --bundle ${commands.bundle} --mode ${commands.mode} --channel ${commands.channel}${scriptPath === "scripts/build-agent-edition-image.sh" ? ` --target ${commands.target}${image.id === "vm-qcow2-headless" ? ` --rootfs-dir output/ubuntu-24.04-rootfs/${commands.bundle}/${commands.channel}/rootfs` : ""}` : ""}`,
     validate_command: `bash ${validateScriptPath}`,
     package_command: `bash ${packageScriptPath} --image ${image.id} --bundle ${commands.bundle} --mode ${commands.mode} --channel ${commands.channel}`,
   };
@@ -272,7 +303,7 @@ export function getAgentEditionPresetCards() {
   ];
 }
 
-export function getAgentEditionManifest(input: { bundle?: string; mode?: string; channel?: string } = {}) {
+export function getAgentEditionManifest(input: { bundle?: string; mode?: string; channel?: string; target?: string } = {}) {
   const commands = buildAgentEditionCommands(input);
   const bundle = normalizeBundle(commands.bundle);
   const channel = normalizeChannel(commands.channel);
@@ -280,27 +311,51 @@ export function getAgentEditionManifest(input: { bundle?: string; mode?: string;
   return {
     schema_version: "1.1.0",
     product: "freshcrate-agent-edition",
-    target: bundle.target,
+    target: commands.target,
     mode: commands.mode,
     channel,
     commands,
     bundle,
+    minimal_rootfs_contract: {
+      output_directory: `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}`,
+      rootfs_dir: `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}/rootfs`,
+      package_manifest: `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}/package-manifest.txt`,
+      receipt: `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}/image-build-receipt.txt`,
+    },
   };
 }
 
-export function getAgentEditionImageBuildManifest(input: { bundle?: string; mode?: string; channel?: string; image?: string } = {}): AgentEditionImageBuildManifest {
+export function getAgentEditionImageBuildManifest(input: { bundle?: string; mode?: string; channel?: string; image?: string; target?: string } = {}): AgentEditionImageBuildManifest {
   const commands = buildAgentEditionCommands(input);
   const bundle = normalizeBundle(commands.bundle);
   const channel = normalizeChannel(commands.channel);
   const image = normalizeImage(input.image);
 
   const template = `images/${image.id}.pkr.hcl`;
-  const cloudInitUrl = `/api/workbench/cloud-init?artifact=cloud-init&bundle=${bundle.id}&mode=${commands.mode}&channel=${channel.id}`;
-  const outputDirectory = image.id === "vm-qcow2-headless" ? "output/vm-qcow2-headless" : image.id === "iso-autoinstall-headless" ? "output/iso-autoinstall-headless" : `output/${image.id}`;
+  const cloudInitUrl = `/api/workbench/cloud-init?artifact=cloud-init&bundle=${bundle.id}&mode=${commands.mode}&channel=${channel.id}&target=${commands.target}`;
+  const outputDirectory = image.id === "vm-qcow2-headless"
+    ? commands.target === "ubuntu-24.04-arm64"
+      ? "output/vm-qcow2-headless-arm64"
+      : "output/vm-qcow2-headless"
+    : image.id === "iso-autoinstall-headless"
+      ? "output/iso-autoinstall-headless"
+      : image.id === "iso-live-persistent-x86_64"
+        ? "output/iso-live-persistent-x86_64"
+        : `output/${image.id}`;
   const artifactBaseName = `freshcrate-${bundle.id}-${channel.id}`;
-  const extension = image.id === "vm-qcow2-headless" ? ".qcow2" : image.id === "iso-autoinstall-headless" ? ".iso" : image.id === "aws-ami-builder" ? ".ami.txt" : ".docker-image.txt";
+  const extension = image.id === "vm-qcow2-headless"
+    ? ".qcow2"
+    : image.id === "iso-autoinstall-headless" || image.id === "iso-live-persistent-x86_64"
+      ? ".iso"
+      : image.id === "aws-ami-builder"
+        ? ".ami.txt"
+        : ".docker-image.txt";
   const expectedArtifact = `${outputDirectory}/${artifactBaseName}${extension}`;
   const checksumFile = `${expectedArtifact}.sha256`;
+  const minimalRootfsOutputDirectory = `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}`;
+  const minimalRootfsDir = `${minimalRootfsOutputDirectory}/rootfs`;
+  const minimalRootfsManifest = `${minimalRootfsOutputDirectory}/package-manifest.txt`;
+  const minimalRootfsReceipt = `${minimalRootfsOutputDirectory}/image-build-receipt.txt`;
 
   return {
     artifact: "image-build-manifest",
@@ -321,14 +376,21 @@ export function getAgentEditionImageBuildManifest(input: { bundle?: string; mode
       checksum_file: checksumFile,
       package_script: "scripts/package-agent-edition-image.sh",
       publish_ready: image.id === "vm-qcow2-headless" || image.id === "iso-autoinstall-headless",
-      base_image: bundle.target,
+      base_image: commands.target,
       output_format: image.format,
+      minimal_rootfs_contract: {
+        output_directory: minimalRootfsOutputDirectory,
+        rootfs_dir: minimalRootfsDir,
+        package_manifest: minimalRootfsManifest,
+        receipt: minimalRootfsReceipt,
+      },
       variables: {
         bundle: bundle.id,
         mode: commands.mode,
         channel: channel.id,
         version: channel.version,
-        target: bundle.target,
+        target: commands.target,
+        rootfs_dir: minimalRootfsDir,
       },
     },
   };
@@ -338,10 +400,12 @@ function basename(filePath: string): string {
   return filePath.split("/").filter(Boolean).pop() ?? filePath;
 }
 
-export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; mode?: string; channel?: string; image?: string } = {}): AgentEditionPublishedImageArtifact {
+export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; mode?: string; channel?: string; image?: string; target?: string } = {}): AgentEditionPublishedImageArtifact {
   const manifest = getAgentEditionImageBuildManifest(input);
   const githubReleaseTag = manifest.image.id === "vm-qcow2-headless" && manifest.channel.id === "stable"
-    ? "agent-edition-vm-qcow2-latest"
+    ? manifest.packer.variables.target === "ubuntu-24.04-arm64"
+      ? "agent-edition-vm-qcow2-arm64-latest"
+      : "agent-edition-vm-qcow2-latest"
     : manifest.image.id === "iso-autoinstall-headless" && manifest.channel.id === "stable"
       ? "agent-edition-iso-latest"
       : null;
@@ -380,7 +444,7 @@ export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; 
 }
 
 
-export function getAgentEditionCloudInitSeed(input: { bundle?: string; mode?: string; channel?: string } = {}) {
+export function getAgentEditionCloudInitSeed(input: { bundle?: string; mode?: string; channel?: string; target?: string } = {}) {
   const commands = buildAgentEditionCommands(input);
   const bundle = normalizeBundle(commands.bundle);
 
@@ -391,7 +455,7 @@ write_files:
   - path: /etc/freshcrate-agent-edition.json
     permissions: '0644'
     content: |
-      {"product":"freshcrate-agent-edition","bundle":"${bundle.id}","mode":"${commands.mode}","channel":"${commands.channel}"}
+      {"product":"freshcrate-agent-edition","bundle":"${bundle.id}","mode":"${commands.mode}","channel":"${commands.channel}","target":"${commands.target}"}
 runcmd:
   - [ bash, -lc, "mkdir -p /opt/freshcrate" ]
   - [ bash, -lc, "echo freshcrate-agent-edition > /opt/freshcrate/release" ]

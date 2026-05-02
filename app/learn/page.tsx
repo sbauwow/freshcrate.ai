@@ -5,17 +5,17 @@ import { ProgressBar } from "@/app/components/crate-progress";
 
 export const metadata: Metadata = {
   title: "Mini Crates — AI Education | freshcrate",
-  description: "AI & Machine Learning from the ground up. A 10-crate progressive curriculum. No PhD required. No jargon either.",
+  description: "AI & Machine Learning from the ground up. An 11-crate progressive curriculum. No PhD required. No jargon either.",
   openGraph: {
     title: "Mini Crates — AI & ML Education from Scratch",
-    description: "10 free crates covering AI fundamentals, neural networks, NLP, ethics, generative AI, and agents. No PhD required.",
+    description: "11 free crates covering AI fundamentals, neural networks, NLP, ethics, generative AI, agents, and modern LLM architecture.",
     url: "https://www.freshcrate.ai/learn",
     images: [{ url: "/learn/opengraph-image" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Mini Crates — AI & ML Education from Scratch",
-    description: "10 free crates covering AI fundamentals, neural networks, NLP, ethics, generative AI, and agents. No PhD required.",
+    description: "11 free crates covering AI fundamentals, neural networks, NLP, ethics, generative AI, agents, and modern LLM architecture.",
     images: ["/learn/opengraph-image"],
   },
 };
@@ -42,7 +42,7 @@ const tracks = [
   {
     name: "Architect",
     emoji: "🏗️",
-    range: "Crates 8–10",
+    range: "Crates 8–11",
     description: "Ethics, generative AI, and the frontier. You're building the future.",
     color: "border-purple-400 bg-purple-50",
     textColor: "text-purple-800",
@@ -84,7 +84,7 @@ export default function LearnPage() {
           AI &amp; Machine Learning from the ground up. No PhD required. No baby talk either.
         </p>
         <p className="text-[10px] text-fm-text-light mt-1">
-          10 crates · 3 difficulty tracks · ~2.5 hours total · 100% free
+          11 crates · 3 difficulty tracks · ~2.5 hours total · 100% free
         </p>
       </div>
 

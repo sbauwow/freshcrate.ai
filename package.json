@@ -1,7 +1,7 @@
 {
   "name": "freshcrate",
   "version": "0.1.0",
-  "description": "The open source package directory for AI agents — discover, search, and publish agent tools, MCP servers, frameworks, and libraries",
+  "description": "The open source package directory for AI agents \u2014 discover, search, and publish agent tools, MCP servers, frameworks, and libraries",
   "author": "freshcrate contributors",
   "license": "MIT",
   "repository": {
@@ -55,8 +55,14 @@
     "image:build": "bash scripts/build-agent-edition-image.sh",
     "image:build:vm": "bash scripts/build-agent-edition-image.sh --image vm-qcow2-headless --bundle solo-builder-core --mode headless --channel stable",
     "image:build:iso": "bash scripts/build-agent-edition-iso.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable",
+    "image:build:liveusb": "bash scripts/build-agent-edition-live-usb.sh --image iso-live-persistent-x86_64 --bundle solo-builder-core --mode headless --channel stable",
+    "image:build:rootfs": "bash scripts/build-agent-edition-rootfs.sh --bundle solo-builder-core --channel stable",
+    "image:smoke:iso": "bash scripts/qemu-smoke-test-agent-edition-iso.sh",
+    "image:smoke:liveusb": "bash scripts/qemu-smoke-test-live-usb.sh",
     "image:package": "bash scripts/package-agent-edition-image.sh",
-    "image:validate": "bash scripts/validate-agent-edition-templates.sh"
+    "image:validate": "bash scripts/validate-agent-edition-templates.sh",
+    "image:verify:iso": "bash scripts/qemu-install-verify-agent-edition-iso.sh",
+    "image:verify:liveusb": "bash scripts/qemu-verify-live-usb-persistence.sh"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

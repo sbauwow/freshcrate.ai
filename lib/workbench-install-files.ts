@@ -18,7 +18,7 @@ export function getHostedAgentEditionInstallScript(): string {
   return `${common}\n\n${bootstrap}\n`;
 }
 
-export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; mode?: string; channel?: string; image?: string } = {}): AgentEditionPublishedImageArtifact {
+export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; mode?: string; channel?: string; image?: string; target?: string } = {}): AgentEditionPublishedImageArtifact {
   const manifest = getAgentEditionImageBuildManifest(input);
   const artifactPath = path.join(/*turbopackIgnore: true*/ process.cwd(), manifest.packer.expected_artifact);
   const checksumPath = path.join(/*turbopackIgnore: true*/ process.cwd(), manifest.packer.checksum_file);
@@ -27,7 +27,9 @@ export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; 
   const stat = artifactExists ? fs.statSync(artifactPath) : null;
   const checksum = checksumExists ? fs.readFileSync(checksumPath, "utf8").trim().split(/\s+/)[0] ?? null : null;
   const githubReleaseTag = manifest.image.id === "vm-qcow2-headless" && manifest.channel.id === "stable"
-    ? "agent-edition-vm-qcow2-latest"
+    ? manifest.packer.variables.target === "ubuntu-24.04-arm64"
+      ? "agent-edition-vm-qcow2-arm64-latest"
+      : "agent-edition-vm-qcow2-latest"
     : manifest.image.id === "iso-autoinstall-headless" && manifest.channel.id === "stable"
       ? "agent-edition-iso-latest"
       : null;
@@ -58,15 +60,15 @@ export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; 
     github_release_page_url: githubReleasePageUrl,
     github_download_urls: githubDownloadUrls,
     download_urls: {
-      artifact: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&image=${manifest.image.id}&kind=artifact`,
-      checksum: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&image=${manifest.image.id}&kind=checksum`,
-      metadata: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&image=${manifest.image.id}&kind=metadata`,
+      artifact: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&target=${manifest.commands.target}&image=${manifest.image.id}&kind=artifact`,
+      checksum: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&target=${manifest.commands.target}&image=${manifest.image.id}&kind=checksum`,
+      metadata: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&target=${manifest.commands.target}&image=${manifest.image.id}&kind=metadata`,
     },
   };
 }
 
 export function resolveAgentEditionImageArtifactPath(
-  input: { bundle?: string; mode?: string; channel?: string; image?: string },
+  input: { bundle?: string; mode?: string; channel?: string; image?: string; target?: string },
   kind: AgentEditionArtifactDownloadKind = "artifact",
 ): { path: string; fileName: string; contentType: string } {
   const published = getAgentEditionPublishedImageArtifact(input);
@@ -93,6 +95,6 @@ export function resolveAgentEditionImageArtifactPath(
   return {
     path: absoluteArtifactPath,
     fileName: path.basename(published.artifact_path),
-    contentType: published.image === "vm-qcow2-headless" || published.image === "iso-autoinstall-headless" ? "application/octet-stream" : "text/plain; charset=utf-8",
+    contentType: published.image === "vm-qcow2-headless" || published.image === "iso-autoinstall-headless" || published.image === "iso-live-persistent-x86_64" ? "application/octet-stream" : "text/plain; charset=utf-8",
   };
 }

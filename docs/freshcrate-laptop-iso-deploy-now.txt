@@ -1,0 +1,61 @@
+Freshcrate laptop ISO build + deploy — do this now
+
+Current verified state
+- helper script exists:
+  - /home/stathis/freshcrate/scripts/build-and-release-freshcrate-iso-local.sh
+- helper script help works
+- GitHub CLI is authenticated as sbauwow
+- zip, gh, node, npm are installed
+- blocker on this machine:
+  - xorriso is not installed
+
+One-time fix
+- sudo apt-get update && sudo apt-get install -y xorriso
+
+Repo
+- cd /home/stathis/freshcrate
+
+Build only
+- bash scripts/build-and-release-freshcrate-iso-local.sh
+
+Build + publish rolling GitHub release
+- bash scripts/build-and-release-freshcrate-iso-local.sh --publish
+
+What the helper does
+- runs targeted ISO test
+  - npm test -- --run tests/iso-image-lane.test.ts
+- builds ISO
+- packages checksum + metadata
+- creates zip
+- if --publish is passed, uploads release assets to GitHub tag:
+  - agent-edition-iso-latest
+
+Expected artifacts
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.sha256
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.json
+
+Fastest exact sequence
+1. cd /home/stathis/freshcrate
+2. sudo apt-get update && sudo apt-get install -y xorriso
+3. bash scripts/build-and-release-freshcrate-iso-local.sh --publish
+
+If you want LAN serving instead of GitHub release
+- python3 -m http.server 8000 --directory output/iso-autoinstall-headless
+- download from:
+  - http://YOUR_LAPTOP_IP:8000/freshcrate-solo-builder-core-stable.iso
+  - or the .zip
+
+If helper fails
+- run manually:
+  - npm test -- --run tests/iso-image-lane.test.ts
+  - bash scripts/build-agent-edition-iso.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
+  - bash scripts/package-agent-edition-image.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
+
+Deployment recommendation
+- use --publish first
+- that gives you a stable downloadable release asset without relying on local laptop networking
+
+Final check after publish
+- gh release view agent-edition-iso-latest

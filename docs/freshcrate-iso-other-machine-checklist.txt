@@ -1,0 +1,53 @@
+Freshcrate ISO build on another machine
+
+Important
+- previous verification only applied to the desktop at /home/stathis/freshcrate
+- on this other machine, re-check prerequisites from scratch
+
+Clone / open repo
+- git clone https://github.com/sbauwow/freshcrate.git
+- cd freshcrate
+
+Check prerequisites
+- command -v node
+- command -v npm
+- command -v bash
+- command -v curl
+- command -v 7z
+- command -v python3
+- command -v sha256sum
+- command -v xorriso
+- command -v gh
+
+If xorriso missing
+- sudo apt-get update && sudo apt-get install -y xorriso
+
+If 7z missing
+- sudo apt-get update && sudo apt-get install -y p7zip-full
+
+If gh missing
+- sudo apt-get update && sudo apt-get install -y gh
+- gh auth login
+
+Build + publish
+- bash scripts/build-and-release-freshcrate-iso-local.sh --publish
+
+Build only
+- bash scripts/build-and-release-freshcrate-iso-local.sh
+
+Expected artifacts
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.zip
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.sha256
+- output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso.json
+
+If helper fails
+- npm test -- --run tests/iso-image-lane.test.ts
+- bash scripts/build-agent-edition-iso.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
+- bash scripts/package-agent-edition-image.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable
+
+After publish
+- gh release view agent-edition-iso-latest
+
+Best deployment path
+- publish to GitHub release rather than serving from laptop LAN

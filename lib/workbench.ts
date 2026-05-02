@@ -1,6 +1,6 @@
 import { BOOTSTRAP_MANIFEST } from "@/lib/generated/workbench-bootstrap-manifest";
 
-export type WorkbenchTarget = "ubuntu-24.04-x86_64";
+export type WorkbenchTarget = "ubuntu-24.04-x86_64" | "ubuntu-24.04-arm64";
 export type WorkbenchPersona = "solo-dev" | "research" | "automation" | "security" | "local-models";
 export type WorkbenchMode = "headless" | "light-desktop";
 
@@ -8,6 +8,7 @@ export interface WorkbenchBundle {
   id: string;
   name: string;
   target: WorkbenchTarget;
+  supportedTargets: WorkbenchTarget[];
   persona: WorkbenchPersona;
   personas: WorkbenchPersona[];
   installModes: WorkbenchMode[];
@@ -79,6 +80,7 @@ const BUNDLES: WorkbenchBundle[] = [
     id: "solo-builder-core",
     name: "Solo Builder Core",
     target: "ubuntu-24.04-x86_64",
+    supportedTargets: ["ubuntu-24.04-x86_64", "ubuntu-24.04-arm64"],
     persona: "solo-dev",
     personas: ["solo-dev", "automation", "security"],
     installModes: ["headless", "light-desktop"],
@@ -101,6 +103,7 @@ const BUNDLES: WorkbenchBundle[] = [
     id: "research-node",
     name: "Research Node",
     target: "ubuntu-24.04-x86_64",
+    supportedTargets: ["ubuntu-24.04-x86_64", "ubuntu-24.04-arm64"],
     persona: "research",
     personas: ["research"],
     installModes: ["headless", "light-desktop"],
@@ -122,6 +125,7 @@ const BUNDLES: WorkbenchBundle[] = [
     id: "local-model-box",
     name: "Local Model Box",
     target: "ubuntu-24.04-x86_64",
+    supportedTargets: ["ubuntu-24.04-x86_64", "ubuntu-24.04-arm64"],
     persona: "local-models",
     personas: ["local-models"],
     installModes: ["headless", "light-desktop"],
@@ -147,7 +151,7 @@ const ACTION_LIBRARY: Record<string, WorkbenchAction> = {
     title: "Start from Ubuntu minimal and keep the substrate lean",
     priority: "P0",
     checklist: [
-      "Support Ubuntu 24.04 x86_64 only for v0.",
+      "Support Ubuntu 24.04 x86_64 as the stable lane and Ubuntu 24.04 arm64 as an experimental lane.",
       "Ship headless first; make desktop optional.",
       "Exclude office/media/chat/game bundles from the base image.",
     ],
@@ -196,7 +200,7 @@ export function getWorkbenchBundles(filters: WorkbenchFilters = {}): WorkbenchBu
   const q = filters.q?.trim().toLowerCase();
 
   return BUNDLES.filter((bundle) => (filters.persona ? bundle.personas.includes(filters.persona) : true))
-    .filter((bundle) => (filters.target ? bundle.target === filters.target : true))
+    .filter((bundle) => (filters.target ? bundle.supportedTargets.includes(filters.target) : true))
     .filter((bundle) => (filters.mode ? bundle.installModes.includes(filters.mode) : true))
     .filter((bundle) => {
       if (!q) return true;
@@ -219,7 +223,7 @@ export function getWorkbenchBundles(filters: WorkbenchFilters = {}): WorkbenchBu
 export function getWorkbenchFilterOptions() {
   return {
     personas: Array.from(new Set(BUNDLES.flatMap((bundle) => bundle.personas))).sort(),
-    targets: Array.from(new Set(BUNDLES.map((bundle) => bundle.target))).sort(),
+    targets: Array.from(new Set(BUNDLES.flatMap((bundle) => bundle.supportedTargets))).sort(),
     modes: Array.from(new Set(BUNDLES.flatMap((bundle) => bundle.installModes))).sort(),
   };
 }

@@ -19,6 +19,7 @@ describe("workbench dataset", () => {
     const options = getWorkbenchFilterOptions();
     expect(options.personas.length).toBeGreaterThan(0);
     expect(options.targets).toContain("ubuntu-24.04-x86_64");
+    expect(options.targets).toContain("ubuntu-24.04-arm64");
     expect(options.modes).toContain("headless");
   });
 
@@ -27,6 +28,12 @@ describe("workbench dataset", () => {
     expect(bundles.length).toBeGreaterThan(0);
     expect(bundles.every((bundle) => bundle.personas.includes("security"))).toBe(true);
     expect(bundles.every((bundle) => bundle.installModes.includes("headless"))).toBe(true);
+  });
+
+  it("surfaces experimental arm64 support through target filtering", () => {
+    const bundles = getWorkbenchBundles({ target: "ubuntu-24.04-arm64" });
+    expect(bundles.length).toBeGreaterThan(0);
+    expect(bundles.every((bundle) => bundle.supportedTargets.includes("ubuntu-24.04-arm64"))).toBe(true);
   });
 
   it("supports keyword filtering for minimal substrate positioning", () => {

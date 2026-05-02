@@ -9,16 +9,17 @@ export function GET(request: NextRequest) {
   const bundle = request.nextUrl.searchParams.get("bundle") || undefined;
   const mode = request.nextUrl.searchParams.get("mode") || undefined;
   const channel = request.nextUrl.searchParams.get("channel") || undefined;
+  const target = request.nextUrl.searchParams.get("target") || undefined;
   const image = request.nextUrl.searchParams.get("image") || undefined;
   const kind = (request.nextUrl.searchParams.get("kind") as AgentEditionArtifactDownloadKind | null) ?? "artifact";
-  const published = getAgentEditionPublishedImageArtifact({ bundle, mode, channel, image });
+  const published = getAgentEditionPublishedImageArtifact({ bundle, mode, channel, image, target });
 
   if (request.nextUrl.searchParams.get("download") !== "1") {
     logRequest(request, 200, start);
     return NextResponse.json(published);
   }
 
-  const resolved = resolveAgentEditionImageArtifactPath({ bundle, mode, channel, image }, kind);
+  const resolved = resolveAgentEditionImageArtifactPath({ bundle, mode, channel, image, target }, kind);
   if (!fs.existsSync(resolved.path)) {
     logRequest(request, 404, start);
     return NextResponse.json(
@@ -31,7 +32,7 @@ export function GET(request: NextRequest) {
     );
   }
 
-  const body = fs.readFileSync(resolved.path);
+  const body = Uint8Array.from(fs.readFileSync(resolved.path));
   logRequest(request, 200, start);
   return new NextResponse(body, {
     headers: {
