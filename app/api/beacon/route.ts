@@ -44,6 +44,8 @@ const ALLOWED_EVENTS = new Set([
   "outbound",
   "submit",
   "share",
+  "render_404",
+  "render_500",
 ]);
 
 function hashIp(ip: string): string {

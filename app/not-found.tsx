@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RenderStatusBeacon from "./components/render-status-beacon";
 
 const QUIPS = [
   "Looks like this agent wandered off the context window.",
@@ -25,6 +26,7 @@ export default function NotFound() {
 
   return (
     <div className="py-16 max-w-[600px] mx-auto">
+      <RenderStatusBeacon status={404} />
       {/* ASCII art crate */}
       <pre className="text-fm-green text-center text-[11px] leading-tight font-mono mb-6 overflow-x-auto">{`
      _______________

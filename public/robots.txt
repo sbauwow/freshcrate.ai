@@ -4,4 +4,21 @@ Allow: /api
 Disallow: /admin/
 Disallow: /api/
 
+# These project sub-paths never existed — bots picked them up from sitemap
+# leaks or README references and have been hammering 4xx for them. Tell well-
+# behaved crawlers to drop them; the proxy returns 410 Gone for the rest.
+Disallow: /projects/*/docs/
+Disallow: /projects/*/docs
+Disallow: /projects/*/documentation/
+Disallow: /projects/*/i18n/
+Disallow: /projects/*/.github/
+Disallow: /projects/*/SETUP*
+Disallow: /projects/*/CHANGELOG*
+Disallow: /projects/*/CODE_OF_CONDUCT*
+Disallow: /projects/*/CONTRIBUTING*
+Disallow: /projects/*/README-*
+Disallow: /projects/*.md
+Disallow: /projects/*.yaml
+Disallow: /projects/*.yaml.example
+
 Sitemap: https://www.freshcrate.ai/sitemap.xml

@@ -415,3 +415,42 @@ export function getSlowestPaths(days = 7, limit = 20): SlowPath[] {
     LIMIT ?
   `).all(limit) as SlowPath[];
 }
+
+/**
+ * Page-render status from the page_views beacon log. Covers 404 (not-found.tsx)
+ * and 500 (error.tsx) renders; the proxy/middleware can't see response status,
+ * so this is the only signal for non-API errors.
+ */
+export interface RenderStatusBucket { event_type: string; count: number; sessions: number; visitors: number }
+
+export function getRenderStatusBuckets(days = 7): RenderStatusBucket[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT event_type,
+           COUNT(*) AS count,
+           COUNT(DISTINCT session_id) AS sessions,
+           COUNT(DISTINCT ip_hash || strftime('%Y-%m-%d', created_at)) AS visitors
+    FROM page_views
+    WHERE ${windowClause(days)}
+      AND event_type IN ('render_404', 'render_500')
+    GROUP BY event_type
+    ORDER BY count DESC
+  `).all() as RenderStatusBucket[];
+}
+
+export interface RenderErrorPath { event_type: string; path: string; count: number; sessions: number }
+
+export function getTopRenderErrorPaths(days = 7, limit = 30): RenderErrorPath[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT event_type, path,
+           COUNT(*) AS count,
+           COUNT(DISTINCT session_id) AS sessions
+    FROM page_views
+    WHERE ${windowClause(days)}
+      AND event_type IN ('render_404', 'render_500')
+    GROUP BY event_type, path
+    ORDER BY count DESC
+    LIMIT ?
+  `).all(limit) as RenderErrorPath[];
+}

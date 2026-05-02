@@ -13,12 +13,24 @@ import { classifyTraffic } from "@/lib/traffic-classification";
 const STATIC_RE = /\.(png|jpe?g|gif|svg|webp|ico|css|js|woff2?|ttf|eot|map|xml|txt)$/i;
 const SKIP_PREFIXES = ["/_next/", "/api/beacon"]; // beacon has its own log path
 
+// Bots scrape README links and walk paths that never existed under our
+// /projects/<name>/ namespace (docs/, .github/, SETUP.md, *.yaml.example, ...).
+// Return 410 Gone so Google + co. drop them, and skip the React 404 cost.
+const GONE_RE = /^\/projects\/[^/]+\/(docs|documentation|i18n|\.github)(\/|$)|^\/projects\/[^/]+\/(SETUP|CHANGELOG|CODE_OF_CONDUCT|CONTRIBUTING|README-)|^\/projects\/[^/]+\.(md|yaml(\.example)?)$/i;
+
 export function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const path = url.pathname;
 
   if (STATIC_RE.test(path) || SKIP_PREFIXES.some((p) => path.startsWith(p))) {
     return NextResponse.next();
+  }
+
+  if (GONE_RE.test(path)) {
+    return new NextResponse("Gone", {
+      status: 410,
+      headers: { "content-type": "text/plain; charset=utf-8", "x-fc-gate": "phantom-doc" },
+    });
   }
 
   const surface: "api" | "page" = path.startsWith("/api/") ? "api" : "page";

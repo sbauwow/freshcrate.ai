@@ -15,6 +15,8 @@ import {
   getStatusBreakdown,
   getTopErrorPaths,
   getSlowestPaths,
+  getRenderStatusBuckets,
+  getTopRenderErrorPaths,
 } from "@/lib/analytics";
 
 export const metadata: Metadata = {
@@ -63,7 +65,7 @@ export default async function AdminAnalyticsPage({
   const days = Math.max(1, Math.min(90, parseInt(params.days || "7", 10) || 7));
   const funnelSteps = parseFunnel(params.funnel);
 
-  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, dau, retention, topTargets, statusMix, errorPaths, slowPaths] = [
+  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, dau, retention, topTargets, statusMix, errorPaths, slowPaths, renderStatus, renderErrorPaths] = [
     getOverview(days),
     getEntryPages(days),
     getExitPages(days),
@@ -78,6 +80,8 @@ export default async function AdminAnalyticsPage({
     getStatusBreakdown(days),
     getTopErrorPaths(days),
     getSlowestPaths(days),
+    getRenderStatusBuckets(days),
+    getTopRenderErrorPaths(days),
   ];
 
   return (
@@ -178,6 +182,20 @@ export default async function AdminAnalyticsPage({
         <Table
           headers={["path", "count", "p95 ms", "avg ms"]}
           rows={slowPaths.map((r) => [r.path, r.count, r.p95_ms, r.avg_ms])}
+        />
+      </Section>
+
+      <Section title="Page-render status (404/500 from beacon, covers SSR pages)">
+        <Table
+          headers={["event", "count", "sessions", "visitors"]}
+          rows={renderStatus.map((r) => [r.event_type, r.count, r.sessions, r.visitors])}
+        />
+      </Section>
+
+      <Section title="Top 404/500 render paths">
+        <Table
+          headers={["event", "path", "count", "sessions"]}
+          rows={renderErrorPaths.map((r) => [r.event_type, r.path, r.count, r.sessions])}
         />
       </Section>
 

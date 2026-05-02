@@ -7,7 +7,8 @@
  * so events stitch into the same session for funnel analysis.
  *
  * Allowed event types: pageview, click, install, copy, search, outbound,
- * submit, share. Unknown values are coerced to "pageview" server-side.
+ * submit, share, render_404, render_500. Unknown values are coerced to
+ * "pageview" server-side.
  */
 export function track(event: string, target?: string, path?: string): void {
   if (typeof window === "undefined") return;
