@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cleanAuthor } from "@/lib/author-slug";
 import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects } from "@/lib/queries";
 import { getVerificationStatus } from "@/lib/verify";
 import { getHealthStatus } from "@/lib/health";
@@ -159,8 +160,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
           <div className="space-y-2 text-[11px]">
             <div>
               <span className="text-fm-text-light block">Author:</span>
-              <Link href={`/author/${encodeURIComponent(project.author)}`} className="font-bold text-fm-link hover:text-fm-link-hover">
-                {project.author}
+              <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="font-bold text-fm-link hover:text-fm-link-hover">
+                {cleanAuthor(project.author)}
               </Link>
             </div>
             <div>

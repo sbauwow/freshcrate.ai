@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cleanAuthor } from "@/lib/author-slug";
 import { getLatestReleases, getCategories, getStats, getLanguages, type ReleaseSort } from "@/lib/queries";
 import { isRankingV2Enabled } from "@/lib/ranking";
 import { computeLifecycle } from "@/lib/lifecycle";
@@ -242,7 +243,7 @@ export default async function Home({
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-[10px] text-fm-text-light">{timeAgo(project.release_date)}</div>
-                  <div className="text-[10px] text-fm-text-light mt-0.5">by <Link href={`/author/${encodeURIComponent(project.author)}`} className="text-fm-link hover:text-fm-link-hover">{project.author}</Link></div>
+                  <div className="text-[10px] text-fm-text-light mt-0.5">by <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">{cleanAuthor(project.author)}</Link></div>
                 </div>
               </div>
             </div>

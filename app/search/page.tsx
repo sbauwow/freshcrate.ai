@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cleanAuthor } from "@/lib/author-slug";
 import { searchProjects, getCategories } from "@/lib/queries";
 import { getDb } from "@/lib/db";
 import { computeLifecycle } from "@/lib/lifecycle";
@@ -232,8 +233,8 @@ export default async function SearchPage({
                   ))}
                   <span className="text-[9px] text-fm-text-light ml-auto">
                     by{" "}
-                    <Link href={`/author/${encodeURIComponent(project.author)}`} className="text-fm-link hover:text-fm-link-hover">
-                      {project.author}
+                    <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">
+                      {cleanAuthor(project.author)}
                     </Link>
                   </span>
                   {project.language && (

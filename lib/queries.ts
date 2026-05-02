@@ -1,4 +1,5 @@
 import { getDb } from "./db";
+import { authorCleanSql, cleanAuthor } from "./author-slug";
 import { buildCanonicalKey } from "./provenance";
 import { isRankingV2Enabled, rankProjectsV2 } from "./ranking";
 
@@ -251,10 +252,10 @@ export function getProjectsByAuthor(author: string): ProjectWithRelease[] {
            (SELECT COUNT(*) FROM releases r3 WHERE r3.project_id = p.id) as release_count
     FROM projects p
     JOIN releases r ON r.project_id = p.id
-    WHERE p.author = ?
+    WHERE (p.author = ? OR ${authorCleanSql("p.author")} = ?)
       AND r.id = (SELECT r2.id FROM releases r2 WHERE r2.project_id = p.id ORDER BY r2.created_at DESC LIMIT 1)
     ORDER BY COALESCE(p.stars, 0) DESC, r.created_at DESC
-  `).all(author) as ProjectWithRelease[];
+  `).all(author, author) as ProjectWithRelease[];
 
   return rows.map((row) => ({ ...row, tags: getProjectTags(row.id) }));
 }
@@ -438,7 +439,7 @@ export function submitProject(data: {
     data.repo_url,
     data.license,
     data.category,
-    data.author,
+    cleanAuthor(data.author),
     sourceType,
     sourcePackageId,
     sourceUrl,

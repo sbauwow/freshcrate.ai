@@ -12,6 +12,9 @@ import {
   getDauTrend,
   getRetention,
   getTopEventTargets,
+  getStatusBreakdown,
+  getTopErrorPaths,
+  getSlowestPaths,
 } from "@/lib/analytics";
 
 export const metadata: Metadata = {
@@ -60,7 +63,7 @@ export default async function AdminAnalyticsPage({
   const days = Math.max(1, Math.min(90, parseInt(params.days || "7", 10) || 7));
   const funnelSteps = parseFunnel(params.funnel);
 
-  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, dau, retention, topTargets] = [
+  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, dau, retention, topTargets, statusMix, errorPaths, slowPaths] = [
     getOverview(days),
     getEntryPages(days),
     getExitPages(days),
@@ -72,6 +75,9 @@ export default async function AdminAnalyticsPage({
     getDauTrend(Math.max(days, 30)),
     getRetention(30),
     getTopEventTargets(days),
+    getStatusBreakdown(days),
+    getTopErrorPaths(days),
+    getSlowestPaths(days),
   ];
 
   return (
@@ -154,6 +160,24 @@ export default async function AdminAnalyticsPage({
         <Table
           headers={["cohort", "size", "D1", "D7", "D30"]}
           rows={retention.map((r) => [r.cohort_day, r.cohort_size, pct(r.d1 ?? 0), pct(r.d7 ?? 0), pct(r.d30 ?? 0)])}
+        />
+      </Section>
+
+      <Section title="API status mix (request_log — API routes only, page renders not represented)">
+        <Table headers={["bucket", "count"]} rows={statusMix.map((r) => [r.bucket, r.count])} />
+      </Section>
+
+      <Section title="Top error paths (4xx/5xx)">
+        <Table
+          headers={["path", "status", "count", "avg ms"]}
+          rows={errorPaths.map((r) => [r.path, r.status, r.count, r.avg_ms])}
+        />
+      </Section>
+
+      <Section title="Slowest paths (p95, 2xx/3xx/4xx)">
+        <Table
+          headers={["path", "count", "p95 ms", "avg ms"]}
+          rows={slowPaths.map((r) => [r.path, r.count, r.p95_ms, r.avg_ms])}
         />
       </Section>
 

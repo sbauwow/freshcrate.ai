@@ -347,3 +347,71 @@ export function getTopEventTargets(days = 7, limit = 30): TopEventTarget[] {
     ORDER BY fires DESC LIMIT ?
   `).all(limit) as TopEventTarget[];
 }
+
+/**
+ * Status-code analytics over the request_log table. Note: only API routes call
+ * `logRequest`, so page renders are not represented here.
+ */
+function reqLogWindow(days: number): string {
+  return `created_at > datetime('now', '-${clampDays(days)} day')`;
+}
+
+export interface StatusBucket { bucket: string; count: number }
+
+export function getStatusBreakdown(days = 7): StatusBucket[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT
+      CASE
+        WHEN status BETWEEN 200 AND 299 THEN '2xx'
+        WHEN status BETWEEN 300 AND 399 THEN '3xx'
+        WHEN status BETWEEN 400 AND 499 THEN '4xx'
+        WHEN status BETWEEN 500 AND 599 THEN '5xx'
+        ELSE 'other' END AS bucket,
+      COUNT(*) AS count
+    FROM request_log
+    WHERE ${reqLogWindow(days)}
+    GROUP BY bucket
+    ORDER BY bucket
+  `).all() as StatusBucket[];
+}
+
+export interface ErrorPath { path: string; status: number; count: number; avg_ms: number }
+
+export function getTopErrorPaths(days = 7, limit = 30): ErrorPath[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT path, status,
+           COUNT(*) AS count,
+           CAST(AVG(duration_ms) AS INTEGER) AS avg_ms
+    FROM request_log
+    WHERE ${reqLogWindow(days)} AND status >= 400
+    GROUP BY path, status
+    ORDER BY count DESC, status DESC
+    LIMIT ?
+  `).all(limit) as ErrorPath[];
+}
+
+export interface SlowPath { path: string; count: number; p95_ms: number; avg_ms: number }
+
+export function getSlowestPaths(days = 7, limit = 20): SlowPath[] {
+  const db = getDb();
+  // SQLite has no PERCENTILE_CONT; approximate p95 with a window.
+  return db.prepare(`
+    WITH d AS (
+      SELECT path, duration_ms,
+             NTILE(20) OVER (PARTITION BY path ORDER BY duration_ms) AS bucket
+      FROM request_log
+      WHERE ${reqLogWindow(days)} AND status < 500
+    )
+    SELECT path,
+           COUNT(*) AS count,
+           MAX(CASE WHEN bucket = 19 THEN duration_ms END) AS p95_ms,
+           CAST(AVG(duration_ms) AS INTEGER) AS avg_ms
+    FROM d
+    GROUP BY path
+    HAVING count > 5
+    ORDER BY p95_ms DESC
+    LIMIT ?
+  `).all(limit) as SlowPath[];
+}
