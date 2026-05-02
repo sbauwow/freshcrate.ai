@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: "AI & ML Glossary — Mini Crates",
     description:
       "Key AI & ML terms defined — from neural networks to transformers.",
-    url: "https://freshcrate.ai/learn/glossary",
+    url: "https://www.freshcrate.ai/learn/glossary",
   },
 };
 

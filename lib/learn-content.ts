@@ -1044,7 +1044,7 @@ The future isn't something that happens to you. It's something you build.`
     goDeeper: [
       { title: "ReAct: Synergizing Reasoning and Acting in LLMs — the foundational agent paper", url: "https://arxiv.org/abs/2210.03629", type: "paper" },
       { title: "What are AI agents? — Anthropic", url: "https://www.anthropic.com/research/building-effective-agents", type: "article" },
-      { title: "freshcrate — browse real agent packages and tools", url: "https://freshcrate.ai/browse", type: "tool" },
+      { title: "freshcrate — browse real agent packages and tools", url: "https://www.freshcrate.ai/browse", type: "tool" },
     ],
     funFact: "The first website ever (info.cern.ch) had no images, no JavaScript, no AI — just hyperlinks. That was 1991. Decades later, we have AI agents that can build entire websites from a text description. If progress continues at this rate, in another decade today's AI may look primitive compared with what comes next.",
     nextCrate: "rag-vs-long-context"

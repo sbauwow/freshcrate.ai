@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "freshcrate orchestra — orchestration patterns for the agent ecosystem",
     description:
       "Explore freshcrate Orchestra: practical patterns for multi-agent delegation, supervision, review gates, artifact spines, and human-in-the-loop control.",
-    url: "https://freshcrate.ai/orchestra",
+    url: "https://www.freshcrate.ai/orchestra",
     siteName: "freshcrate",
     type: "website",
     images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "freshcrate orchestra" }],

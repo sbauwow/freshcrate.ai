@@ -4,6 +4,8 @@ export type TrafficType = "human_browser" | "agent_browser" | "api_client" | "cr
 
 const CRAWLER_PATTERNS = [
   { pattern: /googlebot/i, family: "Googlebot" },
+  { pattern: /googleother/i, family: "GoogleOther" },
+  { pattern: /google-(?:inspectiontool|extended|cloudvertexbot|site-?verification)/i, family: "Google" },
   { pattern: /bingbot/i, family: "Bingbot" },
   { pattern: /yandex/i, family: "Yandex" },
   { pattern: /baiduspider/i, family: "Baiduspider" },

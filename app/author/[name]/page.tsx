@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cleanAuthor } from "@/lib/author-slug";
 import { computeLifecycle } from "@/lib/lifecycle";
 import { getProjectsByAuthor } from "@/lib/queries";
 
@@ -10,7 +11,7 @@ export async function generateMetadata({
   params: Promise<{ name: string }>;
 }): Promise<Metadata> {
   const { name } = await params;
-  const author = decodeURIComponent(name);
+  const author = cleanAuthor(decodeURIComponent(name));
   return {
     title: `freshcrate — ${author}`,
     description: `Projects published by ${author} on freshcrate.`,
@@ -23,7 +24,7 @@ export default async function AuthorPage({
   params: Promise<{ name: string }>;
 }) {
   const { name } = await params;
-  const author = decodeURIComponent(name);
+  const author = cleanAuthor(decodeURIComponent(name));
   const projects = getProjectsByAuthor(author);
 
   if (projects.length === 0) {

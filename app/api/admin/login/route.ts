@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, adminTokenConfigured, verifyAdminToken } from "@/lib/admin-auth";
+import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, adminTokenConfigured, externalUrl, verifyAdminToken } from "@/lib/admin-auth";
 
 export async function POST(request: NextRequest) {
   if (!adminTokenConfigured()) {
@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
     // Slow attacker by a beat without leaking which input was wrong.
     await new Promise((r) => setTimeout(r, 250));
     const next = request.nextUrl.searchParams.get("next") || "/admin/analytics";
-    return NextResponse.redirect(new URL(`${next}?err=1`, request.url), { status: 303 });
+    return NextResponse.redirect(externalUrl(request, `${next}?err=1`), { status: 303 });
   }
 
   const next = request.nextUrl.searchParams.get("next") || "/admin/analytics";
-  const res = NextResponse.redirect(new URL(next, request.url), { status: 303 });
+  const res = NextResponse.redirect(externalUrl(request, next), { status: 303 });
   res.cookies.set({
     name: ADMIN_COOKIE_NAME,
     value: token!,

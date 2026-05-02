@@ -1,9 +1,10 @@
 import { MetadataRoute } from "next";
+import { cleanAuthor } from "@/lib/author-slug";
 import { getLatestReleases, getCategories, getAuthors, getTags } from "@/lib/queries";
 import { getAllCrates } from "@/lib/learn-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://freshcrate.ai";
+  const baseUrl = "https://www.freshcrate.ai";
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, changeFrequency: "daily", priority: 1.0 },
@@ -41,12 +42,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  // Author pages
-  const authorPages: MetadataRoute.Sitemap = getAuthors().map((a) => ({
-    url: `${baseUrl}/author/${encodeURIComponent(a.author)}`,
-    changeFrequency: "weekly" as const,
-    priority: 0.6,
-  }));
+  // Author pages — dedupe on cleaned name to avoid leaking emails into URLs
+  const seenAuthors = new Set<string>();
+  const authorPages: MetadataRoute.Sitemap = [];
+  for (const a of getAuthors()) {
+    const slug = cleanAuthor(a.author);
+    if (!slug || seenAuthors.has(slug)) continue;
+    seenAuthors.add(slug);
+    authorPages.push({
+      url: `${baseUrl}/author/${encodeURIComponent(slug)}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    });
+  }
 
   // Tag pages
   const tagPages: MetadataRoute.Sitemap = getTags().map((t) => ({

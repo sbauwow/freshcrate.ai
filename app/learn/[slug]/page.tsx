@@ -45,7 +45,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${crate.emoji} Crate #${crate.number}: ${crate.title}`,
       description,
-      url: `https://freshcrate.ai/learn/${crate.slug}`,
+      url: `https://www.freshcrate.ai/learn/${crate.slug}`,
       images: [{ url: `/learn/${crate.slug}/opengraph-image` }],
     },
     twitter: {
@@ -93,10 +93,10 @@ export default async function CratePage({
     isPartOf: {
       "@type": "Course",
       name: "Mini Crates — AI & ML Education",
-      url: "https://freshcrate.ai/learn",
-      provider: { "@type": "Organization", name: "freshcrate", url: "https://freshcrate.ai" },
+      url: "https://www.freshcrate.ai/learn",
+      provider: { "@type": "Organization", name: "freshcrate", url: "https://www.freshcrate.ai" },
     },
-    url: `https://freshcrate.ai/learn/${crate.slug}`,
+    url: `https://www.freshcrate.ai/learn/${crate.slug}`,
     inLanguage: "en",
     isAccessibleForFree: true,
     keywords: crate.tags.join(", "),

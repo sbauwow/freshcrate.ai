@@ -14,7 +14,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<Record<string, string>> }
 ) {
-  const baseUrl = "https://freshcrate.ai";
+  const baseUrl = "https://www.freshcrate.ai";
   const routeParams = await params;
   const slug = typeof routeParams.slug === "string" ? routeParams.slug : "";
 

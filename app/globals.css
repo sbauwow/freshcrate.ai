@@ -39,7 +39,7 @@
 body {
   background: var(--fm-bg);
   color: var(--fm-text);
-  font-family: Verdana, Geneva, "DejaVu Sans", Arial, Helvetica, sans-serif;
+  font-family: Verdana, Geneva, "DejaVu Sans", Arial, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   font-size: 12px;
   line-height: 1.5;
 }

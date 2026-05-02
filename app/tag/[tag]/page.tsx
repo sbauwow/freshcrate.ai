@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cleanAuthor } from "@/lib/author-slug";
 import { computeLifecycle } from "@/lib/lifecycle";
 import { getProjectsByTag } from "@/lib/queries";
 
@@ -97,7 +98,7 @@ export default async function TagPage({
                     </Link>
                   ))}
                   <span className="text-[9px] text-fm-text-light ml-auto">
-                    by <Link href={`/author/${encodeURIComponent(project.author)}`} className="text-fm-link hover:text-fm-link-hover">{project.author}</Link>
+                    by <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">{cleanAuthor(project.author)}</Link>
                   </span>
                 </div>
               </div>

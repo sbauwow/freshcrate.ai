@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Mini Crates — AI & ML Education from Scratch",
     description: "11 free crates covering AI fundamentals, neural networks, NLP, ethics, generative AI, agents, and modern LLM architecture.",
-    url: "https://freshcrate.ai/learn",
+    url: "https://www.freshcrate.ai/learn",
     images: [{ url: "/learn/opengraph-image" }],
   },
   twitter: {
@@ -58,15 +58,15 @@ export default function LearnPage() {
     "@type": "Course",
     name: "Mini Crates — AI & ML Education",
     description: "A 10-crate progressive curriculum teaching AI and machine learning from the ground up. Free, no prerequisites.",
-    provider: { "@type": "Organization", name: "freshcrate", url: "https://freshcrate.ai" },
-    url: "https://freshcrate.ai/learn",
+    provider: { "@type": "Organization", name: "freshcrate", url: "https://www.freshcrate.ai" },
+    url: "https://www.freshcrate.ai/learn",
     inLanguage: "en",
     isAccessibleForFree: true,
     numberOfCredits: crates.length,
     hasCourseInstance: crates.map((c) => ({
       "@type": "LearningResource",
       name: `Crate #${c.number}: ${c.title}`,
-      url: `https://freshcrate.ai/learn/${c.slug}`,
+      url: `https://www.freshcrate.ai/learn/${c.slug}`,
       timeRequired: `PT${c.estimatedMinutes}M`,
     })),
   };

@@ -2,7 +2,7 @@ import { buildAtomFeed } from "@/lib/feed-atom";
 import { getLatestVerifiedReleases } from "@/lib/queries";
 
 export function GET() {
-  const baseUrl = "https://freshcrate.ai";
+  const baseUrl = "https://www.freshcrate.ai";
   const releases = getLatestVerifiedReleases(50, 0);
 
   const feed = buildAtomFeed({
