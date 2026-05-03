@@ -243,22 +243,16 @@ export default async function Home({
                       </Link>
                     ))}
                   </div>
-                  {/* OG freshmeat-style metadata bar */}
-                  <div className="mt-1.5 border border-fm-border/60 rounded overflow-hidden text-[9px]">
-                    <div className="flex bg-[#dddddd]">
-                      <span className="flex-1 px-2 py-0.5 font-bold text-fm-text">Category</span>
-                      <span className="w-[100px] px-2 py-0.5 font-bold text-fm-text text-center border-l border-fm-border/60">License</span>
-                    </div>
-                    <div className="flex bg-white">
-                      <span className="flex-1 px-2 py-1">
-                        <Link href={`/browse?category=${encodeURIComponent(project.category)}`} className="text-fm-link hover:text-fm-link-hover">
-                          {project.category}
-                        </Link>
-                      </span>
-                      <span className="w-[100px] px-2 py-1 text-center border-l border-fm-border/30">
-                        <LicensePill license={project.license} projectName={project.name} />
-                      </span>
-                    </div>
+                  <div className="mt-1.5 flex items-center flex-wrap gap-2 text-[10px] text-fm-text-light">
+                    <Link
+                      href={`/browse?category=${encodeURIComponent(project.category)}`}
+                      className="text-fm-link hover:text-fm-link-hover"
+                      title="Category"
+                    >
+                      {project.category}
+                    </Link>
+                    <span className="text-fm-border" aria-hidden>·</span>
+                    <LicensePill license={project.license} projectName={project.name} />
                   </div>
                 </div>
                 <div className="text-right shrink-0">
