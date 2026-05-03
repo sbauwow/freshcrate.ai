@@ -19,6 +19,15 @@
 }
 
 @theme inline {
+  /* Append color-emoji fonts so badges (font-mono) and other utility-font
+     elements still render emoji on Linux/Windows where the default mono
+     stack lacks emoji glyphs. Order matches Tailwind defaults; the emoji
+     fonts are last so they only kick in for codepoints the primary fonts
+     don't cover. */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+
   --color-fm-green: var(--fm-green);
   --color-fm-green-light: var(--fm-green-light);
   --color-fm-green-dark: var(--fm-green-dark);
