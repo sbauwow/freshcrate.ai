@@ -17,7 +17,7 @@ describe("vm qcow2 image lane", () => {
 
   it("ships cloud-init seed files for the vm qcow2 lane", () => {
     const template = fs.readFileSync(path.join(process.cwd(), "images", "vm-qcow2-headless.pkr.hcl"), "utf8");
-    expect(template).toContain('cd_label         = "cidata"');
+    expect(template).toContain('cd_label           = "cidata"');
     expect(template).toContain('images/cloud-init/vm-qcow2-headless/user-data');
     expect(template).toContain('variable "rootfs_dir"');
     expect(template).toContain('rootfs-contract/package-manifest.txt');
@@ -67,5 +67,27 @@ describe("vm qcow2 image lane", () => {
     expect(buildScript).toContain("build-agent-edition-rootfs.sh");
     expect(template).toContain("ubuntu-24.04-server-cloudimg-arm64.img");
     expect(template).toContain("output/vm-qcow2-headless-arm64");
+  });
+
+  it("ships an arm64 lane packer config (qemu binary + EFI firmware) for ubuntu-24.04-arm64", () => {
+    const template = fs.readFileSync(path.join(process.cwd(), "images", "vm-qcow2-headless.pkr.hcl"), "utf8");
+    expect(template).toContain('qemu_binary        = "qemu-system-aarch64"');
+    expect(template).toContain('machine_type       = "virt"');
+    expect(template).toContain('efi_boot           = true');
+    expect(template).toContain('AAVMF_CODE.fd');
+    expect(template).toContain('AAVMF_VARS.fd');
+  });
+
+  it("ships a github workflow that publishes the arm64 qcow2 to a separate release tag", () => {
+    const workflowPath = path.join(process.cwd(), ".github", "workflows", "build-agent-edition-vm-image-arm64.yml");
+    expect(fs.existsSync(workflowPath)).toBe(true);
+    const workflow = fs.readFileSync(workflowPath, "utf8");
+    expect(workflow).toContain("runs-on: ubuntu-24.04-arm");
+    expect(workflow).toContain("--target ubuntu-24.04-arm64");
+    expect(workflow).toContain("output/vm-qcow2-headless-arm64");
+    expect(workflow).toContain("agent-edition-vm-qcow2-arm64-latest");
+    expect(workflow).toContain("qemu-efi-aarch64");
+    // arm64 lane is experimental — keep it out of "latest" until proven
+    expect(workflow).toContain("--prerelease");
   });
 });

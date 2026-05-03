@@ -24,11 +24,11 @@ describe("qcow2 image lane", () => {
 
   it("passes the rebuilt rootfs contract through to the vm packer template", () => {
     const template = fs.readFileSync(path.join(process.cwd(), "images", "vm-qcow2-headless.pkr.hcl"), "utf8");
-    expect(template).toContain('cpus             = 2');
-    expect(template).toContain('memory           = 2048');
-    expect(template).toContain('skip_compaction  = true');
-    expect(template).toContain('qemuargs         = [["-serial", "file:${local.target_config.output_directory}/packer-serial.log"]]');
-    expect(template).toContain('vm_name          = "freshcrate-${var.bundle}-${var.channel}-${local.target_config.vm_name_suffix}.qcow2"');
+    expect(template).toContain('cpus               = 2');
+    expect(template).toContain('memory             = 2048');
+    expect(template).toContain('skip_compaction    = true');
+    expect(template).toContain('qemuargs           = [["-serial", "file:${local.target_config.output_directory}/packer-serial.log"]]');
+    expect(template).toContain('vm_name            = "freshcrate-${var.bundle}-${var.channel}-${local.target_config.vm_name_suffix}.qcow2"');
     expect(template).toContain("while sudo test ! -f /var/lib/cloud/instance/boot-finished");
     expect(template).toContain('sudo cloud-init status --wait || true');
     expect(template).toContain('source      = "${var.rootfs_dir}/opt/freshcrate/scripts/bootstrap-agent-edition.sh"');

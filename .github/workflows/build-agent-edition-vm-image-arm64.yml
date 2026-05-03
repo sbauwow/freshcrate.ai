@@ -1,0 +1,99 @@
+name: build-agent-edition-vm-image-arm64
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - images/vm-qcow2-headless.pkr.hcl
+      - images/cloud-init/vm-qcow2-headless/meta-data
+      - images/cloud-init/vm-qcow2-headless/user-data
+      - scripts/build-agent-edition-image.sh
+      - scripts/package-agent-edition-image.sh
+      - scripts/provision-agent-edition-image.sh
+      - scripts/build-agent-edition-rootfs.sh
+      - scripts/bootstrap-agent-edition.sh
+      - scripts/verify-agent-edition.sh
+      - scripts/lib/bootstrap-common.sh
+      - scripts/lib/rootfs-common.sh
+      - lib/workbench-install.ts
+      - lib/workbench-install-files.ts
+      - app/agent-edition/page.tsx
+      - .github/workflows/build-agent-edition-vm-image-arm64.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-vm-qcow2-arm64:
+    # Native arm64 GitHub-hosted runner — qemu-system-aarch64 builds run with
+    # KVM acceleration here instead of TCG, keeping the build under an hour.
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Run targeted tests
+        run: npm test --silent -- tests/workbench-install.test.ts tests/workbench-image-artifacts-api.test.ts tests/workbench-image-artifact-api.test.ts tests/vm-image-lane.test.ts tests/qcow2-image-lane.test.ts tests/agent-edition-arch-contract.test.ts
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+
+      - name: Install qemu tooling (aarch64)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm qemu-utils qemu-efi-aarch64 xorriso debootstrap
+
+      - name: Build vm-qcow2-headless (arm64)
+        run: bash scripts/build-agent-edition-image.sh --image vm-qcow2-headless --bundle solo-builder-core --mode headless --channel stable --target ubuntu-24.04-arm64
+
+      - name: Inspect vm-qcow2-headless arm64 output
+        run: find output/vm-qcow2-headless-arm64 -maxdepth 3 -type f | sort
+
+      - name: Package vm-qcow2-headless (arm64)
+        run: bash scripts/package-agent-edition-image.sh --image vm-qcow2-headless --bundle solo-builder-core --mode headless --channel stable --output-dir output/vm-qcow2-headless-arm64
+
+      - name: Archive vm-qcow2-headless arm64 for release delivery
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          artifact = Path('output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2')
+          archive = artifact.with_suffix(artifact.suffix + '.zip')
+          with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+              zf.write(artifact, arcname=artifact.name)
+          PY
+
+      - name: Upload vm-qcow2 arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-qcow2-headless-arm64
+          path: |
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2.zip
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2.sha256
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2.json
+
+      - name: Publish rolling GitHub release (arm64)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: agent-edition-vm-qcow2-arm64-latest
+        run: |
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
+          gh release create "$RELEASE_TAG" \
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2.zip \
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2.sha256 \
+            output/vm-qcow2-headless-arm64/freshcrate-solo-builder-core-stable.qcow2.json \
+            --title "freshcrate Agent Edition VM QCOW2 arm64 (latest)" \
+            --notes "Rolling latest arm64 QCOW2 artifact for freshcrate Agent Edition stable vm-qcow2-headless. Experimental — built on a native arm64 runner from the same packer template + cloud-init seed as the x86_64 lane. Release ships the zipped qcow2 plus checksum and metadata." \
+            --prerelease
