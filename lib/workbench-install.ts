@@ -402,11 +402,15 @@ function basename(filePath: string): string {
 
 export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; mode?: string; channel?: string; image?: string; target?: string } = {}): AgentEditionPublishedImageArtifact {
   const manifest = getAgentEditionImageBuildManifest(input);
-  const githubReleaseTag = manifest.image.id === "vm-qcow2-headless" && manifest.channel.id === "stable"
-    ? manifest.packer.variables.target === "ubuntu-24.04-arm64"
-      ? "agent-edition-vm-qcow2-arm64-latest"
-      : "agent-edition-vm-qcow2-latest"
-    : manifest.image.id === "iso-autoinstall-headless" && manifest.channel.id === "stable"
+  // ISO arm64 build pipeline does not yet exist — only x86_64 has a published
+  // ISO release tag. Returning null here keeps the stub honest for arm64 ISO
+  // consumers instead of pointing them at the x86_64 release.
+  const isStableISO = manifest.image.id === "iso-autoinstall-headless" && manifest.channel.id === "stable";
+  const isStableQCOW = manifest.image.id === "vm-qcow2-headless" && manifest.channel.id === "stable";
+  const isArm64 = manifest.packer.variables.target === "ubuntu-24.04-arm64";
+  const githubReleaseTag = isStableQCOW
+    ? (isArm64 ? "agent-edition-vm-qcow2-arm64-latest" : "agent-edition-vm-qcow2-latest")
+    : isStableISO && !isArm64
       ? "agent-edition-iso-latest"
       : null;
   const githubReleasePageUrl = githubReleaseTag ? `https://github.com/sbauwow/freshcrate.ai/releases/tag/${githubReleaseTag}` : null;
