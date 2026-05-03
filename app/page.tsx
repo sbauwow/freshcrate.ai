@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { cleanAuthor } from "@/lib/author-slug";
+import { classifyLicense, licenseKindClass } from "@/lib/license";
 import { getLatestReleases, getCategories, getStats, getLanguages, type ReleaseSort } from "@/lib/queries";
 import { isRankingV2Enabled } from "@/lib/ranking";
 import { computeLifecycle } from "@/lib/lifecycle";
@@ -11,20 +12,23 @@ import TrackedForm from "./components/tracked-form";
 import TrackedLink from "./components/tracked-link";
 import TrackedNextLink from "./components/tracked-next-link";
 
-function LicensePill({ license }: { license: string }) {
-  // Permissive = green, Copyleft = yellow, Weak copyleft = blue, Unknown = gray
-  const l = license || "Unknown";
-  let color = "bg-gray-200 text-gray-700";          // Unknown / NOASSERTION
-  if (/^MIT|^ISC|^BSD|^Apache|^Unlicense|^0BSD|^CC0/i.test(l)) {
-    color = "bg-green-100 text-green-800";           // Permissive
-  } else if (/^GPL|^AGPL|^MPL/i.test(l)) {
-    color = "bg-yellow-100 text-yellow-800";         // Copyleft
-  } else if (/^LGPL|^EPL|^EUPL|^CDDL/i.test(l)) {
-    color = "bg-blue-100 text-blue-800";             // Weak copyleft
+function LicensePill({ license, projectName }: { license: string; projectName?: string }) {
+  const info = classifyLicense(license);
+  const className = `${licenseKindClass(info.kind)} px-1.5 py-0.5 rounded text-[9px] font-mono font-bold`;
+  if (info.isNonStandard && projectName) {
+    return (
+      <Link
+        href={`/projects/${encodeURIComponent(projectName)}#license`}
+        className={`${className} hover:underline`}
+        title={info.raw.length > 120 ? info.raw.slice(0, 117) + "…" : info.raw}
+      >
+        {info.display}
+      </Link>
+    );
   }
   return (
-    <span className={`${color} px-1.5 py-0.5 rounded text-[9px] font-mono font-bold`}>
-      {l}
+    <span className={className} title={info.isNonStandard ? info.raw : undefined}>
+      {info.display}
     </span>
   );
 }
@@ -252,7 +256,7 @@ export default async function Home({
                         </Link>
                       </span>
                       <span className="w-[100px] px-2 py-1 text-center border-l border-fm-border/30">
-                        <LicensePill license={project.license} />
+                        <LicensePill license={project.license} projectName={project.name} />
                       </span>
                     </div>
                   </div>

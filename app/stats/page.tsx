@@ -268,7 +268,15 @@ export default function StatsPage() {
         <tbody>
           {stats.licenseBreakdown.map((row, i) => (
             <tr key={row.license} className={i % 2 === 0 ? "bg-white/50" : ""}>
-              <td className="px-2 py-1 border border-fm-border font-bold">{row.license}</td>
+              <td className="px-2 py-1 border border-fm-border font-bold">
+                {row.license === "non-standard" ? (
+                  <Link href="/dependencies#license-risk" className="text-fm-link hover:text-fm-link-hover" title="Pasted custom text, EULAs, or unknown SPDX identifiers — see the license risk view for the per-package breakdown.">
+                    non-standard
+                  </Link>
+                ) : (
+                  row.license
+                )}
+              </td>
               <td className="px-2 py-1 border border-fm-border text-right font-mono">{row.count}</td>
               <td className="px-2 py-1 border border-fm-border">
                 <PercentBar pct={row.pct} color="#3366cc" />

@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { authorCleanSql, cleanAuthor } from "./author-slug";
+import { classifyLicense } from "./license";
 import { buildCanonicalKey } from "./provenance";
 import { isRankingV2Enabled, rankProjectsV2 } from "./ranking";
 
@@ -673,14 +674,25 @@ export function getFullStats(): FullStats {
   }).sort((a, b) => b.score - a.score);
 
   // --- LICENSE BREAKDOWN ---
-  const licenseRows = db.prepare(`
+  // Collapse anything classifyLicense() flags as non-standard into a single
+  // bucket so pasted-full-text licenses don't blow out the table.
+  const licenseRowsRaw = db.prepare(`
     SELECT COALESCE(NULLIF(license, ''), 'Unknown') as license, COUNT(*) as count
-    FROM projects GROUP BY 1 ORDER BY count DESC
+    FROM projects GROUP BY 1
   `).all() as { license: string; count: number }[];
-  const licenseBreakdown = licenseRows.map((r) => ({
-    ...r,
-    pct: packages > 0 ? Math.round((r.count / packages) * 100) : 0,
-  }));
+  const bucketed = new Map<string, number>();
+  for (const r of licenseRowsRaw) {
+    const info = classifyLicense(r.license);
+    const key = info.isNonStandard ? "non-standard" : info.display;
+    bucketed.set(key, (bucketed.get(key) ?? 0) + r.count);
+  }
+  const licenseBreakdown = Array.from(bucketed.entries())
+    .map(([license, count]) => ({
+      license,
+      count,
+      pct: packages > 0 ? Math.round((count / packages) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // --- LANGUAGE BREAKDOWN ---
   const langRows = db.prepare(`

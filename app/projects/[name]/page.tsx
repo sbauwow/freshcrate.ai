@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ShareLinks from "@/app/components/share-links";
 import { cleanAuthor } from "@/lib/author-slug";
+import { classifyLicense } from "@/lib/license";
 import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects } from "@/lib/queries";
 import { getVerificationStatus } from "@/lib/verify";
 import { getHealthStatus } from "@/lib/health";
@@ -165,9 +166,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
                 {cleanAuthor(project.author)}
               </Link>
             </div>
-            <div>
+            <div id="license">
               <span className="text-fm-text-light block">License:</span>
-              <span className="font-bold">{project.license}</span>
+              {(() => {
+                const info = classifyLicense(project.license);
+                if (info.isNonStandard) {
+                  return (
+                    <>
+                      <span className="font-bold">non-standard</span>
+                      <details className="mt-1">
+                        <summary className="text-[10px] text-fm-link hover:text-fm-link-hover cursor-pointer">view declared license</summary>
+                        <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap text-[10px] text-fm-text-light bg-fm-bg border border-fm-border rounded p-2 font-mono">{info.raw}</pre>
+                      </details>
+                    </>
+                  );
+                }
+                return <span className="font-bold">{info.display}</span>;
+              })()}
             </div>
             <div>
               <span className="text-fm-text-light block">Category:</span>
