@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(process.cwd()),
   },
+  async rewrites() {
+    return [
+      // LLM-friendly Markdown alternate for project pages.
+      // /projects/<name>.md → app/api/projects/[name]/md/route.ts
+      { source: "/projects/:name.md", destination: "/api/projects/:name/md" },
+    ];
+  },
   async redirects() {
     return [
       { source: "/workbench", destination: "/agent-edition", permanent: true },

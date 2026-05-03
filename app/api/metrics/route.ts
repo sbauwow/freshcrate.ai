@@ -197,7 +197,7 @@ export async function GET() {
 
   const topAgents = (() => {
     try {
-      return db.prepare("SELECT ua_family, COUNT(*) as hits FROM page_views WHERE created_at > datetime('now', '-1 day') AND traffic_type IN ('agent_browser', 'crawler_bot', 'api_client') GROUP BY ua_family ORDER BY hits DESC LIMIT 10").all() as Array<{ ua_family: string; hits: number }>;
+      return db.prepare("SELECT ua_family, COUNT(*) as hits FROM page_views WHERE created_at > datetime('now', '-1 day') AND traffic_type IN ('ai_agent', 'ai_training', 'agent_browser', 'crawler_bot', 'api_client') GROUP BY ua_family ORDER BY hits DESC LIMIT 10").all() as Array<{ ua_family: string; hits: number }>;
     } catch {
       return [] as Array<{ ua_family: string; hits: number }>;
     }
@@ -274,6 +274,8 @@ export async function GET() {
     bot_hits_24h: metrics.traffic_24h.bot_hits,
     human_browser_24h: trafficBreakdown.find((row) => row.traffic_type === "human_browser")?.hits || 0,
     agent_browser_24h: trafficBreakdown.find((row) => row.traffic_type === "agent_browser")?.hits || 0,
+    ai_agent_24h: trafficBreakdown.find((row) => row.traffic_type === "ai_agent")?.hits || 0,
+    ai_training_24h: trafficBreakdown.find((row) => row.traffic_type === "ai_training")?.hits || 0,
     api_client_24h: trafficBreakdown.find((row) => row.traffic_type === "api_client")?.hits || 0,
     crawler_bot_24h: trafficBreakdown.find((row) => row.traffic_type === "crawler_bot")?.hits || 0,
     top_agent_24h: topAgents[0]?.ua_family || null,

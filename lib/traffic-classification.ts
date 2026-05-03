@@ -1,36 +1,72 @@
 import { NextRequest } from "next/server";
 
-export type TrafficType = "human_browser" | "agent_browser" | "api_client" | "crawler_bot";
+export type TrafficType =
+  | "human_browser"
+  | "agent_browser"
+  | "ai_agent"
+  | "ai_training"
+  | "api_client"
+  | "crawler_bot";
+
+// AI products that fetch pages live to answer a user's prompt. Highest-signal
+// traffic — every hit is a human-driven request bouncing through an LLM.
+const AI_LIVE_PATTERNS = [
+  { pattern: /chatgpt-user/i, family: "ChatGPT-User" },
+  { pattern: /oai-searchbot/i, family: "OAI-SearchBot" },
+  { pattern: /perplexitybot/i, family: "PerplexityBot" },
+  { pattern: /perplexity-user/i, family: "Perplexity-User" },
+  { pattern: /claude-web/i, family: "Claude-Web" },
+  { pattern: /claude-user/i, family: "Claude-User" },
+  { pattern: /chatgpt-image/i, family: "ChatGPT-Image" },
+  { pattern: /youbot|you\.com/i, family: "YouBot" },
+  { pattern: /phindbot/i, family: "PhindBot" },
+];
+
+// AI corpus / model-training crawlers and search-index ingest. Lower per-hit
+// value than ai_agent but the input shape that decides whether you appear in
+// future LLM answers at all.
+const AI_TRAINING_PATTERNS = [
+  { pattern: /gptbot/i, family: "GPTBot" },
+  { pattern: /claudebot/i, family: "ClaudeBot" },
+  { pattern: /anthropic-ai/i, family: "anthropic-ai" },
+  { pattern: /google-extended/i, family: "Google-Extended" },
+  { pattern: /applebot-extended/i, family: "Applebot-Extended" },
+  { pattern: /ccbot/i, family: "CCBot" },
+  { pattern: /bytespider/i, family: "Bytespider" },
+  { pattern: /amazonbot/i, family: "Amazonbot" },
+  { pattern: /diffbot/i, family: "Diffbot" },
+  { pattern: /omgilibot/i, family: "Omgilibot" },
+  { pattern: /cohere-ai/i, family: "cohere-ai" },
+  { pattern: /meta-externalagent/i, family: "Meta-ExternalAgent" },
+  { pattern: /meta-externalfetcher/i, family: "Meta-ExternalFetcher" },
+  { pattern: /facebookbot/i, family: "FacebookBot" },
+];
 
 const CRAWLER_PATTERNS = [
   { pattern: /googlebot/i, family: "Googlebot" },
   { pattern: /googleother/i, family: "GoogleOther" },
-  { pattern: /google-(?:inspectiontool|extended|cloudvertexbot|site-?verification)/i, family: "Google" },
+  { pattern: /google-(?:inspectiontool|cloudvertexbot|site-?verification)/i, family: "Google" },
   { pattern: /bingbot/i, family: "Bingbot" },
   { pattern: /yandex/i, family: "Yandex" },
   { pattern: /baiduspider/i, family: "Baiduspider" },
+  { pattern: /duckduckbot/i, family: "DuckDuckBot" },
+  { pattern: /applebot/i, family: "Applebot" },
   { pattern: /semrush/i, family: "Semrush" },
   { pattern: /ahrefs/i, family: "Ahrefs" },
   { pattern: /mj12bot/i, family: "MJ12Bot" },
-  { pattern: /bytespider/i, family: "Bytespider" },
-  { pattern: /gptbot/i, family: "GPTBot" },
-  { pattern: /ccbot/i, family: "CCBot" },
-  { pattern: /amazonbot/i, family: "Amazonbot" },
   { pattern: /facebookexternalhit/i, family: "FacebookExternalHit" },
   { pattern: /bot|crawler|spider|scraper|lighthouse/i, family: "Crawler" },
 ];
 
+// IDE / coding agents driven by a developer locally. Distinct from ai_agent
+// (consumer AI products) — these get bucketed as agent_browser/api_client so
+// existing dashboards keep working.
 const AGENT_PATTERNS = [
-  { pattern: /chatgpt/i, family: "ChatGPT" },
-  { pattern: /claude/i, family: "Claude" },
-  { pattern: /anthropic/i, family: "Anthropic" },
-  { pattern: /perplexity/i, family: "Perplexity" },
-  { pattern: /openai/i, family: "OpenAI" },
   { pattern: /copilot/i, family: "Copilot" },
   { pattern: /cursor/i, family: "Cursor" },
   { pattern: /cline/i, family: "Cline" },
   { pattern: /windsurf/i, family: "Windsurf" },
-  { pattern: /llm/i, family: "LLM Agent" },
+  { pattern: /\bllm\b|llm-agent/i, family: "LLM Agent" },
 ];
 
 const API_PATTERNS = [
@@ -76,6 +112,19 @@ function looksLikeSpoofedChrome(request: NextRequest, ua: string): boolean {
 export function classifyTraffic(request: NextRequest, surface: "api" | "page"): { trafficType: TrafficType; uaFamily: string; host: string } {
   const ua = (request.headers.get("user-agent") || "").slice(0, 200);
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+
+  // Order matters: AI live > AI training > generic crawler. Without this,
+  // the catch-all "bot|crawler|spider" in CRAWLER_PATTERNS swallows
+  // ChatGPT-User and Perplexity (their UA strings end with "+...openai.com/bot").
+  const aiLiveFamily = firstMatch(ua, AI_LIVE_PATTERNS);
+  if (aiLiveFamily) {
+    return { trafficType: "ai_agent", uaFamily: aiLiveFamily, host };
+  }
+
+  const aiTrainingFamily = firstMatch(ua, AI_TRAINING_PATTERNS);
+  if (aiTrainingFamily) {
+    return { trafficType: "ai_training", uaFamily: aiTrainingFamily, host };
+  }
 
   const crawlerFamily = firstMatch(ua, CRAWLER_PATTERNS);
   if (crawlerFamily) {

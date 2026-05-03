@@ -17,8 +17,77 @@ Disallow: /projects/*/CHANGELOG*
 Disallow: /projects/*/CODE_OF_CONDUCT*
 Disallow: /projects/*/CONTRIBUTING*
 Disallow: /projects/*/README-*
-Disallow: /projects/*.md
 Disallow: /projects/*.yaml
 Disallow: /projects/*.yaml.example
+
+# Explicit allows for AI retrieval / training crawlers. Each gets the full
+# site, including the /projects/<name>.md Markdown alternate route. Listed
+# individually so crawlers that only honor named blocks (Anthropic, OpenAI,
+# Perplexity, Google) see an unambiguous Allow.
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: CCBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /admin/
+Disallow: /api/
 
 Sitemap: https://www.freshcrate.ai/sitemap.xml

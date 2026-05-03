@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import ShareLinks from "@/app/components/share-links";
@@ -17,6 +18,21 @@ import { parseProvenanceJson } from "@/lib/provenance";
 
 function hostname(url: string): string {
   try { return new URL(url).hostname; } catch { return url.slice(0, 60); }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
+  const { name } = await params;
+  const project = getProjectByName(name);
+  if (!project) return {};
+  const mdUrl = `/projects/${encodeURIComponent(project.name)}.md`;
+  return {
+    title: `${project.name} — freshcrate`,
+    description: project.short_desc || project.description?.slice(0, 160),
+    alternates: {
+      canonical: `/projects/${encodeURIComponent(project.name)}`,
+      types: { "text/markdown": mdUrl },
+    },
+  };
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ name: string }> }) {

@@ -23,7 +23,9 @@ const SKIP_PREFIXES = ["/_next/", "/api/beacon"]; // beacon has its own log path
 // Bots scrape README links and walk paths that never existed under our
 // /projects/<name>/ namespace (docs/, .github/, SETUP.md, *.yaml.example, ...).
 // Return 410 Gone so Google + co. drop them, and skip the React 404 cost.
-const GONE_RE = /^\/projects\/[^/]+\/(docs|documentation|i18n|\.github)(\/|$)|^\/projects\/[^/]+\/(SETUP|CHANGELOG|CODE_OF_CONDUCT|CONTRIBUTING|README-)|^\/projects\/[^/]+\.(md|yaml(\.example)?)$/i;
+// Note: /projects/<name>.md is a real route (LLM-friendly Markdown alternate),
+// so it is excluded here and from robots.txt.
+const GONE_RE = /^\/projects\/[^/]+\/(docs|documentation|i18n|\.github)(\/|$)|^\/projects\/[^/]+\/(SETUP|CHANGELOG|CODE_OF_CONDUCT|CONTRIBUTING|README-)|^\/projects\/[^/]+\.(yaml(\.example)?)$/i;
 
 export function proxy(request: NextRequest) {
   const url = request.nextUrl;
