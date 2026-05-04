@@ -47,6 +47,34 @@ export function proxy(request: NextRequest) {
   const ua = (request.headers.get("user-agent") || "").slice(0, 120);
   const hasIp = !!(request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip"));
 
+  // Next.js <Link> prefetches set Sec-Purpose: prefetch (modern) or
+  // Purpose: prefetch (older) or Next-Router-Prefetch: 1. They inflate
+  // page-view counts ~10x — tag them so analytics can filter.
+  const secPurpose = request.headers.get("sec-purpose") || "";
+  const purpose = request.headers.get("purpose") || "";
+  const nextPrefetch = request.headers.get("next-router-prefetch") || "";
+  const isPrefetch =
+    secPurpose.includes("prefetch") ||
+    purpose === "prefetch" ||
+    nextPrefetch === "1";
+
+  const referrer = (request.headers.get("referer") || "").slice(0, 200);
+
+  let query: Record<string, string> | undefined;
+  if (path === "/search") {
+    const q = url.searchParams.get("q");
+    const category = url.searchParams.get("category");
+    const language = url.searchParams.get("language");
+    const author = url.searchParams.get("author");
+    if (q || category || language || author) {
+      query = {};
+      if (q) query.q = q.slice(0, 120);
+      if (category) query.category = category.slice(0, 60);
+      if (language) query.language = language.slice(0, 60);
+      if (author) query.author = author.slice(0, 60);
+    }
+  }
+
   const reqId = crypto.randomUUID().slice(0, 8);
 
   // Suppress entry log for traffic that has a paired completion log elsewhere
@@ -67,6 +95,9 @@ export function proxy(request: NextRequest) {
       ua_family: uaFamily,
       ua_short: ua,
       has_ip: hasIp ? 1 : 0,
+      prefetch: isPrefetch ? 1 : 0,
+      referrer: referrer || undefined,
+      query,
     }));
   }
 
