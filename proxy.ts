@@ -70,7 +70,30 @@ export function proxy(request: NextRequest) {
     }));
   }
 
-  const response = NextResponse.next();
+  // Cheap crawler throttle on /search: bots were 68% of /search hits and
+  // each query is uncached + hits FTS. Real users keep through; LLM agents
+  // (ai_agent) are allowed since those are human-driven prompts.
+  if (path === "/search" && (trafficType === "crawler_bot" || trafficType === "ai_training")) {
+    return new NextResponse("Search rate-limited for crawlers. See /sitemap.xml.", {
+      status: 429,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "retry-after": "3600",
+        "x-fc-gate": "crawler-search",
+      },
+    });
+  }
+
+  // Pipe path/method/req-id into the request so the root layout can
+  // record server-side page requests into request_log (fills the gap
+  // proxy.ts can't fill itself in Edge runtime — no DB access).
+  const fwdHeaders = new Headers(request.headers);
+  fwdHeaders.set("x-fc-path", path);
+  fwdHeaders.set("x-fc-method", request.method);
+  fwdHeaders.set("x-fc-req-id", reqId);
+  fwdHeaders.set("x-fc-surface", surface);
+
+  const response = NextResponse.next({ request: { headers: fwdHeaders } });
   response.headers.set("X-Request-Start", Date.now().toString());
   response.headers.set("X-Request-Id", reqId);
   return response;

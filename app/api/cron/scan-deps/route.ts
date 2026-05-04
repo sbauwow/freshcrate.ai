@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { scanDependencies } from "@/lib/deps";
+import { withRequestLog } from "@/lib/request-log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,10 +102,5 @@ async function handle(req: NextRequest) {
   });
 }
 
-export async function GET(req: NextRequest) {
-  return handle(req);
-}
-
-export async function POST(req: NextRequest) {
-  return handle(req);
-}
+export const GET = withRequestLog(async (req: NextRequest) => handle(req));
+export const POST = withRequestLog(async (req: NextRequest) => handle(req));

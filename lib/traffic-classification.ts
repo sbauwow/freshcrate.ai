@@ -87,13 +87,15 @@ function firstMatch(ua: string, patterns: Array<{ pattern: RegExp; family: strin
   return null;
 }
 
-function browserLike(request: NextRequest, ua: string): boolean {
-  const accept = request.headers.get("accept") || "";
+type HeaderSource = { get(name: string): string | null; has?(name: string): boolean };
+
+function browserLike(headers: HeaderSource, ua: string): boolean {
+  const accept = headers.get("accept") || "";
   return ua.includes("Mozilla/")
     || accept.includes("text/html")
     || accept.includes("image/")
-    || request.headers.has("sec-ch-ua")
-    || request.headers.has("sec-fetch-mode");
+    || (headers.has?.("sec-ch-ua") ?? headers.get("sec-ch-ua") !== null)
+    || (headers.has?.("sec-fetch-mode") ?? headers.get("sec-fetch-mode") !== null);
 }
 
 /**
@@ -102,16 +104,16 @@ function browserLike(request: NextRequest, ua: string): boolean {
  * pool spoofing a desktop browser. Requiring *both* absent (not either) avoids
  * false-positives on privacy extensions that strip one of the two.
  */
-function looksLikeSpoofedChrome(request: NextRequest, ua: string): boolean {
+function looksLikeSpoofedChrome(headers: HeaderSource, ua: string): boolean {
   if (!/Chrome\/\d+/i.test(ua)) return false;
-  const hasSecCh = request.headers.has("sec-ch-ua");
-  const hasSecFetch = request.headers.has("sec-fetch-mode");
+  const hasSecCh = headers.has?.("sec-ch-ua") ?? headers.get("sec-ch-ua") !== null;
+  const hasSecFetch = headers.has?.("sec-fetch-mode") ?? headers.get("sec-fetch-mode") !== null;
   return !hasSecCh && !hasSecFetch;
 }
 
-export function classifyTraffic(request: NextRequest, surface: "api" | "page"): { trafficType: TrafficType; uaFamily: string; host: string } {
-  const ua = (request.headers.get("user-agent") || "").slice(0, 200);
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+export function classifyHeaders(headers: HeaderSource, surface: "api" | "page"): { trafficType: TrafficType; uaFamily: string; host: string } {
+  const ua = (headers.get("user-agent") || "").slice(0, 200);
+  const host = headers.get("x-forwarded-host") || headers.get("host") || "";
 
   // Order matters: AI live > AI training > generic crawler. Without this,
   // the catch-all "bot|crawler|spider" in CRAWLER_PATTERNS swallows
@@ -136,7 +138,7 @@ export function classifyTraffic(request: NextRequest, surface: "api" | "page"): 
     return { trafficType: surface === "page" ? "agent_browser" : "api_client", uaFamily: agentFamily, host };
   }
 
-  if (looksLikeSpoofedChrome(request, ua)) {
+  if (looksLikeSpoofedChrome(headers, ua)) {
     return { trafficType: "crawler_bot", uaFamily: "SpoofedChromeUA", host };
   }
 
@@ -145,9 +147,13 @@ export function classifyTraffic(request: NextRequest, surface: "api" | "page"): 
     return { trafficType: "api_client", uaFamily: apiFamily, host };
   }
 
-  if (browserLike(request, ua)) {
+  if (browserLike(headers, ua)) {
     return { trafficType: "human_browser", uaFamily: ua.includes("Mozilla/") ? "Browser" : "Unknown Browser", host };
   }
 
   return { trafficType: surface === "page" ? "agent_browser" : "api_client", uaFamily: ua ? "Unknown Client" : "Unknown", host };
+}
+
+export function classifyTraffic(request: NextRequest, surface: "api" | "page") {
+  return classifyHeaders(request.headers, surface);
 }

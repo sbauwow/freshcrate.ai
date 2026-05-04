@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, adminTokenConfigured, externalUrl, verifyAdminToken } from "@/lib/admin-auth";
+import { withRequestLog } from "@/lib/request-log";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog(async (request: NextRequest) => {
   if (!adminTokenConfigured()) {
     return NextResponse.json(
       { error: "FRESHCRATE_ADMIN_TOKEN not set on server (must be >= 16 chars)." },
@@ -39,4 +40,4 @@ export async function POST(request: NextRequest) {
     path: "/",
   });
   return res;
-}
+});

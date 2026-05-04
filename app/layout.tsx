@@ -9,6 +9,7 @@ import PageViewBeacon from "./components/page-view-beacon";
 import TrackedForm from "./components/tracked-form";
 import LocaleSwitcher from "./components/locale-switcher";
 import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
+import { recordPageRequest } from "@/lib/page-request";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.freshcrate.ai"),
@@ -53,9 +54,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await recordPageRequest();
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
   const t = getCopy(locale);
+
 
   return (
     <html lang={locale === "zh-CN" ? "zh-CN" : "en"} translate="yes">

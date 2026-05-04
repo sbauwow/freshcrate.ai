@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME, externalUrl } from "@/lib/admin-auth";
+import { withRequestLog } from "@/lib/request-log";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog(async (request: NextRequest) => {
   const res = NextResponse.redirect(externalUrl(request, "/admin/analytics"), { status: 303 });
   res.cookies.set({
     name: ADMIN_COOKIE_NAME,
@@ -13,4 +14,4 @@ export async function POST(request: NextRequest) {
     path: "/",
   });
   return res;
-}
+});

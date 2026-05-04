@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordVote } from "@/lib/polls";
+import { withRequestLog } from "@/lib/request-log";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog(async (request: NextRequest) => {
   let body: { poll?: unknown; option?: unknown } = {};
   try { body = await request.json(); } catch { /* fall through */ }
 
@@ -21,4 +22,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: result.error === "poll_closed" ? 410 : 400 });
   }
   return NextResponse.json(result);
-}
+});

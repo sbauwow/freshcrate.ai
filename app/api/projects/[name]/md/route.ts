@@ -3,6 +3,7 @@ import { getProjectByName, getProjectReleases, getProjectWithReadme } from "@/li
 import { getDependencyAuditSummary } from "@/lib/deps";
 import { classifyLicense } from "@/lib/license";
 import { cleanAuthor } from "@/lib/author-slug";
+import { withRequestLog } from "@/lib/request-log";
 
 /**
  * GET /api/projects/:name/md — Markdown rendering of a project, served as
@@ -107,7 +108,7 @@ function md(name: string): string | null {
   return lines.join("\n");
 }
 
-export async function GET(_request: NextRequest, ctx: { params: Promise<{ name: string }> }) {
+export const GET = withRequestLog(async (_request: NextRequest, ctx: { params: Promise<{ name: string }> }) => {
   const { name } = await ctx.params;
   const body = md(name);
 
@@ -126,4 +127,4 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ name: 
       "X-Robots-Tag": "index, follow",
     },
   });
-}
+});

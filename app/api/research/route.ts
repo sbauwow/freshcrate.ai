@@ -7,6 +7,7 @@ import {
   fetchHFSpaces,
   type ResearchSections,
 } from "@/lib/research";
+import { withRequestLog } from "@/lib/request-log";
 
 const EXTERNAL_FETCH_TIMEOUT_MS = 7000;
 
@@ -28,7 +29,7 @@ async function fetchWithTimeout(input: string | URL | Request, init?: FetchOptio
 
 const fetchForApi: FetchLike = (input, init) => fetchWithTimeout(input, init as FetchOptions);
 
-export async function GET() {
+export const GET = withRequestLog(async () => {
   const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
     fetchArxivSections(fetchForApi),
     fetchHFPapers(fetchForApi),
@@ -66,4 +67,4 @@ export async function GET() {
     trending_spaces: trendingSpaces,
     fetched_at: new Date().toISOString(),
   });
-}
+});

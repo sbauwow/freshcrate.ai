@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getDbPath } from "@/lib/db-path";
 import { getReferrerAttribution, getSourceAttribution, getTopPages } from "@/lib/analytics";
 import { log } from "@/lib/logger";
+import { withRequestLog } from "@/lib/request-log";
 import fs from "fs";
 
 function normalize4xxRouteGroup(path: string): string {
@@ -95,7 +96,7 @@ function getTrafficWindowSummary(db: ReturnType<typeof getDb>, days: number) {
  * Returns DB size, table counts, API key usage, webhook health, etc.
  * No auth required (data is non-sensitive aggregate stats).
  */
-export async function GET() {
+export const GET = withRequestLog(async () => {
   const db = getDb();
 
   // Table counts
@@ -187,9 +188,12 @@ export async function GET() {
     }
   })();
 
+  // Traffic breakdown is server-side authoritative (request_log) so bots
+  // and API clients — which never fire the JS beacon — show up correctly.
+  // page_views was the old source and silently zeroed crawler/agent/api.
   const trafficBreakdown = (() => {
     try {
-      return db.prepare("SELECT traffic_type, COUNT(*) as hits FROM page_views WHERE created_at > datetime('now', '-1 day') GROUP BY traffic_type ORDER BY hits DESC").all() as Array<{ traffic_type: string; hits: number }>;
+      return db.prepare("SELECT traffic_type, COUNT(*) as hits FROM request_log WHERE created_at > datetime('now', '-1 day') GROUP BY traffic_type ORDER BY hits DESC").all() as Array<{ traffic_type: string; hits: number }>;
     } catch {
       return [] as Array<{ traffic_type: string; hits: number }>;
     }
@@ -197,7 +201,7 @@ export async function GET() {
 
   const topAgents = (() => {
     try {
-      return db.prepare("SELECT ua_family, COUNT(*) as hits FROM page_views WHERE created_at > datetime('now', '-1 day') AND traffic_type IN ('ai_agent', 'ai_training', 'agent_browser', 'crawler_bot', 'api_client') GROUP BY ua_family ORDER BY hits DESC LIMIT 10").all() as Array<{ ua_family: string; hits: number }>;
+      return db.prepare("SELECT ua_family, COUNT(*) as hits FROM request_log WHERE created_at > datetime('now', '-1 day') AND traffic_type IN ('ai_agent', 'ai_training', 'agent_browser', 'crawler_bot', 'api_client') GROUP BY ua_family ORDER BY hits DESC LIMIT 10").all() as Array<{ ua_family: string; hits: number }>;
     } catch {
       return [] as Array<{ ua_family: string; hits: number }>;
     }
@@ -246,7 +250,7 @@ export async function GET() {
       avg_duration_ms: Math.round(avgDuration),
       page_views: (() => { try { return (db.prepare("SELECT COUNT(*) as c FROM page_views WHERE created_at > datetime('now', '-1 day')").get() as { c: number }).c; } catch { return 0; } })(),
       unique_visitors: (() => { try { return (db.prepare("SELECT COUNT(DISTINCT ip_hash) as c FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0").get() as { c: number }).c; } catch { return 0; } })(),
-      bot_hits: (() => { try { return (db.prepare("SELECT COUNT(*) as c FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 1").get() as { c: number }).c; } catch { return 0; } })(),
+      bot_hits: (() => { try { return (db.prepare("SELECT COUNT(*) as c FROM request_log WHERE created_at > datetime('now', '-1 day') AND traffic_type IN ('crawler_bot', 'ai_training')").get() as { c: number }).c; } catch { return 0; } })(),
       traffic_breakdown: trafficBreakdown,
       top_agents: topAgents,
       top_pages: topPages,
@@ -293,4 +297,4 @@ export async function GET() {
   });
 
   return NextResponse.json(metrics);
-}
+});
