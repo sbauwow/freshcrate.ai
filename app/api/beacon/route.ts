@@ -64,6 +64,53 @@ function sanitizeTarget(raw: string | null): string {
   return raw.replace(/[^\w./:@\-]/g, "").slice(0, 200);
 }
 
+function sanitizeUtm(raw: string | null): string {
+  if (!raw) return "";
+  return raw.toLowerCase().replace(/[^a-z0-9_\-.:]/g, "").slice(0, 80);
+}
+
+function sanitizeReferrerHost(raw: string | null): string {
+  if (!raw) return "";
+  try {
+    const url = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+    const host = url.hostname.toLowerCase();
+    return host.includes("freshcrate") ? "" : host.slice(0, 120);
+  } catch {
+    return raw.toLowerCase().replace(/[^a-z0-9.\-]/g, "").slice(0, 120);
+  }
+}
+
+function stripTrackingParams(pathWithQuery: string): {
+  cleanPath: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+} {
+  try {
+    const u = new URL(pathWithQuery, "https://freshcrate.ai");
+    const utmSource = sanitizeUtm(u.searchParams.get("utm_source"));
+    const utmMedium = sanitizeUtm(u.searchParams.get("utm_medium"));
+    const utmCampaign = sanitizeUtm(u.searchParams.get("utm_campaign"));
+
+    [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "gclid",
+      "fbclid",
+      "msclkid",
+    ].forEach((k) => u.searchParams.delete(k));
+
+    const query = u.searchParams.toString();
+    const cleanPath = query ? `${u.pathname}?${query}` : u.pathname;
+    return { cleanPath, utmSource, utmMedium, utmCampaign };
+  } catch {
+    return { cleanPath: pathWithQuery, utmSource: "", utmMedium: "", utmCampaign: "" };
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const referer = request.headers.get("referer") || "";
@@ -72,28 +119,36 @@ export async function GET(request: NextRequest) {
       || request.headers.get("x-real-ip") || "";
 
     // Prefer explicit path param, then fall back to internal referer path
-    let path = request.nextUrl.searchParams.get("p") || "/";
-    if (!path.startsWith("/")) path = "/";
-    if (path === "/") {
+    let rawPath = request.nextUrl.searchParams.get("p") || "/";
+    if (!rawPath.startsWith("/")) rawPath = "/";
+    if (rawPath === "/") {
       try {
         const url = new URL(referer);
         if (url.hostname.includes("freshcrate")) {
-          path = url.pathname;
+          rawPath = url.pathname + (url.search || "");
         }
       } catch {
         // Invalid referer, keep "/"
       }
     }
 
+    const { cleanPath: path, utmSource: pathUtmSource, utmMedium: pathUtmMedium, utmCampaign: pathUtmCampaign } = stripTrackingParams(rawPath);
+    const explicitReferrer = sanitizeReferrerHost(request.nextUrl.searchParams.get("r"));
+    const utmSource = sanitizeUtm(request.nextUrl.searchParams.get("us")) || pathUtmSource;
+    const utmMedium = sanitizeUtm(request.nextUrl.searchParams.get("um")) || pathUtmMedium;
+    const utmCampaign = sanitizeUtm(request.nextUrl.searchParams.get("uc")) || pathUtmCampaign;
+
     // External referrer (for traffic source tracking)
-    let externalRef = "";
-    try {
-      const url = new URL(referer);
-      if (!url.hostname.includes("freshcrate")) {
-        externalRef = url.hostname;
+    let externalRef = explicitReferrer;
+    if (!externalRef) {
+      try {
+        const url = new URL(referer);
+        if (!url.hostname.includes("freshcrate")) {
+          externalRef = sanitizeReferrerHost(url.hostname);
+        }
+      } catch {
+        // no referrer
       }
-    } catch {
-      // no referrer
     }
 
     const { trafficType, uaFamily, host } = classifyTraffic(request, "page");
@@ -110,8 +165,23 @@ export async function GET(request: NextRequest) {
 
     const db = getDb();
     db.prepare(
-      "INSERT INTO page_views (path, referrer, ip_hash, user_agent, is_bot, host, traffic_type, ua_family, session_id, event_type, event_target) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).run(path, externalRef, ipHash, ua, isBot, host, trafficType, uaFamily, sessionId, eventType, eventTarget);
+      "INSERT INTO page_views (path, referrer, ip_hash, user_agent, is_bot, host, traffic_type, ua_family, session_id, event_type, event_target, utm_source, utm_medium, utm_campaign) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).run(
+      path,
+      externalRef,
+      ipHash,
+      ua,
+      isBot,
+      host,
+      trafficType,
+      uaFamily,
+      sessionId,
+      eventType,
+      eventTarget,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+    );
 
     const response = new NextResponse(PIXEL, {
       status: 200,

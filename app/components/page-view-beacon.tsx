@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { track } from "./track";
 
 /**
  * Fires a beacon GET to /api/beacon on every route change, including SPA
@@ -18,8 +19,7 @@ export default function PageViewBeacon() {
     if (typeof window === "undefined") return;
     const fullPath = query ? `${pathname}?${query}` : pathname;
     try {
-      const img = new Image();
-      img.src = `/api/beacon?p=${encodeURIComponent(fullPath)}`;
+      track("pageview", undefined, fullPath);
     } catch {
       // never let tracking throw
     }

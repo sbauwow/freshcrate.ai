@@ -85,65 +85,128 @@ export function getOverview(days = 7): Overview {
   };
 }
 
+function normalizeTrackedPath(path: string): string {
+  if (!path.includes("?")) return path;
+  try {
+    const u = new URL(path, "https://freshcrate.ai");
+    [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "gclid",
+      "fbclid",
+      "msclkid",
+    ].forEach((k) => u.searchParams.delete(k));
+    const query = u.searchParams.toString();
+    return query ? `${u.pathname}?${query}` : u.pathname;
+  } catch {
+    return path;
+  }
+}
+
+function aggregatePathHits(rows: Array<{ path: string; session_id: string }>, limit: number): PathHit[] {
+  const byPath = new Map<string, { sessions: Set<string>; views: number }>();
+  for (const row of rows) {
+    const path = normalizeTrackedPath(row.path);
+    const slot = byPath.get(path) || { sessions: new Set<string>(), views: 0 };
+    slot.sessions.add(row.session_id);
+    slot.views += 1;
+    byPath.set(path, slot);
+  }
+  return Array.from(byPath.entries())
+    .map(([path, data]) => ({ path, sessions: data.sessions.size, views: data.views }))
+    .sort((a, b) => b.sessions - a.sessions || b.views - a.views || a.path.localeCompare(b.path))
+    .slice(0, limit);
+}
+
 export interface PathHit { path: string; sessions: number; views: number }
 
 export function getEntryPages(days = 7, limit = 20): PathHit[] {
   const db = getDb();
-  return db.prepare(`
+  const rows = db.prepare(`
     WITH first_event AS (
       SELECT session_id, path, created_at,
              ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at) AS rn
       FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
     )
-    SELECT path,
-           COUNT(DISTINCT session_id) AS sessions,
-           COUNT(*) AS views
+    SELECT session_id, path
     FROM first_event WHERE rn = 1
-    GROUP BY path ORDER BY sessions DESC LIMIT ?
-  `).all(limit) as PathHit[];
+  `).all() as Array<{ session_id: string; path: string }>;
+  return aggregatePathHits(rows, limit);
 }
 
 export function getExitPages(days = 7, limit = 20): PathHit[] {
   const db = getDb();
-  return db.prepare(`
+  const rows = db.prepare(`
     WITH last_event AS (
       SELECT session_id, path, created_at,
              ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at DESC) AS rn
       FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
     )
-    SELECT path,
-           COUNT(DISTINCT session_id) AS sessions,
-           COUNT(*) AS views
+    SELECT session_id, path
     FROM last_event WHERE rn = 1
-    GROUP BY path ORDER BY sessions DESC LIMIT ?
-  `).all(limit) as PathHit[];
+  `).all() as Array<{ session_id: string; path: string }>;
+  return aggregatePathHits(rows, limit);
+}
+
+export function getTopPages(days = 7, limit = 20): Array<{ path: string; views: number }> {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT path
+    FROM page_views
+    WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
+  `).all() as Array<{ path: string }>;
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const path = normalizeTrackedPath(row.path);
+    counts.set(path, (counts.get(path) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([path, views]) => ({ path, views }))
+    .sort((a, b) => b.views - a.views || a.path.localeCompare(b.path))
+    .slice(0, limit);
 }
 
 export interface Transition { from_path: string; to_path: string; sessions: number; transitions: number }
 
 export function getTopTransitions(days = 7, limit = 30): Transition[] {
   const db = getDb();
-  return db.prepare(`
+  const rows = db.prepare(`
     WITH steps AS (
       SELECT session_id, path AS from_path, created_at,
              LEAD(path) OVER (PARTITION BY session_id ORDER BY created_at) AS to_path
       FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
     )
-    SELECT from_path, to_path,
-           COUNT(DISTINCT session_id) AS sessions,
-           COUNT(*) AS transitions
+    SELECT session_id, from_path, to_path
     FROM steps WHERE to_path IS NOT NULL AND to_path <> from_path
-    GROUP BY from_path, to_path
-    ORDER BY transitions DESC LIMIT ?
-  `).all(limit) as Transition[];
+  `).all() as Array<{ session_id: string; from_path: string; to_path: string | null }>;
+
+  const byTransition = new Map<string, { from_path: string; to_path: string; sessions: Set<string>; transitions: number }>();
+  for (const row of rows) {
+    if (!row.to_path) continue;
+    const fromPath = normalizeTrackedPath(row.from_path);
+    const toPath = normalizeTrackedPath(row.to_path);
+    if (fromPath === toPath) continue;
+    const key = `${fromPath} -> ${toPath}`;
+    const slot = byTransition.get(key) || { from_path: fromPath, to_path: toPath, sessions: new Set<string>(), transitions: 0 };
+    slot.sessions.add(row.session_id);
+    slot.transitions += 1;
+    byTransition.set(key, slot);
+  }
+
+  return Array.from(byTransition.values())
+    .map((row) => ({ from_path: row.from_path, to_path: row.to_path, sessions: row.sessions.size, transitions: row.transitions }))
+    .sort((a, b) => b.transitions - a.transitions || b.sessions - a.sessions || a.from_path.localeCompare(b.from_path) || a.to_path.localeCompare(b.to_path))
+    .slice(0, limit);
 }
 
 export interface PathTime { path: string; views: number; avg_seconds: number; median_seconds: number }
 
 export function getTimeOnPage(days = 7, limit = 20): PathTime[] {
   const db = getDb();
-  // Cap dwell at 300s. Use sub-300s rows to compute median via percentile_disc-equiv.
-  return db.prepare(`
+  const rows = db.prepare(`
     WITH dwell AS (
       SELECT path,
         MIN(300, MAX(0,
@@ -152,15 +215,31 @@ export function getTimeOnPage(days = 7, limit = 20): PathTime[] {
         )) AS s
       FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
     )
-    SELECT path,
-           COUNT(s) AS views,
-           ROUND(AVG(s), 1) AS avg_seconds,
-           CAST(AVG(s) AS INTEGER) AS median_seconds
+    SELECT path, s
     FROM dwell WHERE s IS NOT NULL
-    GROUP BY path
-    HAVING views >= 5
-    ORDER BY views DESC LIMIT ?
-  `).all(limit) as PathTime[];
+  `).all() as Array<{ path: string; s: number }>;
+
+  const byPath = new Map<string, number[]>();
+  for (const row of rows) {
+    const path = normalizeTrackedPath(row.path);
+    const values = byPath.get(path) || [];
+    values.push(row.s);
+    byPath.set(path, values);
+  }
+
+  return Array.from(byPath.entries())
+    .map(([path, values]) => {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2 === 0
+        ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+        : sorted[mid];
+      const avg = Math.round((sorted.reduce((sum, value) => sum + value, 0) / sorted.length) * 10) / 10;
+      return { path, views: sorted.length, avg_seconds: avg, median_seconds: median };
+    })
+    .filter((row) => row.views >= 5)
+    .sort((a, b) => b.views - a.views || b.avg_seconds - a.avg_seconds || a.path.localeCompare(b.path))
+    .slice(0, limit);
 }
 
 export interface EventStat {
@@ -265,6 +344,300 @@ export function getFunnel(
 }
 
 export interface ReferrerStat { referrer: string; sessions: number; bounce_rate: number; avg_session_seconds: number }
+
+export interface SourceStat {
+  source: string;
+  medium: string;
+  campaign: string;
+  sessions: number;
+  bounce_rate: number;
+  avg_session_seconds: number;
+}
+
+export function getSourceAttribution(days = 7, limit = 20): SourceStat[] {
+  const db = getDb();
+  return db.prepare(`
+    WITH first_touch AS (
+      SELECT session_id, utm_source, utm_medium, utm_campaign, created_at,
+             ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at) AS rn
+      FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)}
+    ),
+    session_stats AS (
+      SELECT session_id, COUNT(*) AS steps,
+             strftime('%s', MAX(created_at)) - strftime('%s', MIN(created_at)) AS span_s
+      FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)}
+      GROUP BY session_id
+    )
+    SELECT
+      COALESCE(NULLIF(f.utm_source, ''), '(direct)') AS source,
+      COALESCE(NULLIF(f.utm_medium, ''), '(none)') AS medium,
+      COALESCE(NULLIF(f.utm_campaign, ''), '(none)') AS campaign,
+      COUNT(*) AS sessions,
+      ROUND(SUM(CASE WHEN s.steps = 1 THEN 1.0 ELSE 0 END) / COUNT(*), 3) AS bounce_rate,
+      ROUND(AVG(s.span_s), 0) AS avg_session_seconds
+    FROM first_touch f
+    JOIN session_stats s USING (session_id)
+    WHERE f.rn = 1
+    GROUP BY source, medium, campaign
+    ORDER BY sessions DESC
+    LIMIT ?
+  `).all(limit) as SourceStat[];
+}
+
+export interface SourceConversionRow {
+  source: string;
+  sessions: number;
+  with_search: number;
+  with_outbound_or_install: number;
+}
+
+function getSessionSummaries(days = 7): Array<{
+  session_id: string;
+  source: string;
+  landing_path: string;
+  has_search: boolean;
+  has_outbound_or_install: boolean;
+}> {
+  const firstTouch = getFirstTouchRows(days);
+  const db = getDb();
+  const eventRows = db.prepare(`
+    SELECT session_id,
+           MAX(CASE WHEN event_type = 'search' THEN 1 ELSE 0 END) AS has_search,
+           MAX(CASE WHEN event_type IN ('outbound', 'install') THEN 1 ELSE 0 END) AS has_outbound_or_install
+    FROM page_views
+    WHERE ${NON_BOT} AND ${windowClause(days)}
+    GROUP BY session_id
+  `).all() as Array<{
+    session_id: string;
+    has_search: number;
+    has_outbound_or_install: number;
+  }>;
+
+  const eventMap = new Map(eventRows.map((row) => [row.session_id, row]));
+  return firstTouch.map((row) => {
+    const stats = eventMap.get(row.session_id);
+    return {
+      session_id: row.session_id,
+      source: resolveSessionSource(row),
+      landing_path: row.landing_path,
+      has_search: !!stats?.has_search,
+      has_outbound_or_install: !!stats?.has_outbound_or_install,
+    };
+  });
+}
+
+export function getSourceConversionBreakdown(days = 7, limit = 20): SourceConversionRow[] {
+  const bySource = new Map<string, SourceConversionRow>();
+  for (const row of getSessionSummaries(days)) {
+    const source = row.source;
+    const existing = bySource.get(source) || {
+      source,
+      sessions: 0,
+      with_search: 0,
+      with_outbound_or_install: 0,
+    };
+    existing.sessions += 1;
+    existing.with_search += row.has_search ? 1 : 0;
+    existing.with_outbound_or_install += row.has_outbound_or_install ? 1 : 0;
+    bySource.set(source, existing);
+  }
+
+  return Array.from(bySource.values())
+    .sort((a, b) => b.sessions - a.sessions || a.source.localeCompare(b.source))
+    .slice(0, limit);
+}
+
+export interface LandingPageConversionRow {
+  landing_path: string;
+  sessions: number;
+  with_search: number;
+  with_outbound_or_install: number;
+}
+
+export function getLandingPageConversion(days = 7, limit = 20): LandingPageConversionRow[] {
+  const byPath = new Map<string, LandingPageConversionRow>();
+  for (const row of getSessionSummaries(days)) {
+    const landingPath = row.landing_path;
+    const existing = byPath.get(landingPath) || {
+      landing_path: landingPath,
+      sessions: 0,
+      with_search: 0,
+      with_outbound_or_install: 0,
+    };
+    existing.sessions += 1;
+    existing.with_search += row.has_search ? 1 : 0;
+    existing.with_outbound_or_install += row.has_outbound_or_install ? 1 : 0;
+    byPath.set(landingPath, existing);
+  }
+
+  return Array.from(byPath.values())
+    .sort((a, b) => b.sessions - a.sessions || a.landing_path.localeCompare(b.landing_path))
+    .slice(0, limit);
+}
+
+export interface SourceFunnelRow {
+  source: string;
+  sessions: number;
+  with_search: number;
+  with_outbound_or_install: number;
+}
+
+function resolveSessionSource(row: { utm_source: string; referrer: string }): string {
+  return row.utm_source || row.referrer || '(direct)';
+}
+
+export function getSourceFunnel(days = 7, limit = 20): SourceFunnelRow[] {
+  const db = getDb();
+  return db.prepare(`
+    WITH base AS (
+      SELECT
+        session_id,
+        COALESCE(NULLIF(MAX(CASE WHEN utm_source <> '' THEN utm_source END), ''), '(direct)') AS source,
+        MAX(CASE WHEN event_type = 'search' THEN 1 ELSE 0 END) AS has_search,
+        MAX(CASE WHEN event_type IN ('outbound', 'install') THEN 1 ELSE 0 END) AS has_outbound_or_install
+      FROM page_views
+      WHERE ${NON_BOT} AND ${windowClause(days)}
+      GROUP BY session_id
+    )
+    SELECT
+      source,
+      COUNT(*) AS sessions,
+      SUM(has_search) AS with_search,
+      SUM(has_outbound_or_install) AS with_outbound_or_install
+    FROM base
+    GROUP BY source
+    ORDER BY sessions DESC
+    LIMIT ?
+  `).all(limit) as SourceFunnelRow[];
+}
+
+export interface LandingBySourceRow {
+  source: string;
+  medium: string;
+  campaign: string;
+  landing_path: string;
+  sessions: number;
+}
+
+function getFirstTouchRows(days = 7): Array<{
+  session_id: string;
+  landing_path: string;
+  referrer: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+}> {
+  const db = getDb();
+  const rows = db.prepare(`
+    WITH first_touch AS (
+      SELECT session_id, path, referrer, utm_source, utm_medium, utm_campaign, created_at,
+             ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at) AS rn
+      FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
+    )
+    SELECT session_id, path, referrer, utm_source, utm_medium, utm_campaign
+    FROM first_touch WHERE rn = 1
+  `).all() as Array<{
+    session_id: string;
+    path: string;
+    referrer: string;
+    utm_source: string;
+    utm_medium: string;
+    utm_campaign: string;
+  }>;
+
+  return rows.map((row) => ({
+    session_id: row.session_id,
+    landing_path: normalizeTrackedPath(row.path),
+    referrer: row.referrer || '',
+    utm_source: row.utm_source || '',
+    utm_medium: row.utm_medium || '',
+    utm_campaign: row.utm_campaign || '',
+  }));
+}
+
+export function getLandingPagesBySource(days = 7, limit = 20): LandingBySourceRow[] {
+  const counts = new Map<string, LandingBySourceRow>();
+  for (const row of getFirstTouchRows(days)) {
+    const source = resolveSessionSource(row);
+    const medium = row.utm_medium || (row.utm_source ? '(none)' : row.referrer ? 'referrer' : '(none)');
+    const campaign = row.utm_campaign || '(none)';
+    const key = `${source}\u0000${medium}\u0000${campaign}\u0000${row.landing_path}`;
+    const existing = counts.get(key) || {
+      source,
+      medium,
+      campaign,
+      landing_path: row.landing_path,
+      sessions: 0,
+    };
+    existing.sessions += 1;
+    counts.set(key, existing);
+  }
+
+  return Array.from(counts.values())
+    .sort((a, b) => b.sessions - a.sessions || a.source.localeCompare(b.source) || a.landing_path.localeCompare(b.landing_path))
+    .slice(0, limit);
+}
+
+export interface SourceLandingMatrixRow {
+  source: string;
+  landing_path: string;
+  sessions: number;
+}
+
+export function getSourceLandingMatrix(days = 7, limit = 20): SourceLandingMatrixRow[] {
+  const counts = new Map<string, SourceLandingMatrixRow>();
+  for (const row of getFirstTouchRows(days)) {
+    const source = resolveSessionSource(row);
+    const key = `${source}\u0000${row.landing_path}`;
+    const existing = counts.get(key) || {
+      source,
+      landing_path: row.landing_path,
+      sessions: 0,
+    };
+    existing.sessions += 1;
+    counts.set(key, existing);
+  }
+
+  return Array.from(counts.values())
+    .sort((a, b) => b.sessions - a.sessions || a.source.localeCompare(b.source) || a.landing_path.localeCompare(b.landing_path))
+    .slice(0, limit);
+}
+
+export interface AttributionQuality {
+  total_sessions: number;
+  sessions_with_utm: number;
+  sessions_with_external_referrer: number;
+  sessions_direct: number;
+  sessions_attributed: number;
+  sessions_unattributed: number;
+  pct_with_utm: number;
+  pct_with_external_referrer: number;
+  pct_direct: number;
+  pct_attributed: number;
+}
+
+export function getAttributionQuality(days = 7): AttributionQuality {
+  const rows = getFirstTouchRows(days);
+  const total = rows.length;
+  const withUtm = rows.filter((row) => !!row.utm_source).length;
+  const withReferrer = rows.filter((row) => !!row.referrer).length;
+  const direct = rows.filter((row) => !row.utm_source && !row.referrer).length;
+  const attributed = rows.filter((row) => !!row.utm_source || !!row.referrer).length;
+  const pct = (n: number) => total > 0 ? Math.round((n / total) * 1000) / 1000 : 0;
+
+  return {
+    total_sessions: total,
+    sessions_with_utm: withUtm,
+    sessions_with_external_referrer: withReferrer,
+    sessions_direct: direct,
+    sessions_attributed: attributed,
+    sessions_unattributed: total - attributed,
+    pct_with_utm: pct(withUtm),
+    pct_with_external_referrer: pct(withReferrer),
+    pct_direct: pct(direct),
+    pct_attributed: pct(attributed),
+  };
+}
 
 export function getReferrerAttribution(days = 7, limit = 20): ReferrerStat[] {
   const db = getDb();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getDbPath } from "@/lib/db-path";
+import { getReferrerAttribution, getSourceAttribution, getTopPages } from "@/lib/analytics";
 import { log } from "@/lib/logger";
 import fs from "fs";
 
@@ -69,19 +70,37 @@ export async function GET() {
     ftsRows = (db.prepare("SELECT COUNT(*) as c FROM projects_fts").get() as { c: number }).c;
   } catch { /* FTS may not exist */ }
 
-  const topPages = (() => {
-    try {
-      return db.prepare("SELECT path, COUNT(*) as views FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0 GROUP BY path ORDER BY views DESC LIMIT 10").all() as Array<{ path: string; views: number }>;
-    } catch {
-      return [] as Array<{ path: string; views: number }>;
-    }
-  })();
+  const topPages = getTopPages(1, 10);
 
   const topReferrers = (() => {
     try {
       return db.prepare("SELECT referrer, COUNT(*) as views FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0 AND referrer != '' GROUP BY referrer ORDER BY views DESC LIMIT 10").all() as Array<{ referrer: string; views: number }>;
     } catch {
       return [] as Array<{ referrer: string; views: number }>;
+    }
+  })();
+
+  const topSources = (() => {
+    try {
+      return db.prepare("SELECT COALESCE(NULLIF(utm_source, ''), '(direct)') as source, COUNT(*) as views FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0 GROUP BY source ORDER BY views DESC LIMIT 10").all() as Array<{ source: string; views: number }>;
+    } catch {
+      return [] as Array<{ source: string; views: number }>;
+    }
+  })();
+
+  const topReferrerSessions = (() => {
+    try {
+      return getReferrerAttribution(1, 10);
+    } catch {
+      return [] as Array<{ referrer: string; sessions: number; bounce_rate: number; avg_session_seconds: number }>;
+    }
+  })();
+
+  const topSourceSessions = (() => {
+    try {
+      return getSourceAttribution(1, 10);
+    } catch {
+      return [] as Array<{ source: string; medium: string; campaign: string; sessions: number; bounce_rate: number; avg_session_seconds: number }>;
     }
   })();
 
@@ -164,6 +183,9 @@ export async function GET() {
       top_agents: topAgents,
       top_pages: topPages,
       top_referrers: topReferrers,
+      top_sources: topSources,
+      top_referrer_sessions: topReferrerSessions,
+      top_source_sessions: topSourceSessions,
     },
   };
 

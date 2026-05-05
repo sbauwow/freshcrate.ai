@@ -9,6 +9,13 @@ import {
   getEventConversion,
   getFunnel,
   getReferrerAttribution,
+  getSourceAttribution,
+  getSourceFunnel,
+  getSourceConversionBreakdown,
+  getLandingPageConversion,
+  getLandingPagesBySource,
+  getSourceLandingMatrix,
+  getAttributionQuality,
   getDauTrend,
   getRetention,
   getTopEventTargets,
@@ -65,7 +72,7 @@ export default async function AdminAnalyticsPage({
   const days = Math.max(1, Math.min(90, parseInt(params.days || "7", 10) || 7));
   const funnelSteps = parseFunnel(params.funnel);
 
-  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, dau, retention, topTargets, statusMix, errorPaths, slowPaths, renderStatus, renderErrorPaths] = [
+  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, sourceAttribution, sourceFunnel, sourceConversion, landingPageConversion, landingBySource, sourceLandingMatrix, attributionQuality, dau, retention, topTargets, statusMix, errorPaths, slowPaths, renderStatus, renderErrorPaths] = [
     getOverview(days),
     getEntryPages(days),
     getExitPages(days),
@@ -74,6 +81,13 @@ export default async function AdminAnalyticsPage({
     getEventConversion(days),
     getFunnel(funnelSteps, days),
     getReferrerAttribution(days),
+    getSourceAttribution(days),
+    getSourceFunnel(days),
+    getSourceConversionBreakdown(days),
+    getLandingPageConversion(days),
+    getLandingPagesBySource(days),
+    getSourceLandingMatrix(days),
+    getAttributionQuality(days),
     getDauTrend(Math.max(days, 30)),
     getRetention(30),
     getTopEventTargets(days),
@@ -154,6 +168,80 @@ export default async function AdminAnalyticsPage({
           headers={["referrer", "sessions", "bounce", "avg session s"]}
           rows={referrers.map((r) => [r.referrer, r.sessions, pct(r.bounce_rate), r.avg_session_seconds])}
         />
+      </Section>
+
+      <Section title="Source attribution (UTM first-touch)">
+        <Table
+          headers={["source", "medium", "campaign", "sessions", "bounce", "avg session s"]}
+          rows={sourceAttribution.map((r) => [r.source, r.medium, r.campaign, r.sessions, pct(r.bounce_rate), r.avg_session_seconds])}
+        />
+      </Section>
+
+      <Section title="Source funnel (session -> search -> outbound/install)">
+        <Table
+          headers={["source", "sessions", "with search", "with outbound/install", "search conv", "outbound/install conv"]}
+          rows={sourceFunnel.map((r) => [
+            r.source,
+            r.sessions,
+            r.with_search,
+            r.with_outbound_or_install,
+            pct(r.sessions > 0 ? r.with_search / r.sessions : 0),
+            pct(r.sessions > 0 ? r.with_outbound_or_install / r.sessions : 0),
+          ])}
+        />
+      </Section>
+
+      <Section title="Source conversion breakdown">
+        <Table
+          headers={["source", "sessions", "with search", "with outbound/install", "search conv", "outbound/install conv"]}
+          rows={sourceConversion.map((r) => [
+            r.source,
+            r.sessions,
+            r.with_search,
+            r.with_outbound_or_install,
+            pct(r.sessions > 0 ? r.with_search / r.sessions : 0),
+            pct(r.sessions > 0 ? r.with_outbound_or_install / r.sessions : 0),
+          ])}
+        />
+      </Section>
+
+      <Section title="Landing page conversion">
+        <Table
+          headers={["landing", "sessions", "with search", "with outbound/install", "search conv", "outbound/install conv"]}
+          rows={landingPageConversion.map((r) => [
+            r.landing_path,
+            r.sessions,
+            r.with_search,
+            r.with_outbound_or_install,
+            pct(r.sessions > 0 ? r.with_search / r.sessions : 0),
+            pct(r.sessions > 0 ? r.with_outbound_or_install / r.sessions : 0),
+          ])}
+        />
+      </Section>
+
+      <Section title="Landing pages by source">
+        <Table
+          headers={["source", "medium", "campaign", "landing", "sessions"]}
+          rows={landingBySource.map((r) => [r.source, r.medium, r.campaign, r.landing_path, r.sessions])}
+        />
+      </Section>
+
+      <Section title="Source × landing matrix (first-touch sessions)">
+        <Table
+          headers={["source", "landing", "sessions"]}
+          rows={sourceLandingMatrix.map((r) => [r.source, r.landing_path, r.sessions])}
+        />
+      </Section>
+
+      <Section title="Attribution quality">
+        <KvGrid rows={[
+          ["Total sessions", attributionQuality.total_sessions],
+          ["Sessions with UTM", `${attributionQuality.sessions_with_utm} (${pct(attributionQuality.pct_with_utm)})`],
+          ["Sessions with external referrer", `${attributionQuality.sessions_with_external_referrer} (${pct(attributionQuality.pct_with_external_referrer)})`],
+          ["Attributed sessions", `${attributionQuality.sessions_attributed} (${pct(attributionQuality.pct_attributed)})`],
+          ["Direct sessions", `${attributionQuality.sessions_direct} (${pct(attributionQuality.pct_direct)})`],
+          ["Unattributed sessions", attributionQuality.sessions_unattributed],
+        ]} />
       </Section>
 
       <Section title="DAU trend (last 30d)">
