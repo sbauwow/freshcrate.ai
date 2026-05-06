@@ -155,7 +155,7 @@ export default async function TagPage({
         </div>
       </div>
 
-      <aside className="w-full md:w-[220px] md:shrink-0">
+      <aside className="w-full md:w-[220px] md:shrink-0 xl:w-[260px] 2xl:w-[300px]">
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
             {t.tagSnapshot}

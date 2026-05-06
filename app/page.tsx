@@ -273,7 +273,7 @@ export default async function Home({
       </div>
 
       {/* Sidebar */}
-      <aside className="w-full md:w-[220px] md:shrink-0">
+      <aside className="w-full md:w-[220px] md:shrink-0 xl:w-[260px] 2xl:w-[300px]">
         {poll && <PollWidget poll={poll} initialVotedOption={pollVoted} />}
 
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
