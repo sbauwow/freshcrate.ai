@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { classifyTraffic } from "@/lib/traffic-classification";
+import { extractGeo } from "@/lib/geo";
 import crypto from "crypto";
 
 /**
@@ -152,6 +153,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { trafficType, uaFamily, host } = classifyTraffic(request, "page");
+    const { country, region, city } = extractGeo(request);
     const isBot = trafficType === "crawler_bot" || BOT_PATTERNS.test(ua) ? 1 : 0;
     const ipHash = hashIp(ip);
 
@@ -165,7 +167,7 @@ export async function GET(request: NextRequest) {
 
     const db = getDb();
     db.prepare(
-      "INSERT INTO page_views (path, referrer, ip_hash, user_agent, is_bot, host, traffic_type, ua_family, session_id, event_type, event_target, utm_source, utm_medium, utm_campaign) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO page_views (path, referrer, ip_hash, user_agent, is_bot, host, traffic_type, ua_family, session_id, event_type, event_target, utm_source, utm_medium, utm_campaign, country, region, city) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).run(
       path,
       externalRef,
@@ -181,6 +183,9 @@ export async function GET(request: NextRequest) {
       utmSource,
       utmMedium,
       utmCampaign,
+      country,
+      region,
+      city,
     );
 
     const response = new NextResponse(PIXEL, {

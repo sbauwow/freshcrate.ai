@@ -395,6 +395,9 @@ function getSessionSummaries(days = 7): Array<{
   session_id: string;
   source: string;
   landing_path: string;
+  country: string;
+  region: string;
+  city: string;
   has_search: boolean;
   has_outbound_or_install: boolean;
 }> {
@@ -420,6 +423,9 @@ function getSessionSummaries(days = 7): Array<{
       session_id: row.session_id,
       source: resolveSessionSource(row),
       landing_path: row.landing_path,
+      country: row.country || '(unknown)',
+      region: row.region || '(unknown)',
+      city: row.city || '(unknown)',
       has_search: !!stats?.has_search,
       has_outbound_or_install: !!stats?.has_outbound_or_install,
     };
@@ -526,15 +532,18 @@ function getFirstTouchRows(days = 7): Array<{
   utm_source: string;
   utm_medium: string;
   utm_campaign: string;
+  country: string;
+  region: string;
+  city: string;
 }> {
   const db = getDb();
   const rows = db.prepare(`
     WITH first_touch AS (
-      SELECT session_id, path, referrer, utm_source, utm_medium, utm_campaign, created_at,
+      SELECT session_id, path, referrer, utm_source, utm_medium, utm_campaign, country, region, city, created_at,
              ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at) AS rn
       FROM page_views WHERE ${NON_BOT} AND ${windowClause(days)} AND event_type = 'pageview'
     )
-    SELECT session_id, path, referrer, utm_source, utm_medium, utm_campaign
+    SELECT session_id, path, referrer, utm_source, utm_medium, utm_campaign, country, region, city
     FROM first_touch WHERE rn = 1
   `).all() as Array<{
     session_id: string;
@@ -543,6 +552,9 @@ function getFirstTouchRows(days = 7): Array<{
     utm_source: string;
     utm_medium: string;
     utm_campaign: string;
+    country: string;
+    region: string;
+    city: string;
   }>;
 
   return rows.map((row) => ({
@@ -552,7 +564,66 @@ function getFirstTouchRows(days = 7): Array<{
     utm_source: row.utm_source || '',
     utm_medium: row.utm_medium || '',
     utm_campaign: row.utm_campaign || '',
+    country: row.country || '',
+    region: row.region || '',
+    city: row.city || '',
   }));
+}
+
+export interface GeoAttributionRow {
+  country: string;
+  region: string;
+  city: string;
+  sessions: number;
+}
+
+export function getGeoAttribution(days = 7, limit = 20): GeoAttributionRow[] {
+  const counts = new Map<string, GeoAttributionRow>();
+  for (const row of getFirstTouchRows(days)) {
+    const country = row.country || '(unknown)';
+    const region = row.region || '(unknown)';
+    const city = row.city || '(unknown)';
+    const key = `${country}\u0000${region}\u0000${city}`;
+    const existing = counts.get(key) || { country, region, city, sessions: 0 };
+    existing.sessions += 1;
+    counts.set(key, existing);
+  }
+
+  return Array.from(counts.values())
+    .sort((a, b) => b.sessions - a.sessions || a.country.localeCompare(b.country) || a.region.localeCompare(b.region) || a.city.localeCompare(b.city))
+    .slice(0, limit);
+}
+
+export interface GeoConversionRow {
+  country: string;
+  region: string;
+  city: string;
+  sessions: number;
+  with_search: number;
+  with_outbound_or_install: number;
+}
+
+export function getGeoConversionBreakdown(days = 7, limit = 20): GeoConversionRow[] {
+  const byGeo = new Map<string, GeoConversionRow>();
+  for (const row of getSessionSummaries(days)) {
+    const key = `${row.country}\u0000${row.region}\u0000${row.city}`;
+    const existing = byGeo.get(key) || {
+      country: row.country,
+      region: row.region,
+      city: row.city,
+      sessions: 0,
+      with_search: 0,
+      with_outbound_or_install: 0,
+    };
+    existing.sessions += 1;
+    existing.with_search += row.has_search ? 1 : 0;
+    existing.with_outbound_or_install += row.has_outbound_or_install ? 1 : 0;
+    byGeo.set(key, existing);
+  }
+
+  return Array.from(byGeo.values())
+    .sort((a, b) => b.sessions - a.sessions || a.country.localeCompare(b.country) || a.region.localeCompare(b.region) || a.city.localeCompare(b.city))
+    .slice(0, limit);
 }
 
 export function getLandingPagesBySource(days = 7, limit = 20): LandingBySourceRow[] {

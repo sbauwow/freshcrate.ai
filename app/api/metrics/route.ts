@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getDbPath } from "@/lib/db-path";
-import { getReferrerAttribution, getSourceAttribution, getTopPages } from "@/lib/analytics";
+import { getGeoAttribution, getReferrerAttribution, getSourceAttribution, getTopPages } from "@/lib/analytics";
 import { log } from "@/lib/logger";
 import { withRequestLog } from "@/lib/request-log";
 import fs from "fs";
@@ -188,6 +188,22 @@ export const GET = withRequestLog(async () => {
     }
   })();
 
+  const topCountrySessions = (() => {
+    try {
+      return getGeoAttribution(1, 10);
+    } catch {
+      return [] as Array<{ country: string; region: string; city: string; sessions: number }>;
+    }
+  })();
+
+  const topCountries = (() => {
+    try {
+      return db.prepare("SELECT COALESCE(NULLIF(country, ''), '(unknown)') as country, COUNT(*) as views FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0 GROUP BY country ORDER BY views DESC LIMIT 10").all() as Array<{ country: string; views: number }>;
+    } catch {
+      return [] as Array<{ country: string; views: number }>;
+    }
+  })();
+
   // Traffic breakdown is server-side authoritative (request_log) so bots
   // and API clients — which never fire the JS beacon — show up correctly.
   // page_views was the old source and silently zeroed crawler/agent/api.
@@ -256,8 +272,10 @@ export const GET = withRequestLog(async () => {
       top_pages: topPages,
       top_referrers: topReferrers,
       top_sources: topSources,
+      top_countries: topCountries,
       top_referrer_sessions: topReferrerSessions,
       top_source_sessions: topSourceSessions,
+      top_country_sessions: topCountrySessions,
     },
 
     traffic_7d: {

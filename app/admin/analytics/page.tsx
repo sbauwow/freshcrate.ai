@@ -9,6 +9,8 @@ import {
   getEventConversion,
   getFunnel,
   getReferrerAttribution,
+  getGeoAttribution,
+  getGeoConversionBreakdown,
   getSourceAttribution,
   getSourceFunnel,
   getSourceConversionBreakdown,
@@ -72,7 +74,7 @@ export default async function AdminAnalyticsPage({
   const days = Math.max(1, Math.min(90, parseInt(params.days || "7", 10) || 7));
   const funnelSteps = parseFunnel(params.funnel);
 
-  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, sourceAttribution, sourceFunnel, sourceConversion, landingPageConversion, landingBySource, sourceLandingMatrix, attributionQuality, dau, retention, topTargets, statusMix, errorPaths, slowPaths, renderStatus, renderErrorPaths] = [
+  const [overview, entry, exit, transitions, timeOnPage, events, funnel, referrers, geoAttribution, geoConversion, sourceAttribution, sourceFunnel, sourceConversion, landingPageConversion, landingBySource, sourceLandingMatrix, attributionQuality, dau, retention, topTargets, statusMix, errorPaths, slowPaths, renderStatus, renderErrorPaths] = [
     getOverview(days),
     getEntryPages(days),
     getExitPages(days),
@@ -81,6 +83,8 @@ export default async function AdminAnalyticsPage({
     getEventConversion(days),
     getFunnel(funnelSteps, days),
     getReferrerAttribution(days),
+    getGeoAttribution(days),
+    getGeoConversionBreakdown(days),
     getSourceAttribution(days),
     getSourceFunnel(days),
     getSourceConversionBreakdown(days),
@@ -167,6 +171,29 @@ export default async function AdminAnalyticsPage({
         <Table
           headers={["referrer", "sessions", "bounce", "avg session s"]}
           rows={referrers.map((r) => [r.referrer, r.sessions, pct(r.bounce_rate), r.avg_session_seconds])}
+        />
+      </Section>
+
+      <Section title="Geography (first-touch session)">
+        <Table
+          headers={["country", "region", "city", "sessions"]}
+          rows={geoAttribution.map((r) => [r.country, r.region, r.city, r.sessions])}
+        />
+      </Section>
+
+      <Section title="Geography conversion breakdown">
+        <Table
+          headers={["country", "region", "city", "sessions", "with search", "with outbound/install", "search conv", "outbound/install conv"]}
+          rows={geoConversion.map((r) => [
+            r.country,
+            r.region,
+            r.city,
+            r.sessions,
+            r.with_search,
+            r.with_outbound_or_install,
+            pct(r.sessions > 0 ? r.with_search / r.sessions : 0),
+            pct(r.sessions > 0 ? r.with_outbound_or_install / r.sessions : 0),
+          ])}
         />
       </Section>
 

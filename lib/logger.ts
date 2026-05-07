@@ -48,6 +48,9 @@ export const log = {
     host?: string;
     traffic_type?: string;
     ua_family?: string;
+    country?: string;
+    region?: string;
+    city?: string;
     user_agent?: string;
     api_key_prefix?: string;
   }) => {

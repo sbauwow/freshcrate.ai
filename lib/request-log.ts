@@ -3,6 +3,7 @@ import { getDb } from "./db";
 import { log } from "./logger";
 import { classifyTraffic } from "./traffic-classification";
 import { NextRequest } from "next/server";
+import { extractGeo } from "./geo";
 
 /** Module-level request counter for periodic pruning. */
 let requestCount = 0;
@@ -37,6 +38,7 @@ export function logRequest(
   const ip = hashIp(rawIp);
   const userAgent = (request.headers.get("user-agent") || "").slice(0, 200);
   const { trafficType, uaFamily, host } = classifyTraffic(request, "api");
+  const { country, region, city } = extractGeo(request);
 
   // Structured log to stdout (uses hashed IP, not raw)
   log.request({
@@ -46,19 +48,22 @@ export function logRequest(
     duration_ms: duration,
     ip,
     host,
-    traffic_type: trafficType,
-    ua_family: uaFamily,
-    user_agent: userAgent,
-    api_key_prefix: apiKeyPrefix,
-  });
+      traffic_type: trafficType,
+      ua_family: uaFamily,
+      country,
+      region,
+      city,
+      user_agent: userAgent,
+      api_key_prefix: apiKeyPrefix,
+    });
 
   // Persist to DB (async-safe, fire and forget)
   try {
     const db = getDb();
     db.prepare(
-      `INSERT INTO request_log (method, path, status, duration_ms, ip, user_agent, api_key_prefix, host, traffic_type, ua_family)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(method, path, status, duration, ip, userAgent, apiKeyPrefix || null, host, trafficType, uaFamily);
+      `INSERT INTO request_log (method, path, status, duration_ms, ip, user_agent, api_key_prefix, host, traffic_type, ua_family, country, region, city)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(method, path, status, duration, ip, userAgent, apiKeyPrefix || null, host, trafficType, uaFamily, country, region, city);
   } catch {
     // Don't let logging failures break the API
   }
@@ -80,16 +85,16 @@ export function logRequest(
  *   export const POST = withRequestLog(async (request, { params }) => { ... });
  */
 export function withRequestLog<R extends Response, T extends unknown[]>(
-  handler: (request: NextRequest, ...rest: T) => Promise<R> | R,
-): (request: NextRequest, ...rest: T) => Promise<R> {
+  handler: (request?: NextRequest, ...rest: T) => Promise<R> | R,
+): (request?: NextRequest, ...rest: T) => Promise<R> {
   return async (request, ...rest) => {
     const start = Date.now();
     try {
       const res = await handler(request, ...rest);
-      logRequest(request, res.status, start);
+      if (request) logRequest(request, res.status, start);
       return res;
     } catch (err) {
-      logRequest(request, 500, start);
+      if (request) logRequest(request, 500, start);
       throw err;
     }
   };
