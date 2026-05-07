@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import ShareLinks from "@/app/components/share-links";
 import { cleanAuthor } from "@/lib/author-slug";
 import { classifyLicense } from "@/lib/license";
@@ -8,6 +9,7 @@ import { getHealthStatus } from "@/lib/health";
 import { getMCPManifest, MCP_LABELS } from "@/lib/mcp";
 import { getDependencyAuditSummary } from "@/lib/deps";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import DepGraph from "@/app/components/dep-graph";
 import TrackedLink from "@/app/components/tracked-link";
@@ -19,6 +21,9 @@ function hostname(url: string): string {
 
 export default async function ProjectPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).projectPage;
   const project = getProjectByName(name);
   if (!project) notFound();
 
@@ -56,7 +61,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
       <div className="flex-1 min-w-0">
         {/* Breadcrumb */}
         <div className="text-[10px] text-fm-text-light mb-3">
-          <Link href="/" className="text-fm-link hover:text-fm-link-hover">Home</Link>
+          <Link href="/" className="text-fm-link hover:text-fm-link-hover">{t.home}</Link>
           {" > "}
           <Link href={`/browse?category=${encodeURIComponent(project.category)}`} className="text-fm-link hover:text-fm-link-hover">
             {project.category}
@@ -84,7 +89,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
 
         {/* Description */}
         <div className="mb-6">
-          <h3 className="text-[12px] font-bold text-fm-green mb-1">Description</h3>
+          <h3 className="text-[12px] font-bold text-fm-green mb-1">{t.descriptionHeading}</h3>
           <p className="text-[11px] text-fm-text leading-relaxed">{project.description}</p>
         </div>
 
@@ -104,16 +109,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {/* Release history */}
         <div>
           <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            Release History
+            {t.releaseHistory}
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-left text-fm-text-light border-b border-fm-border">
-                  <th className="py-1 font-bold">Version</th>
-                  <th className="py-1 font-bold">Changes</th>
-                  <th className="py-1 font-bold">Urgency</th>
-                  <th className="py-1 font-bold text-right">Date</th>
+                  <th className="py-1 font-bold">{t.version}</th>
+                  <th className="py-1 font-bold">{t.changes}</th>
+                  <th className="py-1 font-bold">{t.urgency}</th>
+                  <th className="py-1 font-bold text-right">{t.date}</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +138,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {/* Dependencies & License Audit */}
         <div className="mt-6">
           <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-3">
-            Dependencies &amp; License Audit
+            {t.dependencyAudit}
           </h3>
           <DepGraph projectName={project.name} />
         </div>
@@ -142,7 +147,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {similar.length > 0 && (
           <div className="mt-6">
             <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              Similar Packages
+              {t.similarPackages}
             </h3>
             <div className="space-y-2">
               {similar.map((p) => (
@@ -166,7 +171,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {sameAuthor.length > 0 && (
           <div className="mt-6">
             <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              More from {cleanAuthor(project.author)}
+              {t.moreFrom} {cleanAuthor(project.author)}
             </h3>
             <div className="space-y-2">
               {sameAuthor.map((p) => (
@@ -189,7 +194,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {sameCategory.length > 0 && (
           <div className="mt-6">
             <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              More in {project.category}
+              {t.moreIn} {project.category}
             </h3>
             <div className="space-y-2">
               {sameCategory.map((p) => (
@@ -214,25 +219,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
       <aside className="w-full md:w-[220px] md:shrink-0">
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            Project Info
+            {t.projectInfo}
           </h3>
           <div className="space-y-2 text-[11px]">
             <div>
-              <span className="text-fm-text-light block">Author:</span>
+              <span className="text-fm-text-light block">{t.author}:</span>
               <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="font-bold text-fm-link hover:text-fm-link-hover">
                 {cleanAuthor(project.author)}
               </Link>
             </div>
             <div id="license">
-              <span className="text-fm-text-light block">License:</span>
+              <span className="text-fm-text-light block">{t.license}:</span>
               {(() => {
                 const info = classifyLicense(project.license);
                 if (info.isNonStandard) {
                   return (
                     <>
-                      <span className="font-bold">non-standard</span>
+                      <span className="font-bold">{t.nonStandard}</span>
                       <details className="mt-1">
-                        <summary className="text-[10px] text-fm-link hover:text-fm-link-hover cursor-pointer">view declared license</summary>
+                        <summary className="text-[10px] text-fm-link hover:text-fm-link-hover cursor-pointer">{t.viewDeclaredLicense}</summary>
                         <pre className="mt-1 max-h-[240px] overflow-auto whitespace-pre-wrap text-[10px] text-fm-text-light bg-fm-bg border border-fm-border rounded p-2 font-mono">{info.raw}</pre>
                       </details>
                     </>
@@ -242,13 +247,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
               })()}
             </div>
             <div>
-              <span className="text-fm-text-light block">Category:</span>
+              <span className="text-fm-text-light block">{t.category}:</span>
               <Link href={`/browse?category=${encodeURIComponent(project.category)}`} className="font-bold text-fm-link hover:text-fm-link-hover">
                 {project.category}
               </Link>
             </div>
             <div>
-              <span className="text-fm-text-light block">Source:</span>
+              <span className="text-fm-text-light block">{t.source}:</span>
               <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                 <span className="inline-block bg-fm-green/10 text-fm-green border border-fm-green/20 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase">
                   {project.source_type || "github"}
@@ -259,16 +264,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
               </div>
               {provenance?.confidence !== undefined && (
                 <div className="text-[10px] text-fm-text-light mt-0.5">
-                  Confidence: {Math.round(Number(provenance.confidence) * 100)}%
+                  {t.confidence}: {Math.round(Number(provenance.confidence) * 100)}%
                 </div>
               )}
             </div>
             <div>
-              <span className="text-fm-text-light block">Latest:</span>
+              <span className="text-fm-text-light block">{t.latest}:</span>
               <span className="font-mono font-bold">{project.latest_version}</span>
             </div>
             <div>
-              <span className="text-fm-text-light block">Registered:</span>
+              <span className="text-fm-text-light block">{t.registered}:</span>
               <span>{new Date(project.created_at).toLocaleDateString()}</span>
             </div>
           </div>
@@ -278,14 +283,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {mcp && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
             <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              MCP Compatibility
+              {t.mcpCompatibility}
             </h3>
             <div className="space-y-2 text-[11px]">
               {[
-                { key: "transports", label: "Transport", values: mcp.transports },
-                { key: "auth", label: "Auth", values: mcp.auth },
-                { key: "runtime", label: "Runtime", values: mcp.runtime },
-                { key: "hosting", label: "Hosting", values: mcp.hosting },
+                { key: "transports", label: t.transport, values: mcp.transports },
+                { key: "auth", label: t.auth, values: mcp.auth },
+                { key: "runtime", label: t.runtime, values: mcp.runtime },
+                { key: "hosting", label: t.hosting, values: mcp.hosting },
               ].map((row) => (
                 <div key={row.key}>
                   <span className="text-fm-text-light block mb-0.5">{row.label}:</span>
@@ -303,7 +308,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
                 </div>
               ))}
               <div className="text-fm-text-light text-[10px] pt-1 border-t border-fm-border/30">
-                Detected from README ({new Date(mcp.detected_at).toLocaleDateString()})
+                {t.detectedFromReadme} ({new Date(mcp.detected_at).toLocaleDateString()})
               </div>
             </div>
           </div>
@@ -313,7 +318,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {health && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
             <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              Health Score
+              {t.healthScore}
             </h3>
             <div className="space-y-2 text-[11px]">
               <div>
@@ -342,7 +347,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
                 ))}
               </div>
               <div className="text-fm-text-light text-[10px] pt-1 border-t border-fm-border/30">
-                Computed: {new Date(health.computed_at).toLocaleDateString()}
+                {t.computed}: {new Date(health.computed_at).toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -351,18 +356,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {/* Verification status */}
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            Verification
+            {t.verification}
           </h3>
           {verification ? (
             <div className="space-y-2 text-[11px]">
               <div>
                 {verification.verified ? (
                   <span className="inline-block bg-green-900/30 text-green-400 border border-green-700/50 px-2 py-0.5 rounded text-[10px] font-bold">
-                    ✓ Verified ({verification.score}/100)
+                    ✓ {t.verified} ({verification.score}/100)
                   </span>
                 ) : (
                   <span className="inline-block bg-red-900/30 text-red-400 border border-red-700/50 px-2 py-0.5 rounded text-[10px] font-bold">
-                    ✗ Failed ({verification.score}/100)
+                    ✗ {t.failed} ({verification.score}/100)
                   </span>
                 )}
               </div>
@@ -378,49 +383,49 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
               </div>
               {verification.verified_at && (
                 <div className="text-fm-text-light text-[10px] pt-1 border-t border-fm-border/30">
-                  Verified: {new Date(verification.verified_at).toLocaleDateString()}
+                  {t.verifiedAt}: {new Date(verification.verified_at).toLocaleDateString()}
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-[10px] text-fm-text-light">Not yet verified</p>
+            <p className="text-[10px] text-fm-text-light">{t.notYetVerified}</p>
           )}
         </div>
 
         {/* Dependency scan status */}
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            Dependency Scan
+            {t.dependencyScan}
           </h3>
           {dependencySummary ? (
             <div className="space-y-2 text-[11px]">
               <div className="flex flex-wrap gap-1.5">
                 <span className="inline-block bg-fm-green/10 text-fm-green border border-fm-green/20 px-2 py-0.5 rounded text-[10px] font-bold">
-                  {dependencySummary.conflict_count} conflict{dependencySummary.conflict_count === 1 ? "" : "s"}
+                  {dependencySummary.conflict_count} {dependencySummary.conflict_count === 1 ? t.conflict : t.conflicts}
                 </span>
                 <span className="inline-block bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded text-[10px] font-bold">
-                  {dependencySummary.unresolved} unresolved
+                  {dependencySummary.unresolved} {t.unresolved}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div>
-                  <div className="text-fm-text-light">Audit score</div>
+                  <div className="text-fm-text-light">{t.auditScore}</div>
                   <div className="font-bold">{dependencySummary.score}/100</div>
                 </div>
                 <div>
-                  <div className="text-fm-text-light">Total deps</div>
+                  <div className="text-fm-text-light">{t.totalDeps}</div>
                   <div className="font-bold">{dependencySummary.total_deps}</div>
                 </div>
               </div>
               <div className="text-[10px] text-fm-text-light pt-1 border-t border-fm-border/30">
-                Scanned: {dependencySummary.scanned_at ? new Date(dependencySummary.scanned_at).toLocaleDateString() : "—"}
+                {t.scanned}: {dependencySummary.scanned_at ? new Date(dependencySummary.scanned_at).toLocaleDateString() : "—"}
               </div>
               <Link href="/dependencies#license-risk" className="text-[10px] font-bold text-fm-link hover:text-fm-link-hover">
-                Open dependency risk map
+                {t.openDependencyRiskMap}
               </Link>
             </div>
           ) : (
-            <p className="text-[10px] text-fm-text-light">No dependency audit cached yet.</p>
+            <p className="text-[10px] text-fm-text-light">{t.noDependencyAudit}</p>
           )}
         </div>
 
@@ -428,21 +433,21 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {enriched && (enriched.stars > 0 || enriched.forks > 0 || enriched.language) && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
             <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              GitHub Stats
+              {t.githubStats}
             </h3>
             <div className="space-y-2 text-[11px]">
               {enriched.stars > 0 && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-fm-text-light">⭐</span>
                   <span className="font-bold">{enriched.stars.toLocaleString()}</span>
-                  <span className="text-fm-text-light">stars</span>
+                  <span className="text-fm-text-light">{t.stars}</span>
                 </div>
               )}
               {enriched.forks > 0 && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-fm-text-light">🍴</span>
                   <span className="font-bold">{enriched.forks.toLocaleString()}</span>
-                  <span className="text-fm-text-light">forks</span>
+                  <span className="text-fm-text-light">{t.forks}</span>
                 </div>
               )}
               {enriched.language && (
@@ -450,7 +455,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
                   <span className="text-fm-text-light">🔤</span>
                   <span className="font-bold">{enriched.language}</span>
                   {languageSourceLabel && (
-                    <span className="text-[10px] text-fm-text-light">Language source: {languageSourceLabel}</span>
+                    <span className="text-[10px] text-fm-text-light">{t.languageSource}: {languageSourceLabel}</span>
                   )}
                 </div>
               )}
@@ -461,7 +466,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
         {(project.repo_url || project.homepage_url) && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
             <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              Links
+              {t.links}
             </h3>
             <div className="space-y-1 text-[11px]">
               {project.repo_url && (
@@ -474,7 +479,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
                     rel="noopener noreferrer"
                     className="text-fm-link hover:text-fm-link-hover"
                   >
-                    &#128193; Source Code &rarr;
+                    &#128193; {t.sourceCode} &rarr;
                   </TrackedLink>
                 </div>
               )}
@@ -488,7 +493,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
                     rel="noopener noreferrer"
                     className="text-fm-link hover:text-fm-link-hover"
                   >
-                    &#127760; Homepage &rarr;
+                    &#127760; {t.homepage} &rarr;
                   </TrackedLink>
                 </div>
               )}

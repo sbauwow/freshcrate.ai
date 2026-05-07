@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { cleanAuthor } from "@/lib/author-slug";
 import { computeLifecycle } from "@/lib/lifecycle";
 import { getProjectsByTag } from "@/lib/queries";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import TrackedLink from "@/app/components/tracked-link";
 
 export async function generateMetadata({
@@ -25,6 +27,9 @@ export default async function TagPage({
   params: Promise<{ tag: string }>;
 }) {
   const { tag } = await params;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).tagPage;
   const decodedTag = decodeURIComponent(tag);
   const normalizedTag = decodedTag.trim().toLowerCase();
   const projects = getProjectsByTag(normalizedTag);
@@ -60,21 +65,21 @@ export default async function TagPage({
     <div className="flex flex-col md:flex-row gap-5">
       <div className="flex-1 min-w-0">
         <div className="text-[10px] text-fm-text-light mb-3">
-          <Link href="/" className="text-fm-link hover:text-fm-link-hover">Home</Link>
+          <Link href="/" className="text-fm-link hover:text-fm-link-hover">{t.home}</Link>
           {" > "}
           <span className="font-bold text-fm-text">#{normalizedTag}</span>
         </div>
 
         <div className="border-b-2 border-fm-green pb-2 mb-3">
-          <h2 className="text-[14px] font-bold text-fm-green">Tag: #{normalizedTag}</h2>
+          <h2 className="text-[14px] font-bold text-fm-green">{t.tag} #{normalizedTag}</h2>
           <p className="text-[10px] text-fm-text-light mt-1">
-            {projects.length} package{projects.length !== 1 ? "s" : ""} • ⭐ {totalStars.toLocaleString()} total stars
+            {projects.length} {projects.length !== 1 ? t.packagesWord : t.packageWord} • ⭐ {totalStars.toLocaleString()} {t.totalStars}
           </p>
         </div>
 
         {trendingInTag.length > 0 && (
           <div className="mb-3 bg-fm-sidebar-bg border border-fm-border rounded p-2.5">
-            <h3 className="text-[11px] font-bold text-fm-green mb-1">Trending in #{normalizedTag}</h3>
+            <h3 className="text-[11px] font-bold text-fm-green mb-1">{t.trendingIn} #{normalizedTag}</h3>
             <div className="flex flex-wrap gap-2">
               {trendingInTag.map((p) => (
                 <TrackedLink
@@ -141,7 +146,7 @@ export default async function TagPage({
                     </TrackedLink>
                   ))}
                   <span className="text-[9px] text-fm-text-light ml-auto">
-                    by <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">{cleanAuthor(project.author)}</Link>
+                    {t.byAuthor} <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">{cleanAuthor(project.author)}</Link>
                   </span>
                 </div>
               </div>
@@ -153,23 +158,23 @@ export default async function TagPage({
       <aside className="w-full md:w-[220px] md:shrink-0">
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            Tag Snapshot
+            {t.tagSnapshot}
           </h3>
           <div className="space-y-1 text-[11px]">
             <div className="flex justify-between">
-              <span className="text-fm-text-light">Packages:</span>
+              <span className="text-fm-text-light">{t.packages}:</span>
               <span className="font-bold">{projects.length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-fm-text-light">Authors:</span>
+              <span className="text-fm-text-light">{t.authors}:</span>
               <span className="font-bold">{authorSet.size}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-fm-text-light">Categories:</span>
+              <span className="text-fm-text-light">{t.categories}:</span>
               <span className="font-bold">{categorySet.size}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-fm-text-light">Total stars:</span>
+              <span className="text-fm-text-light">{t.totalStars}:</span>
               <span className="font-bold">{totalStars.toLocaleString()}</span>
             </div>
           </div>
@@ -177,14 +182,14 @@ export default async function TagPage({
 
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            Jump
+            {t.jump}
           </h3>
           <div className="text-[11px] space-y-1">
             <Link href={`/search?q=${encodeURIComponent(normalizedTag)}`} className="block text-fm-link hover:text-fm-link-hover">
-              Search this tag
+              {t.searchThisTag}
             </Link>
             <Link href="/browse" className="block text-fm-link hover:text-fm-link-hover">
-              Browse categories
+              {t.browseCategories}
             </Link>
           </div>
         </div>
@@ -192,7 +197,7 @@ export default async function TagPage({
         {trendingInTag.length > 0 && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
             <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              Trending in #{normalizedTag}
+              {t.trendingIn} #{normalizedTag}
             </h3>
             <div className="space-y-1 text-[11px]">
               {trendingInTag.map((p) => (
@@ -214,7 +219,7 @@ export default async function TagPage({
         {relatedTags.length > 0 && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
             <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-              Related Tags
+              {t.relatedTags}
             </h3>
             <div className="space-y-1 text-[11px]">
               {relatedTags.map(([t, count]) => (

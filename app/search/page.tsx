@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedForm from "@/app/components/tracked-form";
+import { cookies } from "next/headers";
 import { cleanAuthor } from "@/lib/author-slug";
 import { searchProjects, getCategories } from "@/lib/queries";
 import { getDb } from "@/lib/db";
@@ -7,6 +8,7 @@ import { computeLifecycle } from "@/lib/lifecycle";
 import TrackOnMount from "@/app/components/track-on-mount";
 import TrackedNextLink from "@/app/components/tracked-next-link";
 import TrackedLink from "@/app/components/tracked-link";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -41,6 +43,10 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string; category?: string; language?: string; author?: string }>;
 }) {
   const { q, category, language, author } = await searchParams;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).searchPage;
+  const tips = t.searchTipsExamples;
   const hasQuery = !!(q || author);
 
   // Get filter options
@@ -156,10 +162,10 @@ export default async function SearchPage({
         <div className="border-b-2 border-fm-green pb-1 mb-3">
           <h2 className="text-[14px] font-bold text-fm-green">
             {author
-              ? `Packages by ${author}`
+              ? `${t.packagesBy} ${author}`
               : q
-              ? `Search results for "${q}"`
-              : "Search"}
+              ? `${t.resultsFor} \"${q}\"`
+              : t.title}
           </h2>
         </div>
 
@@ -170,14 +176,14 @@ export default async function SearchPage({
               type="text"
               name="q"
               defaultValue={q || ""}
-              placeholder="Search packages, tags, descriptions, maintainers..."
+              placeholder={t.placeholder}
               className="flex-1 px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green"
             />
             <button
               type="submit"
               className="bg-fm-green text-white text-[11px] px-4 py-1.5 rounded hover:bg-fm-green-light cursor-pointer"
             >
-              Search
+              {t.searchButton}
             </button>
           </div>
           <div className="flex flex-wrap gap-2 text-[10px]">
@@ -186,7 +192,7 @@ export default async function SearchPage({
               defaultValue={category || ""}
               className="px-2 py-1 border border-fm-border rounded text-[10px] bg-white"
             >
-              <option value="">All categories</option>
+              <option value="">{t.allCategories}</option>
               {categories.map((c) => (
                 <option key={c.category} value={c.category}>
                   {c.category} ({c.count})
@@ -198,7 +204,7 @@ export default async function SearchPage({
               defaultValue={language || ""}
               className="px-2 py-1 border border-fm-border rounded text-[10px] bg-white"
             >
-              <option value="">All languages</option>
+              <option value="">{t.allLanguages}</option>
               {languages.map((l) => (
                 <option key={l.language} value={l.language}>
                   {l.language}
@@ -207,7 +213,7 @@ export default async function SearchPage({
             </select>
             {(category || language) && (
               <Link href={`/search?q=${encodeURIComponent(q || "")}`} className="text-fm-link text-[10px] py-1">
-                Clear filters
+                {t.clearFilters}
               </Link>
             )}
           </div>
@@ -218,8 +224,8 @@ export default async function SearchPage({
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
             <div className="flex items-center gap-3 text-[11px]">
               <span className="font-bold text-fm-green text-[13px]">{author}</span>
-              <span className="text-fm-text-light">{authorStats.packages} packages</span>
-              <span className="text-fm-text-light">⭐ {authorStats.totalStars.toLocaleString()} total stars</span>
+              <span className="text-fm-text-light">{authorStats.packages} {t.packagesWord}</span>
+              <span className="text-fm-text-light">⭐ {authorStats.totalStars.toLocaleString()} {t.totalStars}</span>
             </div>
             <div className="flex flex-wrap gap-1 mt-2">
               {authorStats.languages.map((l) => (
@@ -239,8 +245,8 @@ export default async function SearchPage({
         {/* Result count */}
         {hasQuery && (
           <div className="text-[10px] text-fm-text-light mb-3">
-            {results.length} result{results.length !== 1 ? "s" : ""} found
-            {category ? ` in ${category}` : ""}
+            {results.length} {t.resultsFound}
+            {category ? ` ${t.inCategory} ${category}` : ""}
             {language ? ` (${language})` : ""}
           </div>
         )}
@@ -300,7 +306,7 @@ export default async function SearchPage({
                     </Link>
                   ))}
                   <span className="text-[9px] text-fm-text-light ml-auto">
-                    by{" "}
+                    {t.byAuthor}{" "}
                     <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">
                       {cleanAuthor(project.author)}
                     </Link>
@@ -322,16 +328,16 @@ export default async function SearchPage({
         {hasQuery && results.length === 0 && (
           <div className="py-4 space-y-3">
             <p className="text-[11px] text-fm-text-light">
-              No packages found matching &ldquo;{q || author}&rdquo;.
+              {t.noPackages} &ldquo;{q || author}&rdquo;.
             </p>
 
             {(rescueTags.length > 0 || rescueProjects.length > 0) && (
               <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3">
-                <h3 className="text-[11px] font-bold text-fm-green mb-2">Try these instead</h3>
+                <h3 className="text-[11px] font-bold text-fm-green mb-2">{t.tryInstead}</h3>
 
                 {typoSuggestions.length > 0 && (
                   <div className="mb-2">
-                    <p className="text-[10px] text-fm-text-light mb-1">Did you mean</p>
+                    <p className="text-[10px] text-fm-text-light mb-1">{t.didYouMean}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {typoSuggestions.map((s) => (
                         <TrackedNextLink
@@ -350,7 +356,7 @@ export default async function SearchPage({
 
                 {rescueTags.length > 0 && (
                   <div className="mb-2">
-                    <p className="text-[10px] text-fm-text-light mb-1">Related tags</p>
+                    <p className="text-[10px] text-fm-text-light mb-1">{t.relatedTags}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {rescueTags.map((r) => (
                         <TrackedNextLink
@@ -369,7 +375,7 @@ export default async function SearchPage({
 
                 {rescueProjects.length > 0 && (
                   <div>
-                    <p className="text-[10px] text-fm-text-light mb-1">Closest projects</p>
+                    <p className="text-[10px] text-fm-text-light mb-1">{t.closestProjects}</p>
                     <div className="space-y-1">
                       {rescueProjects.map((p) => (
                         <div key={p.name} className="text-[10px]">
@@ -395,14 +401,14 @@ export default async function SearchPage({
         {/* Search tips */}
         {!hasQuery && (
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-4 mt-2">
-            <h3 className="text-[11px] font-bold text-fm-green mb-2">Search tips</h3>
+            <h3 className="text-[11px] font-bold text-fm-green mb-2">{t.searchTipsTitle}</h3>
             <div className="space-y-1 text-[10px] text-fm-text-light">
-              <p>🔍 <strong>Package name:</strong> <Link href="/search?q=langchain" className="text-fm-link">langchain</Link></p>
-              <p>🏷️ <strong>Tag:</strong> <Link href="/tag/mcp" className="text-fm-link">mcp</Link></p>
-              <p>👤 <strong>Maintainer:</strong> <Link href="/author/anthropics" className="text-fm-link">anthropics</Link></p>
-              <p>💬 <strong>Description:</strong> <Link href="/search?q=vector+database" className="text-fm-link">vector database</Link></p>
-              <p>🔤 <strong>Language:</strong> Use the dropdown filter above</p>
-              <p>📂 <strong>Category:</strong> Use the dropdown filter, or <Link href="/browse" className="text-fm-link">browse all</Link></p>
+              <p>🔍 <strong>{tips.packageName}:</strong> <Link href="/search?q=langchain" className="text-fm-link">langchain</Link></p>
+              <p>🏷️ <strong>{tips.tag}:</strong> <Link href="/tag/mcp" className="text-fm-link">mcp</Link></p>
+              <p>👤 <strong>{tips.maintainer}:</strong> <Link href="/author/anthropics" className="text-fm-link">anthropics</Link></p>
+              <p>💬 <strong>{tips.description}:</strong> <Link href="/search?q=vector+database" className="text-fm-link">vector database</Link></p>
+              <p>🔤 <strong>{tips.language}:</strong> {tips.languageHelp}</p>
+              <p>📂 <strong>{tips.category}:</strong> {tips.categoryHelpPrefix}{" "}<Link href="/browse" className="text-fm-link">{tips.browseAll}</Link></p>
             </div>
           </div>
         )}
