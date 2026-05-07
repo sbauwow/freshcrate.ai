@@ -130,4 +130,69 @@ describe("metrics attribution summary", () => {
       expect.objectContaining({ source: "chatgpt.com", medium: "referral", campaign: "launch", sessions: 1 }),
     );
   });
+
+  it("reports 24h and 7d 4xx route-group summaries", async () => {
+    db.prepare(
+      "INSERT INTO request_log (method, path, status, duration_ms, ip, user_agent, api_key_prefix, host, traffic_type, ua_family, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+    ).run(
+      "GET",
+      "/api/projects/alpha/deps",
+      400,
+      12,
+      "ip1",
+      "Mozilla/5.0",
+      null,
+      "www.freshcrate.ai",
+      "api_client",
+      "Browser",
+    );
+    db.prepare(
+      "INSERT INTO request_log (method, path, status, duration_ms, ip, user_agent, api_key_prefix, host, traffic_type, ua_family, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '-2 day'))",
+    ).run(
+      "GET",
+      "/api/projects/beta/deps",
+      400,
+      15,
+      "ip2",
+      "Mozilla/5.0",
+      null,
+      "www.freshcrate.ai",
+      "api_client",
+      "Browser",
+    );
+    db.prepare(
+      "INSERT INTO request_log (method, path, status, duration_ms, ip, user_agent, api_key_prefix, host, traffic_type, ua_family, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+    ).run(
+      "GET",
+      "/api/search",
+      400,
+      9,
+      "ip3",
+      "curl/8.4.0",
+      null,
+      "www.freshcrate.ai",
+      "api_client",
+      "curl",
+    );
+
+    const res = await metricsGET();
+    const json = await res.json();
+
+    expect(json.traffic_24h.top_4xx_route_groups).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ route_group: "/api/projects/[name]/deps", hits: 1 }),
+        expect.objectContaining({ route_group: "/api/search", hits: 1 }),
+      ]),
+    );
+    expect(json.traffic_7d.top_4xx_route_groups).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ route_group: "/api/projects/[name]/deps", hits: 2 }),
+      ]),
+    );
+    expect(json.traffic_7d.top_4xx_clients).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ua_family: "Browser", traffic_type: "api_client", hits: 2 }),
+      ]),
+    );
+  });
 });

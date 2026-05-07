@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { classifyTraffic } from "@/lib/traffic-classification";
 
 /**
- * Next.js Proxy (Edge runtime) — runs on every non-static request and emits
- * a single JSON log line to stdout so Railway has unified visibility across
- * page renders AND API routes. Status + duration are added separately by
- * route handlers via lib/request-log.ts (DB persistence).
+ * Next.js Proxy (Edge runtime) — runs on every non-static request.
+ *
+ * Emits a single `request_in` JSON log only for paths that won't produce a
+ * paired completion log elsewhere. The pairing rules:
+ *   - /api/*                 → keep request_in (logRequest emits the paired
+ *                              `request` line on success; entry log is the
+ *                              only signal if the handler crashes mid-flight).
+ *   - page + human_browser   → suppress (the /api/beacon pixel records the
+ *                              page_view; emitting here would double-count
+ *                              and pegs Railway's 500-logs/sec replica cap).
+ *   - page + bot/api_client  → keep (no beacon fires for these clients).
  *
  * No PII: raw IP is never logged here, just whether one was present.
  */
@@ -40,20 +47,26 @@ export function proxy(request: NextRequest) {
 
   const reqId = crypto.randomUUID().slice(0, 8);
 
-  console.log(JSON.stringify({
-    ts: new Date().toISOString(),
-    level: "info",
-    msg: "request_in",
-    req_id: reqId,
-    method: request.method,
-    path,
-    surface,
-    host,
-    traffic_type: trafficType,
-    ua_family: uaFamily,
-    ua_short: ua,
-    has_ip: hasIp ? 1 : 0,
-  }));
+  // Suppress entry log for traffic that has a paired completion log elsewhere
+  // (see header comment). The remaining `request_in` lines are the ones where
+  // an unpaired entry is the only available signal.
+  const willBeacon = surface === "page" && trafficType === "human_browser";
+  if (!willBeacon) {
+    console.log(JSON.stringify({
+      ts: new Date().toISOString(),
+      level: "info",
+      msg: "request_in",
+      req_id: reqId,
+      method: request.method,
+      path,
+      surface,
+      host,
+      traffic_type: trafficType,
+      ua_family: uaFamily,
+      ua_short: ua,
+      has_ip: hasIp ? 1 : 0,
+    }));
+  }
 
   const response = NextResponse.next();
   response.headers.set("X-Request-Start", Date.now().toString());

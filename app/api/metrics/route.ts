@@ -5,6 +5,91 @@ import { getReferrerAttribution, getSourceAttribution, getTopPages } from "@/lib
 import { log } from "@/lib/logger";
 import fs from "fs";
 
+function normalize4xxRouteGroup(path: string): string {
+  if (path.startsWith("/api/projects/")) {
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length >= 4 && (parts[3] === "deps" || parts[3] === "verify")) {
+      return `/api/projects/[name]/${parts[3]}`;
+    }
+    if (parts.length >= 3) return "/api/projects/[name]";
+  }
+
+  if (path.startsWith("/api/webhooks/")) {
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length >= 3) return "/api/webhooks/[id]";
+  }
+
+  if (path.startsWith("/api/agents/")) {
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length >= 4 && parts[3] === "attestations") {
+      return "/api/agents/[agent_id]/attestations";
+    }
+  }
+
+  return path;
+}
+
+function getTrafficWindowSummary(db: ReturnType<typeof getDb>, days: number) {
+  const window = `datetime('now', '-${days} day')`;
+
+  const requests = (() => {
+    try {
+      return (db.prepare(`SELECT COUNT(*) as c FROM request_log WHERE created_at > ${window}`).get() as { c: number }).c;
+    } catch {
+      return 0;
+    }
+  })();
+
+  const errors = (() => {
+    try {
+      return (db.prepare(`SELECT COUNT(*) as c FROM request_log WHERE created_at > ${window} AND status >= 400`).get() as { c: number }).c;
+    } catch {
+      return 0;
+    }
+  })();
+
+  const top4xxPaths = (() => {
+    try {
+      return db.prepare(`SELECT path, COUNT(*) as hits FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500 GROUP BY path ORDER BY hits DESC LIMIT 10`).all() as Array<{ path: string; hits: number }>;
+    } catch {
+      return [] as Array<{ path: string; hits: number }>;
+    }
+  })();
+
+  const top4xxClients = (() => {
+    try {
+      return db.prepare(`SELECT ua_family, traffic_type, COUNT(*) as hits FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500 GROUP BY ua_family, traffic_type ORDER BY hits DESC LIMIT 10`).all() as Array<{ ua_family: string; traffic_type: string; hits: number }>;
+    } catch {
+      return [] as Array<{ ua_family: string; traffic_type: string; hits: number }>;
+    }
+  })();
+
+  const top4xxRouteGroups = (() => {
+    try {
+      const rows = db.prepare(`SELECT path FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500`).all() as Array<{ path: string }>;
+      const counts = new Map<string, number>();
+      for (const row of rows) {
+        const group = normalize4xxRouteGroup(row.path);
+        counts.set(group, (counts.get(group) || 0) + 1);
+      }
+      return Array.from(counts.entries())
+        .map(([route_group, hits]) => ({ route_group, hits }))
+        .sort((a, b) => b.hits - a.hits || a.route_group.localeCompare(b.route_group))
+        .slice(0, 10);
+    } catch {
+      return [] as Array<{ route_group: string; hits: number }>;
+    }
+  })();
+
+  return {
+    requests,
+    errors,
+    top_4xx_paths: top4xxPaths,
+    top_4xx_clients: top4xxClients,
+    top_4xx_route_groups: top4xxRouteGroups,
+  };
+}
+
 /**
  * GET /api/metrics — Operational metrics for monitoring.
  * Returns DB size, table counts, API key usage, webhook health, etc.
@@ -41,13 +126,11 @@ export async function GET() {
     watchedTopics = (db.prepare("SELECT COUNT(*) as c FROM watched_topics WHERE active = 1").get() as { c: number }).c;
   } catch { /* table may not exist */ }
 
-  // Request log (last 24h)
-  let requests24h = 0;
-  let errors24h = 0;
+  const traffic24hSummary = getTrafficWindowSummary(db, 1);
+  const traffic7dSummary = getTrafficWindowSummary(db, 7);
+
   let avgDuration = 0;
   try {
-    requests24h = (db.prepare("SELECT COUNT(*) as c FROM request_log WHERE created_at > datetime('now', '-1 day')").get() as { c: number }).c;
-    errors24h = (db.prepare("SELECT COUNT(*) as c FROM request_log WHERE created_at > datetime('now', '-1 day') AND status >= 400").get() as { c: number }).c;
     avgDuration = (db.prepare("SELECT AVG(duration_ms) as a FROM request_log WHERE created_at > datetime('now', '-1 day')").get() as { a: number | null }).a || 0;
   } catch { /* table may not exist */ }
 
@@ -120,22 +203,6 @@ export async function GET() {
     }
   })();
 
-  const top4xxPaths = (() => {
-    try {
-      return db.prepare("SELECT path, COUNT(*) as hits FROM request_log WHERE created_at > datetime('now', '-1 day') AND status >= 400 AND status < 500 GROUP BY path ORDER BY hits DESC LIMIT 10").all() as Array<{ path: string; hits: number }>;
-    } catch {
-      return [] as Array<{ path: string; hits: number }>;
-    }
-  })();
-
-  const top4xxClients = (() => {
-    try {
-      return db.prepare("SELECT ua_family, traffic_type, COUNT(*) as hits FROM request_log WHERE created_at > datetime('now', '-1 day') AND status >= 400 AND status < 500 GROUP BY ua_family, traffic_type ORDER BY hits DESC LIMIT 10").all() as Array<{ ua_family: string; traffic_type: string; hits: number }>;
-    } catch {
-      return [] as Array<{ ua_family: string; traffic_type: string; hits: number }>;
-    }
-  })();
-
   const metrics = {
     timestamp: new Date().toISOString(),
     uptime_seconds: Math.round(process.uptime()),
@@ -171,10 +238,11 @@ export async function GET() {
     },
 
     traffic_24h: {
-      requests: requests24h,
-      errors: errors24h,
-      top_4xx_paths: top4xxPaths,
-      top_4xx_clients: top4xxClients,
+      requests: traffic24hSummary.requests,
+      errors: traffic24hSummary.errors,
+      top_4xx_paths: traffic24hSummary.top_4xx_paths,
+      top_4xx_clients: traffic24hSummary.top_4xx_clients,
+      top_4xx_route_groups: traffic24hSummary.top_4xx_route_groups,
       avg_duration_ms: Math.round(avgDuration),
       page_views: (() => { try { return (db.prepare("SELECT COUNT(*) as c FROM page_views WHERE created_at > datetime('now', '-1 day')").get() as { c: number }).c; } catch { return 0; } })(),
       unique_visitors: (() => { try { return (db.prepare("SELECT COUNT(DISTINCT ip_hash) as c FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0").get() as { c: number }).c; } catch { return 0; } })(),
@@ -186,6 +254,14 @@ export async function GET() {
       top_sources: topSources,
       top_referrer_sessions: topReferrerSessions,
       top_source_sessions: topSourceSessions,
+    },
+
+    traffic_7d: {
+      requests: traffic7dSummary.requests,
+      errors: traffic7dSummary.errors,
+      top_4xx_paths: traffic7dSummary.top_4xx_paths,
+      top_4xx_clients: traffic7dSummary.top_4xx_clients,
+      top_4xx_route_groups: traffic7dSummary.top_4xx_route_groups,
     },
   };
 
@@ -202,10 +278,12 @@ export async function GET() {
     crawler_bot_24h: trafficBreakdown.find((row) => row.traffic_type === "crawler_bot")?.hits || 0,
     top_agent_24h: topAgents[0]?.ua_family || null,
     top_agent_hits_24h: topAgents[0]?.hits || 0,
-    top_4xx_path_24h: top4xxPaths[0]?.path || null,
-    top_4xx_hits_24h: top4xxPaths[0]?.hits || 0,
-    top_4xx_client_24h: top4xxClients[0]?.ua_family || null,
-    top_4xx_client_type_24h: top4xxClients[0]?.traffic_type || null,
+    top_4xx_path_24h: metrics.traffic_24h.top_4xx_paths[0]?.path || null,
+    top_4xx_hits_24h: metrics.traffic_24h.top_4xx_paths[0]?.hits || 0,
+    top_4xx_client_24h: metrics.traffic_24h.top_4xx_clients[0]?.ua_family || null,
+    top_4xx_client_type_24h: metrics.traffic_24h.top_4xx_clients[0]?.traffic_type || null,
+    top_4xx_route_group_24h: metrics.traffic_24h.top_4xx_route_groups[0]?.route_group || null,
+    top_4xx_route_group_hits_24h: metrics.traffic_24h.top_4xx_route_groups[0]?.hits || 0,
     top_page_24h: metrics.traffic_24h.top_pages[0]?.path || null,
     top_page_views_24h: metrics.traffic_24h.top_pages[0]?.views || 0,
     top_referrer_24h: metrics.traffic_24h.top_referrers[0]?.referrer || null,

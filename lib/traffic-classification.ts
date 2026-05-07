@@ -60,6 +60,19 @@ function browserLike(request: NextRequest, ua: string): boolean {
     || request.headers.has("sec-fetch-mode");
 }
 
+/**
+ * Real Chrome >= 89 always sends `sec-ch-ua` AND `sec-fetch-mode` on top-level
+ * navigations. A request claiming `Chrome/<n>` that sends neither is a scraper
+ * pool spoofing a desktop browser. Requiring *both* absent (not either) avoids
+ * false-positives on privacy extensions that strip one of the two.
+ */
+function looksLikeSpoofedChrome(request: NextRequest, ua: string): boolean {
+  if (!/Chrome\/\d+/i.test(ua)) return false;
+  const hasSecCh = request.headers.has("sec-ch-ua");
+  const hasSecFetch = request.headers.has("sec-fetch-mode");
+  return !hasSecCh && !hasSecFetch;
+}
+
 export function classifyTraffic(request: NextRequest, surface: "api" | "page"): { trafficType: TrafficType; uaFamily: string; host: string } {
   const ua = (request.headers.get("user-agent") || "").slice(0, 200);
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
@@ -72,6 +85,10 @@ export function classifyTraffic(request: NextRequest, surface: "api" | "page"): 
   const agentFamily = firstMatch(ua, AGENT_PATTERNS);
   if (agentFamily) {
     return { trafficType: surface === "page" ? "agent_browser" : "api_client", uaFamily: agentFamily, host };
+  }
+
+  if (looksLikeSpoofedChrome(request, ua)) {
+    return { trafficType: "crawler_bot", uaFamily: "SpoofedChromeUA", host };
   }
 
   const apiFamily = firstMatch(ua, API_PATTERNS);
