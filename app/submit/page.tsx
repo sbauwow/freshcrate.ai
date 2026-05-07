@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { track } from "@/app/components/track";
+import { DEFAULT_LOCALE, getCopy, LOCALE_COOKIE, normalizeLocale, type Locale } from "@/lib/i18n";
 
 type Tab = "suggest" | "report" | "about";
 
 export default function SubmitPage() {
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [tab, setTab] = useState<Tab>("suggest");
   const [submitted, setSubmitted] = useState(false);
   const [url, setUrl] = useState("");
@@ -14,6 +16,12 @@ export default function SubmitPage() {
   const [type, setType] = useState("missing-package");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = getCopy(locale).submitPage;
+
+  useEffect(() => {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]+)`));
+    setLocale(normalizeLocale(match?.[1]));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,24 +68,23 @@ export default function SubmitPage() {
     <div className="max-w-[700px]">
       <div className="border-b-2 border-fm-green pb-1 mb-1">
         <h2 className="text-[14px] font-bold text-fm-green">
-          Talk to the crate
+          {t.title}
         </h2>
         <p className="text-[10px] text-fm-text-light mt-0.5">
-          freshcrate is maintained by autonomous agents. This page is for the
-          humans who stumbled in.
+          {t.intro}
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-0 border-b border-fm-border mb-4">
         <button onClick={() => { setTab("suggest"); setSubmitted(false); }} className={tabClass("suggest")}>
-          💡 Suggest a Package
+          {t.suggestTab}
         </button>
         <button onClick={() => { setTab("report"); setSubmitted(false); }} className={tabClass("report")}>
-          🐛 Report an Issue
+          {t.reportTab}
         </button>
         <button onClick={() => setTab("about")} className={tabClass("about")}>
-          🤖 How This Works
+          {t.aboutTab}
         </button>
       </div>
 
@@ -91,17 +98,12 @@ export default function SubmitPage() {
       {tab === "suggest" && !submitted && (
         <div>
           <p className="text-[11px] text-fm-text mb-3">
-            Know a package that should be listed? Drop the GitHub URL below.
-            Our topic watcher checks{" "}
-            <Link href="/api/topics" className="text-fm-link">
-              13 GitHub topics
-            </Link>{" "}
-            every 6 hours, but we might be missing your favorite.
+            {t.suggestIntro}
           </p>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="text-[11px] font-bold text-fm-text block mb-0.5">
-                GitHub URL or owner/repo
+                {t.suggestLabel}
               </label>
               <input
                 type="text"
@@ -114,14 +116,14 @@ export default function SubmitPage() {
             </div>
             <div>
               <label className="text-[11px] font-bold text-fm-text block mb-0.5">
-                Why should we list it? <span className="font-normal text-fm-text-light">(optional)</span>
+                {t.suggestWhy} <span className="font-normal text-fm-text-light">{t.optional}</span>
               </label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={2}
                 className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white resize-y"
-                placeholder="It&apos;s the best MCP server for..."
+                placeholder={t.suggestPlaceholder}
               />
             </div>
             <button
@@ -129,7 +131,7 @@ export default function SubmitPage() {
               disabled={submitting}
               className="bg-fm-green text-white text-[11px] px-4 py-1.5 rounded hover:bg-fm-green-light cursor-pointer disabled:opacity-60"
             >
-              {submitting ? "Sending..." : "Submit Suggestion"}
+              {submitting ? t.sending : t.submitSuggestion}
             </button>
           </form>
         </div>
@@ -139,31 +141,30 @@ export default function SubmitPage() {
       {tab === "report" && !submitted && (
         <div>
           <p className="text-[11px] text-fm-text mb-3">
-            Something wrong with a listing? Wrong category, stale data,
-            or a package that shouldn&apos;t be here? Let us know.
+            {t.reportIntro}
           </p>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label className="text-[11px] font-bold text-fm-text block mb-0.5">
-                What&apos;s the issue?
+                {t.reportIssueLabel}
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white"
               >
-                <option value="missing-package">Missing package</option>
-                <option value="wrong-category">Wrong category</option>
-                <option value="stale-data">Stale / incorrect data</option>
-                <option value="duplicate">Duplicate listing</option>
-                <option value="copyright">Copyright / DMCA concern</option>
-                <option value="spam">Spam / not a real project</option>
-                <option value="other">Other</option>
+                <option value="missing-package">{t.issueTypes.missingPackage}</option>
+                <option value="wrong-category">{t.issueTypes.wrongCategory}</option>
+                <option value="stale-data">{t.issueTypes.staleData}</option>
+                <option value="duplicate">{t.issueTypes.duplicate}</option>
+                <option value="copyright">{t.issueTypes.copyright}</option>
+                <option value="spam">{t.issueTypes.spam}</option>
+                <option value="other">{t.issueTypes.other}</option>
               </select>
             </div>
             <div>
               <label className="text-[11px] font-bold text-fm-text block mb-0.5">
-                Package name or URL
+                {t.reportUrlLabel}
               </label>
               <input
                 type="text"
@@ -176,7 +177,7 @@ export default function SubmitPage() {
             </div>
             <div>
               <label className="text-[11px] font-bold text-fm-text block mb-0.5">
-                Details
+                {t.details}
               </label>
               <textarea
                 value={message}
@@ -184,7 +185,7 @@ export default function SubmitPage() {
                 required
                 rows={3}
                 className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white resize-y"
-                placeholder="Describe the issue..."
+                placeholder={t.detailsPlaceholder}
               />
             </div>
             <button
@@ -192,7 +193,7 @@ export default function SubmitPage() {
               disabled={submitting}
               className="bg-fm-green text-white text-[11px] px-4 py-1.5 rounded hover:bg-fm-green-light cursor-pointer disabled:opacity-60"
             >
-              {submitting ? "Sending..." : "Submit Report"}
+              {submitting ? t.sending : t.submitReport}
             </button>
           </form>
         </div>
@@ -203,18 +204,16 @@ export default function SubmitPage() {
         <div className="py-8 text-center">
           <div className="text-[24px] mb-2">📬</div>
           <h3 className="text-[13px] font-bold text-fm-green mb-1">
-            Received. Thank you, human.
+            {t.successTitle}
           </h3>
           <p className="text-[11px] text-fm-text-light mb-4">
-            An agent will review your {tab === "suggest" ? "suggestion" : "report"} shortly.
-            <br />
-            (They never sleep. It won&apos;t take long.)
+            {t.successBody}
           </p>
           <button
             onClick={() => setSubmitted(false)}
             className="text-[11px] text-fm-link hover:text-fm-link-hover underline cursor-pointer"
           >
-            Submit another
+            {t.submitAnother}
           </button>
         </div>
       )}
@@ -224,11 +223,10 @@ export default function SubmitPage() {
         <div className="space-y-4">
           <div className="bg-fm-sidebar-bg border border-fm-border rounded p-4">
             <h3 className="text-[12px] font-bold text-fm-green mb-2">
-              🤖 Who runs this place?
+              {t.aboutTitle}
             </h3>
             <p className="text-[11px] text-fm-text leading-relaxed">
-              freshcrate is operated by autonomous agents. No human sits behind a desk
-              approving packages. Here&apos;s what the robots do:
+              {t.aboutBody}
             </p>
           </div>
 

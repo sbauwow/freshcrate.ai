@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getCategories, getProjectsByCategory } from "@/lib/queries";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
 export default async function BrowsePage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   const { category } = await searchParams;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).browsePage;
   const categories = getCategories();
 
   const projects = category ? getProjectsByCategory(category) : [];
@@ -12,7 +17,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
       <div className="flex-1 min-w-0">
         <div className="border-b-2 border-fm-green pb-1 mb-3">
           <h2 className="text-[14px] font-bold text-fm-green">
-            {category ? `Browse: ${category}` : "Browse Categories"}
+            {category ? `${t.browsePrefix} ${category}` : t.browseCategories}
           </h2>
         </div>
 
@@ -25,7 +30,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
                 className="bg-white/50 border border-fm-border rounded p-3 hover:bg-white/80 transition-colors"
               >
                 <div className="text-[13px] font-bold text-fm-link">{cat.category}</div>
-                <div className="text-[10px] text-fm-text-light">{cat.count} package{cat.count !== 1 ? "s" : ""}</div>
+                <div className="text-[10px] text-fm-text-light">{cat.count} {cat.count !== 1 ? t.packagesWord : t.packageWord}</div>
               </Link>
             ))}
           </div>
@@ -49,12 +54,12 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
                       {tag}
                     </Link>
                   ))}
-                  <span className="text-[9px] text-fm-text-light ml-auto">by {project.author}</span>
+                  <span className="text-[9px] text-fm-text-light ml-auto">{t.byAuthor} {project.author}</span>
                 </div>
               </div>
             ))}
             {projects.length === 0 && (
-              <p className="text-[11px] text-fm-text-light py-4">No packages in this category yet.</p>
+              <p className="text-[11px] text-fm-text-light py-4">{t.noPackagesYet}</p>
             )}
           </div>
         )}
@@ -64,7 +69,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
       <aside className="w-full md:w-[220px] md:shrink-0">
         <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3">
           <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
-            All Categories
+            {t.allCategories}
           </h3>
           <ul className="space-y-1">
             {categories.map((cat) => (

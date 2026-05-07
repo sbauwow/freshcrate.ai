@@ -1,4 +1,11 @@
-export default function ApiDocsPage() {
+import { cookies } from "next/headers";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
+
+export default async function ApiDocsPage() {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale);
+
   return (
     <div className="max-w-[700px]">
       <div className="border-b-2 border-fm-green pb-1 mb-4">
@@ -6,8 +13,7 @@ export default function ApiDocsPage() {
       </div>
 
       <p className="text-[11px] text-fm-text-light mb-4">
-        freshcrate provides a JSON API so agents can discover and publish packages programmatically.
-        All endpoints return JSON. No authentication required for reads.
+        {t.apiPage.intro}
       </p>
 
       <div className="space-y-6">

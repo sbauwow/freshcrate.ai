@@ -6,6 +6,7 @@ import { getLatestReleases, getCategories, getStats, getLanguages, type ReleaseS
 import { isRankingV2Enabled } from "@/lib/ranking";
 import { computeLifecycle } from "@/lib/lifecycle";
 import { getActivePoll, getExistingVote } from "@/lib/polls";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import PollWidget from "./components/poll-widget";
 import ResearchFeed from "./components/research-feed";
 import TrackedForm from "./components/tracked-form";
@@ -67,6 +68,9 @@ export default async function Home({
   searchParams: Promise<{ sort?: string; category?: string; language?: string }>;
 }) {
   const params = await searchParams;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale);
   const categories = getCategories();
   const languages = getLanguages();
   const stats = getStats();
@@ -115,9 +119,12 @@ export default async function Home({
 
           <div className="bg-fm-sidebar-bg border border-fm-border rounded px-3 py-3 mb-3 text-[10px]">
             <div className="text-[12px] font-bold text-fm-green">freshcrate</div>
-            <div className="text-fm-text mt-1 font-bold">Open source packages for agents.</div>
+            <div className="text-fm-text mt-1 font-bold">{t.home.heroTitle}</div>
             <div className="text-fm-text-light mt-1 leading-relaxed">
-              Discover the agent ecosystem in one place: MCP servers, orchestration frameworks, coding agents, infra, research tooling, security, and operator playbooks.
+              {t.home.heroBody1}
+            </div>
+            <div className="text-fm-text-light mt-1 leading-relaxed">
+              {t.home.heroBody2}
             </div>
             <div className="flex flex-wrap gap-2 mt-2 text-[9px]">
               <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">agent ecosystem</span>
@@ -126,9 +133,9 @@ export default async function Home({
               <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">research + infra</span>
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">Browse ecosystem</TrackedNextLink>
-              <TrackedNextLink event="click" eventTarget="nav:orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">Explore Orchestra</TrackedNextLink>
-              <TrackedNextLink event="install" eventTarget="install:agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">Agent Edition</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">{t.home.browse}</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="nav:orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">{t.home.orchestra}</TrackedNextLink>
+              <TrackedNextLink event="install" eventTarget="install:agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">{t.home.agentEdition}</TrackedNextLink>
             </div>
           </div>
 

@@ -1,0 +1,38 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Locale } from "@/lib/i18n";
+
+export default function LocaleSwitcher({
+  locale,
+  label,
+  englishLabel,
+  chineseLabel,
+}: {
+  locale: Locale;
+  label: string;
+  englishLabel: string;
+  chineseLabel: string;
+}) {
+  const pathname = usePathname() || "/";
+  const searchParams = useSearchParams();
+  const query = searchParams?.toString();
+  const redirect = query ? `${pathname}?${query}` : pathname;
+
+  const itemClass = (target: Locale) =>
+    `px-1 py-0.5 rounded ${locale === target ? "bg-white border border-[#999] text-black" : "text-fm-link hover:text-fm-link-hover"}`;
+
+  return (
+    <div className="flex items-center gap-1 text-[10px]">
+      <span className="text-[#666]">{label}:</span>
+      <Link href={`/api/locale?lang=en&redirect=${encodeURIComponent(redirect)}`} className={itemClass("en")}>
+        {englishLabel}
+      </Link>
+      <span className="text-[#999]">/</span>
+      <Link href={`/api/locale?lang=zh-CN&redirect=${encodeURIComponent(redirect)}`} className={itemClass("zh-CN")}>
+        {chineseLabel}
+      </Link>
+    </div>
+  );
+}
