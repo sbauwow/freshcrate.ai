@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import {
   getCrate,
@@ -7,6 +8,7 @@ import {
   getDifficultyColor,
   type MiniCrate,
 } from "@/lib/learn-content";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import { CrateCompleteToggle } from "@/app/components/crate-progress";
 import { CrateQuiz } from "@/app/components/crate-quiz";
 import {
@@ -74,6 +76,9 @@ export default async function CratePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).learnDetailPage;
   const crate = getCrate(slug);
   if (!crate) notFound();
 
@@ -111,10 +116,10 @@ export default async function CratePage({
       {/* ── Breadcrumb ── */}
       <nav className="text-[11px] text-fm-text-light font-mono flex items-center gap-1 flex-wrap">
         <Link href="/learn" className="text-fm-link hover:underline">
-          Mini Crates
+          {t.miniCrates}
         </Link>
         <span>&gt;</span>
-        <span>Crate #{crate.number}</span>
+        <span>{t.crate} #{crate.number}</span>
         <span>&gt;</span>
         <span className="text-fm-text">{crate.title}</span>
       </nav>
@@ -163,7 +168,7 @@ export default async function CratePage({
       {prereqs.length > 0 && (
         <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-3">
           <h2 className="text-[11px] font-bold text-fm-text mb-1.5">
-            📋 Prerequisites
+            {t.prerequisites}
           </h2>
           <ul className="space-y-1">
             {prereqs.map((p) => (
@@ -172,7 +177,7 @@ export default async function CratePage({
                   href={`/learn/${p.slug}`}
                   className="text-fm-link hover:underline"
                 >
-                  {p.emoji} Crate #{p.number}: {p.title}
+                  {p.emoji} {t.crate} #{p.number}: {p.title}
                 </Link>
               </li>
             ))}
@@ -203,7 +208,7 @@ export default async function CratePage({
       {/* ── Think About It ── */}
       <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
         <h2 className="text-[14px] font-bold text-fm-text mb-3">
-          🤔 Think About It
+          {t.thinkAboutIt}
         </h2>
         <ol className="list-decimal list-inside space-y-2">
           {crate.thinkAboutIt.map((q, i) => (
@@ -220,7 +225,7 @@ export default async function CratePage({
       {/* ── Try This ── */}
       <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
         <h2 className="text-[14px] font-bold text-fm-text mb-3">
-          🔬 Try This
+          {t.tryThis}
         </h2>
         <ol className="list-decimal list-inside space-y-2">
           {crate.tryThis.map((activity, i) => (
@@ -238,7 +243,7 @@ export default async function CratePage({
       {crate.goDeeper.length > 0 && (
         <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
           <h2 className="text-[14px] font-bold text-fm-text mb-3">
-            📚 Go Deeper
+            {t.goDeeper}
           </h2>
           <ul className="space-y-2">
             {crate.goDeeper.map((link, i) => {
@@ -269,7 +274,7 @@ export default async function CratePage({
       {/* ── Fun Fact ── */}
       <div className="border-2 border-fm-green bg-fm-green/5 rounded p-4">
         <h2 className="text-[14px] font-bold text-fm-green mb-2">
-          🎯 Fun Fact
+          {t.funFact}
         </h2>
         <p className="text-[13px] text-fm-text leading-[1.7]">
           {crate.funFact}
@@ -288,14 +293,14 @@ export default async function CratePage({
             href={`/learn/${prev.slug}`}
             className="text-[11px] text-fm-link hover:underline font-mono"
           >
-            ← Crate #{prev.number}: {prev.title}
+            ← {t.crate} #{prev.number}: {prev.title}
           </Link>
         ) : (
           <Link
             href="/learn"
             className="text-[11px] text-fm-link hover:underline font-mono"
           >
-            ← All Crates
+            ← {t.allCrates}
           </Link>
         )}
         {next ? (
@@ -303,14 +308,14 @@ export default async function CratePage({
             href={`/learn/${next.slug}`}
             className="text-[11px] text-fm-link hover:underline font-mono"
           >
-            Crate #{next.number}: {next.title} →
+            {t.crate} #{next.number}: {next.title} →
           </Link>
         ) : (
           <Link
             href="/learn"
             className="text-[11px] text-fm-link hover:underline font-mono"
           >
-            All Crates →
+            {t.allCrates} →
           </Link>
         )}
       </div>

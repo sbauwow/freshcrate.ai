@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getGlossary } from "@/lib/glossary";
 import { getCrate } from "@/lib/learn-content";
 import type { Metadata } from "next";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Glossary — Mini Crates | freshcrate",
@@ -15,7 +17,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function GlossaryPage() {
+export default async function GlossaryPage() {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).glossaryPage;
   const entries = getGlossary();
 
   // Group by first letter
@@ -32,20 +37,19 @@ export default function GlossaryPage() {
       {/* Breadcrumb */}
       <nav className="text-[11px] text-fm-text-light font-mono flex items-center gap-1">
         <Link href="/learn" className="text-fm-link hover:underline">
-          Mini Crates
+          {t.miniCrates}
         </Link>
         <span>&gt;</span>
-        <span className="text-fm-text">Glossary</span>
+        <span className="text-fm-text">{t.title}</span>
       </nav>
 
       {/* Header */}
       <div className="border-b-2 border-fm-green pb-2">
         <h1 className="text-[16px] font-bold text-fm-green">
-          Glossary
+          {t.title}
         </h1>
         <p className="text-[11px] text-fm-text-light mt-1">
-          {entries.length} terms across 10 crates. Each links back to where
-          it&apos;s introduced.
+          {t.termsAcrossCrates.replace("{count}", String(entries.length)).replace("{crates}", "10")}
         </p>
       </div>
 
@@ -83,7 +87,7 @@ export default function GlossaryPage() {
                         href={`/learn/${crate.slug}`}
                         className="text-fm-link hover:underline ml-2 text-[10px] font-mono"
                       >
-                        → Crate #{crate.number}
+                        {t.crateLink.replace("{number}", String(crate.number))}
                       </Link>
                     )}
                   </dd>
@@ -100,7 +104,7 @@ export default function GlossaryPage() {
           href="/learn"
           className="text-[11px] text-fm-link hover:underline font-mono"
         >
-          ← Back to Mini Crates
+          {t.backToMiniCrates}
         </Link>
       </div>
     </div>
