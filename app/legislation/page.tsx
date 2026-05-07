@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import TrackedForm from "@/app/components/tracked-form";
 import {
   getGovernanceIssues,
@@ -8,6 +9,7 @@ import {
   getOperatorPlaybook,
   type GovernanceStatus,
 } from "@/lib/legislation";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "freshcrate legislation — Global AI governance tracker",
@@ -52,6 +54,9 @@ export default async function LegislationPage({
   searchParams: Promise<{ region?: string; status?: string; theme?: string; q?: string }>;
 }) {
   const params = await searchParams;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).legislationPage;
   const options = getLegislationFilterOptions();
 
   const region = typeof params.region === "string" && options.regions.includes(params.region) ? params.region : undefined;
@@ -71,27 +76,27 @@ export default async function LegislationPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="border-b-2 border-fm-green pb-1">
-        <h2 className="text-[14px] font-bold text-fm-green">AI Legislation & Governance</h2>
+        <h2 className="text-[14px] font-bold text-fm-green">{t.title}</h2>
         <p className="text-[11px] text-fm-text-light mt-1">
-          Snapshot tracker for AI laws, policy frameworks, and operational risk issues by region.
+          {t.intro}
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
         <div className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2">
-          <div className="text-fm-text-light">Tracked instruments</div>
+          <div className="text-fm-text-light">{t.trackedInstruments}</div>
           <div className="font-bold text-[13px]">{summary.total}</div>
         </div>
         <div className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2">
-          <div className="text-fm-text-light">In force</div>
+          <div className="text-fm-text-light">{t.inForce}</div>
           <div className="font-bold text-[13px]">{summary.inForce}</div>
         </div>
         <div className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2">
-          <div className="text-fm-text-light">Approved pending</div>
+          <div className="text-fm-text-light">{t.approvedPending}</div>
           <div className="font-bold text-[13px]">{summary.approvedPending}</div>
         </div>
         <div className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2">
-          <div className="text-fm-text-light">In negotiation / proposed</div>
+          <div className="text-fm-text-light">{t.negotiatedOrProposed}</div>
           <div className="font-bold text-[13px]">{summary.negotiatedOrProposed}</div>
         </div>
       </div>
@@ -99,7 +104,7 @@ export default async function LegislationPage({
       <TrackedForm event="search" eventTarget="search:legislation" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2 text-[10px]">
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-0.5 min-w-[220px]">
-            <span className="text-fm-text-light">Keyword</span>
+            <span className="text-fm-text-light">{t.keyword}</span>
             <input
               type="text"
               name="q"
@@ -110,9 +115,9 @@ export default async function LegislationPage({
           </label>
 
           <label className="flex flex-col gap-0.5">
-            <span className="text-fm-text-light">Region</span>
+            <span className="text-fm-text-light">{t.region}</span>
             <select name="region" defaultValue={region ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
-              <option value="">All regions</option>
+              <option value="">{t.allRegions}</option>
               {options.regions.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
@@ -120,9 +125,9 @@ export default async function LegislationPage({
           </label>
 
           <label className="flex flex-col gap-0.5">
-            <span className="text-fm-text-light">Status</span>
+            <span className="text-fm-text-light">{t.status}</span>
             <select name="status" defaultValue={status ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
-              <option value="">All statuses</option>
+              <option value="">{t.allStatuses}</option>
               {options.statuses.map((s) => (
                 <option key={s} value={s}>{prettyStatus(s as GovernanceStatus)}</option>
               ))}
@@ -130,9 +135,9 @@ export default async function LegislationPage({
           </label>
 
           <label className="flex flex-col gap-0.5">
-            <span className="text-fm-text-light">Theme</span>
+            <span className="text-fm-text-light">{t.theme}</span>
             <select name="theme" defaultValue={theme ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
-              <option value="">All themes</option>
+              <option value="">{t.allThemes}</option>
               {options.themes.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
@@ -140,20 +145,20 @@ export default async function LegislationPage({
           </label>
 
           <button type="submit" className="border border-[#999] bg-[#dddddd] text-black px-2 py-0.5 font-bold hover:bg-[#cccccc]">
-            Apply
+            {t.apply}
           </button>
-          <a href="/legislation" className="text-fm-link hover:text-fm-link-hover">Reset</a>
-          <span className="ml-auto text-fm-text-light">Showing {laws.length} instruments</span>
+          <a href="/legislation" className="text-fm-link hover:text-fm-link-hover">{t.reset}</a>
+          <span className="ml-auto text-fm-text-light">{t.showingInstruments.replace("{count}", String(laws.length))}</span>
         </div>
       </TrackedForm>
 
       <section className="bg-white border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
-          Operator playbook (standalone advantage)
+          {t.playbook}
         </div>
         <div className="p-2 space-y-2 text-[11px]">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-fm-text">Regulatory pressure score:</span>
+            <span className="font-bold text-fm-text">{t.pressureScore}</span>
             <span className="px-1.5 py-0.5 rounded bg-[#bbddff]/60 text-fm-link font-bold">{playbook.score}/100</span>
             <span className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${playbook.level === "high" ? "bg-red-100 text-red-800" : playbook.level === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}>
               {playbook.level}
@@ -184,11 +189,11 @@ export default async function LegislationPage({
 
       <section className="bg-white border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
-          Global legislation tracker
+          {t.globalTracker}
         </div>
         <div className="divide-y divide-fm-border/50">
           {laws.length === 0 && (
-            <div className="p-3 text-[11px] text-fm-text-light italic">No entries match your filters.</div>
+            <div className="p-3 text-[11px] text-fm-text-light italic">{t.noEntries}</div>
           )}
           {laws.map((item) => (
             <div key={item.id} className="p-2 text-[11px]">
@@ -200,7 +205,7 @@ export default async function LegislationPage({
                 </span>
                 <span className="text-[10px] text-fm-text-light">{item.region}</span>
                 {item.effective_date && (
-                  <span className="text-[10px] text-fm-text-light">effective {item.effective_date}</span>
+                  <span className="text-[10px] text-fm-text-light">{t.effective} {item.effective_date}</span>
                 )}
               </div>
 
@@ -215,11 +220,11 @@ export default async function LegislationPage({
               </div>
 
               <div className="text-[10px] text-fm-text-light mb-1">
-                <span className="font-bold">Open issues:</span> {item.issues.join("; ")}
+                <span className="font-bold">{t.openIssues}</span> {item.issues.join("; ")}
               </div>
 
               <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-fm-link hover:text-fm-link-hover">
-                source ↗
+                {t.source}
               </a>
             </div>
           ))}
@@ -228,7 +233,7 @@ export default async function LegislationPage({
 
       <section className="bg-white border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
-          Governance issue watchlist
+          {t.watchlist}
         </div>
         <div className="p-2 space-y-2">
           {issues.map((issue) => (
@@ -242,7 +247,7 @@ export default async function LegislationPage({
               </div>
               <p className="text-[10px] text-fm-text mb-1">{issue.why_it_matters}</p>
               <div className="text-[10px] text-fm-text-light mb-1">
-                <span className="font-bold">Regions:</span> {issue.regions.join(", ")}
+                <span className="font-bold">{t.regions}</span> {issue.regions.join(", ")}
               </div>
               <ul className="list-disc ml-4 text-[10px] text-fm-text-light space-y-0.5">
                 {issue.signals_to_watch.map((signal) => (

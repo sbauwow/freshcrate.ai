@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import TrackedLink from "@/app/components/tracked-link";
 import { buildAgentEditionCommands } from "@/lib/workbench-install";
 import { getAgentEditionPublishedImageArtifact } from "@/lib/workbench-install-files";
 import { getWorkbenchBundles, type WorkbenchTarget } from "@/lib/workbench";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "freshcrate Agent Edition — Linux for agent operators",
@@ -27,6 +29,9 @@ export default async function AgentEditionPage({
   searchParams: Promise<{ target?: string }>;
 }) {
   const params = await searchParams;
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).agentEditionPage;
   const target = normalizeTarget(params.target);
   const targetMeta = TARGETS.find((t) => t.id === target)!;
 
@@ -75,9 +80,9 @@ export default async function AgentEditionPage({
   return (
     <div className="max-w-[800px] flex flex-col gap-4">
       <div className="border-b-2 border-fm-green pb-1">
-        <h2 className="text-[14px] font-bold text-fm-green">freshcrate Agent Edition</h2>
+        <h2 className="text-[14px] font-bold text-fm-green">{t.title}</h2>
         <p className="text-[11px] text-fm-text-light mt-1">
-          Linux for agent operators. Ubuntu 24.04 — <span className="font-bold">x86_64 is stable</span>; <span className="font-bold">arm64 is experimental</span>. Pick the lane that matches your hardware.
+          {t.intro}
         </p>
       </div>
 
@@ -129,11 +134,11 @@ export default async function AgentEditionPage({
       </section>
 
       <div className="border-b-2 border-fm-green pb-1 mt-2">
-        <h3 className="text-[13px] font-bold text-fm-green">Install</h3>
+        <h3 className="text-[13px] font-bold text-fm-green">{t.install}</h3>
       </div>
 
       <div className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-1.5 text-[11px] flex flex-wrap items-center gap-2">
-        <span className="text-fm-text-light">Target:</span>
+        <span className="text-fm-text-light">{t.target}</span>
         <div className="inline-flex border border-fm-border rounded overflow-hidden">
           {TARGETS.map((t) => {
             const active = t.id === target;
@@ -152,9 +157,9 @@ export default async function AgentEditionPage({
           })}
         </div>
         <span className="text-fm-text-light text-[10px]">
-          Selected: <span className="font-bold text-fm-text">Ubuntu 24.04 {targetMeta.label}</span>
+          {t.selected} <span className="font-bold text-fm-text">Ubuntu 24.04 {targetMeta.label}</span>
           <span className={`ml-1.5 px-1 py-0.5 rounded text-[9px] font-mono ${targetMeta.status === "stable" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-            {targetMeta.status}
+            {targetMeta.status === "stable" ? t.stable : t.experimental}
           </span>
         </span>
       </div>

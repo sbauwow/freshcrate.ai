@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import TrackedLink from "@/app/components/tracked-link";
 import TrackedNextLink from "@/app/components/tracked-next-link";
 import {
@@ -14,6 +15,7 @@ import {
   type TrendingModel,
   type TrendingSpace,
 } from "@/lib/research";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "freshcrate research — Latest AI Agent Papers & Models",
@@ -248,6 +250,9 @@ const JUMP_LINKS = [
 // — Page —
 
 export default async function ResearchPage() {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).researchPage;
   const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
     fetchArxivSections(),
     fetchHFPapers(),
@@ -272,21 +277,21 @@ export default async function ResearchPage() {
       {/* Header */}
       <div className="mb-4">
         <h1 className="text-[14px] font-bold text-fm-text">
-          freshcrate research — Latest AI Agent Papers &amp; Models
+          {t.title}
         </h1>
         <p className="text-[10px] text-fm-text-light mt-0.5">
-          Live from arXiv and HuggingFace. Cached 1 hour.{" "}
+          {t.intro}{" "}
           <span className="inline-flex items-center gap-1">
-            <span className="text-[8px] font-bold px-1 py-0 rounded bg-green-100 text-green-700 uppercase">new</span>
-            = published within 7 days.
+            <span className="text-[8px] font-bold px-1 py-0 rounded bg-green-100 text-green-700 uppercase">{t.newBadge}</span>
+            = {t.publishedWithin}
           </span>{" "}
-          Abstract links expand inline. PwC = Papers With Code.
+          {t.abstractNote}
         </p>
       </div>
 
       {/* Jump links */}
       <div className="bg-[#f0f0f0] border border-fm-border px-3 py-1.5 mb-4 text-[10px]">
-        <span className="font-bold text-fm-text mr-1">Jump to:</span>
+        <span className="font-bold text-fm-text mr-1">{t.jumpTo}</span>
         {JUMP_LINKS.map((link, i) => (
           <span key={link.id}>
             {i > 0 && <span className="text-[#999] mx-1">|</span>}
@@ -356,14 +361,14 @@ export default async function ResearchPage() {
 
       {/* Footer note */}
       <div className="text-[9px] text-fm-text-light mt-4 border-t border-fm-border pt-2">
-        Data fetched server-side from{" "}
+        {t.dataFetched} {" "}
         <TrackedLink event="outbound" eventTarget="outbound:arxiv.org@research-footer" href="https://arxiv.org" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">arXiv</TrackedLink>
         ,{" "}
         <TrackedLink event="outbound" eventTarget="outbound:huggingface.co@research-footer" href="https://huggingface.co" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">HuggingFace</TrackedLink>
         , and{" "}
         <TrackedLink event="outbound" eventTarget="outbound:paperswithcode.com@research-footer" href="https://paperswithcode.com" className="text-fm-link hover:underline" target="_blank" rel="noopener noreferrer">Papers With Code</TrackedLink>
-        . Cached 1 hour.{" "}
-        <TrackedNextLink event="click" eventTarget="json:research@research-footer" href="/api/research" className="text-fm-link hover:underline">Raw JSON →</TrackedNextLink>
+        . {t.cachedFooter}{" "}
+        <TrackedNextLink event="click" eventTarget="json:research@research-footer" href="/api/research" className="text-fm-link hover:underline">{t.rawJson}</TrackedNextLink>
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getAllCrates, getDifficultyLabel, getDifficultyColor } from "@/lib/learn-content";
 import { ProgressBar } from "@/app/components/crate-progress";
+import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Mini Crates — AI Education | freshcrate",
@@ -50,7 +52,10 @@ const tracks = [
   },
 ];
 
-export default function LearnPage() {
+export default async function LearnPage() {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const t = getCopy(locale).learnPage;
   const crates = getAllCrates();
 
   const jsonLd = {
@@ -79,19 +84,19 @@ export default function LearnPage() {
       />
       {/* Header */}
       <div className="border-b-2 border-fm-green pb-3">
-        <h1 className="text-[16px] font-bold text-fm-green">Mini Crates 📦</h1>
+        <h1 className="text-[16px] font-bold text-fm-green">{t.title}</h1>
         <p className="text-[11px] text-fm-text mt-1">
-          AI &amp; Machine Learning from the ground up. No PhD required. No baby talk either.
+          {t.intro}
         </p>
         <p className="text-[10px] text-fm-text-light mt-1">
-          11 crates · 3 difficulty tracks · ~2.5 hours total · 100% free
+          {t.stats}
         </p>
       </div>
 
       {/* Choose Your Path */}
       <div>
         <div className="border-b border-fm-border pb-1 mb-3">
-          <h2 className="text-[13px] font-bold text-fm-text">Choose Your Path</h2>
+          <h2 className="text-[13px] font-bold text-fm-text">{t.choosePath}</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {tracks.map((track) => (
@@ -125,7 +130,7 @@ export default function LearnPage() {
       {/* All Crates */}
       <div>
         <div className="border-b border-fm-border pb-1 mb-3">
-          <h2 className="text-[13px] font-bold text-fm-text">All Crates</h2>
+          <h2 className="text-[13px] font-bold text-fm-text">{t.allCrates}</h2>
         </div>
         <div className="space-y-0">
           {crates.map((crate, i) => (
@@ -166,7 +171,7 @@ export default function LearnPage() {
                     ))}
                     {crate.prerequisites.length > 0 && (
                       <span className="text-[9px] text-fm-text-light ml-auto">
-                        requires: {crate.prerequisites.join(", ")}
+                        {t.requires} {crate.prerequisites.join(", ")}
                       </span>
                     )}
                   </div>
@@ -180,14 +185,14 @@ export default function LearnPage() {
       {/* Footer note */}
       <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 text-center">
         <p className="text-[11px] text-fm-text">
-          📖 Mini Crates is a free, open curriculum. Start anywhere, but we recommend going in order.
+          {t.footer1}
         </p>
         <p className="text-[10px] text-fm-text-light mt-1">
-          Written for curious minds who want real explanations — no jargon, no hand-waving, just how AI actually works.
+          {t.footer2}
         </p>
         <p className="text-[10px] mt-2">
           <Link href="/learn/glossary" className="text-fm-link hover:underline font-mono">
-            📖 Glossary — {"\u00A0"}all key terms in one place
+            {t.glossary}
           </Link>
         </p>
       </div>
