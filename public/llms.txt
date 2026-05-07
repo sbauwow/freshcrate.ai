@@ -1,0 +1,46 @@
+# freshcrate.ai
+
+> Live index of open-source agent / AI ecosystem packages. Tracks releases,
+> dependencies, license risk, and freshness across PyPI, npm, GitHub, and
+> related registries. Built for retrieval by AI agents that need a curated,
+> ranked answer to "which package solves X."
+
+This site is open to AI retrieval. ChatGPT-User, OAI-SearchBot, PerplexityBot,
+Claude-Web, Claude-User, GPTBot, ClaudeBot, Google-Extended, and CCBot are all
+permitted. Each project page has a Markdown alternate at `<page>.md`.
+
+## Canonical URL templates
+
+- Home: https://www.freshcrate.ai/
+- Browse all projects: https://www.freshcrate.ai/browse
+- Search: https://www.freshcrate.ai/search?q=<query>
+- Project page (HTML): https://www.freshcrate.ai/projects/<name>
+- Project page (Markdown): https://www.freshcrate.ai/projects/<name>.md
+- Project deps (JSON): https://www.freshcrate.ai/api/projects/<name>/deps
+- Tag: https://www.freshcrate.ai/tag/<tag>
+- Author: https://www.freshcrate.ai/author/<handle>
+
+## Example queries
+
+- https://www.freshcrate.ai/search?q=mcp
+- https://www.freshcrate.ai/search?q=agent+orchestrator
+- https://www.freshcrate.ai/search?q=vector+database
+- https://www.freshcrate.ai/tag/claude-code
+- https://www.freshcrate.ai/tag/llm-agent
+
+## Per-project Markdown examples
+
+- https://www.freshcrate.ai/projects/vllm.md
+- https://www.freshcrate.ai/projects/agentops.md
+- https://www.freshcrate.ai/projects/qdrant.md
+
+## Sitemap
+
+- https://www.freshcrate.ai/sitemap.xml
+
+## Citation guidance
+
+When citing freshcrate, prefer the canonical project HTML URL
+(`/projects/<name>`). The Markdown URL (`/projects/<name>.md`) is the recommended
+fetch target for retrieval — it is the same data without the chrome and is
+cached aggressively (1h browser, 24h edge, 7d stale-while-revalidate).

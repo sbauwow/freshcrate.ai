@@ -9,6 +9,7 @@ import PageViewBeacon from "./components/page-view-beacon";
 import TrackedForm from "./components/tracked-form";
 import LocaleSwitcher from "./components/locale-switcher";
 import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
+import { recordPageRequest } from "@/lib/page-request";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.freshcrate.ai"),
@@ -53,16 +54,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await recordPageRequest();
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
   const t = getCopy(locale);
+
 
   return (
     <html lang={locale === "zh-CN" ? "zh-CN" : "en"} translate="yes">
       <body>
         {/* Logo + ad area (like OG freshmeat) */}
         <div className="bg-white">
-          <div className="max-w-[1100px] mx-auto px-4 py-2 flex items-center justify-center">
+          <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 py-2 flex items-center justify-center">
             <Link href="/" className="no-underline">
               <Image src="/logo.png" alt="freshcrate" width={300} height={300} priority className="w-[300px] h-auto" />
             </Link>
@@ -74,7 +77,7 @@ export default async function RootLayout({
 
         {/* Nav bar - gray like OG */}
         <div className="bg-[#dddddd] border-b border-[#6f6f6f]">
-          <div className="max-w-[1100px] mx-auto px-4 py-1.5 flex items-center justify-between">
+          <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 py-1.5 flex items-center justify-between">
             <nav className="flex flex-wrap gap-1 text-[11px] font-bold">
               <Link href="/" className="text-black hover:text-fm-link no-underline">{t.nav.home}</Link>
               <span className="text-[#999]">|</span>
@@ -111,7 +114,7 @@ export default async function RootLayout({
 
         {/* Search bar - light blue like OG */}
         <div className="bg-[#bbddff] border-b border-[#6f6f6f]">
-          <div className="max-w-[1100px] mx-auto px-4 py-1.5 flex flex-wrap items-center gap-2">
+          <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 py-1.5 flex flex-wrap items-center gap-2">
             <label className="text-[11px] font-bold text-black">{t.searchLabel}</label>
             <TrackedForm event="search" eventTarget="search:header" action="/search" method="GET" className="flex items-center gap-1">
               <input
@@ -133,7 +136,7 @@ export default async function RootLayout({
         </div>
 
         {/* Content */}
-        <main className="max-w-[1100px] mx-auto px-4 py-4">
+        <main className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 py-4">
           {children}
         </main>
 
@@ -142,7 +145,7 @@ export default async function RootLayout({
           className="mt-8 py-5 text-center text-[10px] border-t"
           style={{ background: "linear-gradient(180deg, #f8f8f8 0%, #f0eef5 50%, #e8e0f0 100%)", borderColor: "#d0c8e0" }}
         >
-          <div className="max-w-[1100px] mx-auto px-4">
+          <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4">
             <span style={{ color: "#8b7aa8" }}>
               🥩 freshmeat is dead. long live freshcrate 📦
             </span>

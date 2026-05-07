@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withRequestLog } from "@/lib/request-log";
 
 /**
  * GET /api/health — Health check endpoint.
  * Returns 200 if the app + database are operational.
  * Use for uptime monitoring (UptimeRobot, Pingdom, etc.).
  */
-export async function GET() {
+export const GET = withRequestLog(async () => {
   const start = Date.now();
 
   try {
@@ -39,4 +40,4 @@ export async function GET() {
       { status: 503 }
     );
   }
-}
+});

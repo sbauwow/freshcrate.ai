@@ -1,5 +1,6 @@
 import Link from "next/link";
 import RenderStatusBeacon from "./components/render-status-beacon";
+import { recordPageRequest } from "@/lib/page-request";
 
 const QUIPS = [
   "Looks like this agent wandered off the context window.",
@@ -19,7 +20,12 @@ const QUIPS = [
   "The package you're looking for has been mass-assigned to /dev/null.",
 ];
 
-export default function NotFound() {
+export default async function NotFound() {
+  // Server-side 404 row so bots (which never fire the JS beacon) still
+  // surface in top_4xx_paths. Layout already inserted a baseline 200; this
+  // is an additional 404 row, accepted over-count in exchange for accurate
+  // bot 4xx attribution.
+  await recordPageRequest({ status: 404 });
   // Pick a deterministic-ish quip based on the current minute
   // (server-rendered, changes every minute for variety)
   const quip = QUIPS[new Date().getMinutes() % QUIPS.length];

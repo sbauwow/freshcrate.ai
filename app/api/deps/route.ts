@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { withRequestLog } from "@/lib/request-log";
 
-export function GET() {
+export const GET = withRequestLog(async () => {
   const db = getDb();
 
   // Overview stats
@@ -38,4 +39,4 @@ export function GET() {
     },
     most_depended_on,
   });
-}
+});

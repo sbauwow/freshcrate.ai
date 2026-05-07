@@ -71,6 +71,31 @@ export function logRequest(
 }
 
 /**
+ * Higher-order wrapper that times a route handler, logs the response, and
+ * persists a request_log row. Drop-in around any GET/POST export so we get
+ * the `request` event for every API route, not just hand-instrumented ones.
+ *
+ * Usage:
+ *   export const GET = withRequestLog(async (request) => { ... });
+ *   export const POST = withRequestLog(async (request, { params }) => { ... });
+ */
+export function withRequestLog<R extends Response, T extends unknown[]>(
+  handler: (request: NextRequest, ...rest: T) => Promise<R> | R,
+): (request: NextRequest, ...rest: T) => Promise<R> {
+  return async (request, ...rest) => {
+    const start = Date.now();
+    try {
+      const res = await handler(request, ...rest);
+      logRequest(request, res.status, start);
+      return res;
+    } catch (err) {
+      logRequest(request, 500, start);
+      throw err;
+    }
+  };
+}
+
+/**
  * Prune old request logs (keep last 30 days).
  * Called automatically every 1000 requests, or manually from a cron job / startup.
  */
