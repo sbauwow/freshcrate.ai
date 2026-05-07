@@ -2,7 +2,7 @@ import Link from "next/link";
 import ShareLinks from "@/app/components/share-links";
 import { cleanAuthor } from "@/lib/author-slug";
 import { classifyLicense } from "@/lib/license";
-import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects } from "@/lib/queries";
+import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects, getProjectsByAuthor, getProjectsByCategory } from "@/lib/queries";
 import { getVerificationStatus } from "@/lib/verify";
 import { getHealthStatus } from "@/lib/health";
 import { getMCPManifest, MCP_LABELS } from "@/lib/mcp";
@@ -25,6 +25,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
   const releases = getProjectReleases(project.id);
   const enriched = getProjectWithReadme(name);
   const similar = getSimilarProjects(project.id, project.category, project.tags, 5);
+  const sameAuthor = getProjectsByAuthor(cleanAuthor(project.author))
+    .filter((p) => p.id !== project.id)
+    .slice(0, 4);
+  const sameCategory = getProjectsByCategory(project.category)
+    .filter((p) => p.id !== project.id)
+    .slice(0, 4);
   const verification = getVerificationStatus(project.id);
   const health = getHealthStatus(project.id);
   const mcp = getMCPManifest(project.id);
@@ -141,11 +147,62 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
             <div className="space-y-2">
               {similar.map((p) => (
                 <div key={p.id} className="flex items-baseline gap-2 text-[11px]">
-                  <Link href={`/projects/${p.name}`} className="font-bold text-fm-link hover:text-fm-link-hover">
+                  <TrackedLink
+                    event="related_click"
+                    eventTarget={`similar:${project.name}->${p.name}`}
+                    href={`/projects/${p.name}`}
+                    className="font-bold text-fm-link hover:text-fm-link-hover"
+                  >
                     {p.name}
-                  </Link>
+                  </TrackedLink>
                   <span className="text-fm-text-light">{p.short_desc}</span>
                   <span className="text-fm-text-light font-mono ml-auto shrink-0">{p.latest_version}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sameAuthor.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
+              More from {cleanAuthor(project.author)}
+            </h3>
+            <div className="space-y-2">
+              {sameAuthor.map((p) => (
+                <div key={p.id} className="flex items-baseline gap-2 text-[11px]">
+                  <TrackedLink
+                    event="related_click"
+                    eventTarget={`author:${project.name}->${p.name}`}
+                    href={`/projects/${p.name}`}
+                    className="font-bold text-fm-link hover:text-fm-link-hover"
+                  >
+                    {p.name}
+                  </TrackedLink>
+                  <span className="text-fm-text-light">{p.short_desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sameCategory.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
+              More in {project.category}
+            </h3>
+            <div className="space-y-2">
+              {sameCategory.map((p) => (
+                <div key={p.id} className="flex items-baseline gap-2 text-[11px]">
+                  <TrackedLink
+                    event="related_click"
+                    eventTarget={`category:${project.name}->${p.name}`}
+                    href={`/projects/${p.name}`}
+                    className="font-bold text-fm-link hover:text-fm-link-hover"
+                  >
+                    {p.name}
+                  </TrackedLink>
+                  <span className="text-fm-text-light">{p.short_desc}</span>
                 </div>
               ))}
             </div>

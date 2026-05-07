@@ -14,6 +14,27 @@ export const metadata: Metadata = {
   description: "Search packages by name, description, maintainer, tag, or language.",
 };
 
+function editDistance(a: string, b: string): number {
+  const n = a.length;
+  const m = b.length;
+  if (!n) return m;
+  if (!m) return n;
+  const dp = Array.from({ length: n + 1 }, (_, i) => new Array<number>(m + 1).fill(0));
+  for (let i = 0; i <= n; i++) dp[i][0] = i;
+  for (let j = 0; j <= m; j++) dp[0][j] = j;
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost,
+      );
+    }
+  }
+  return dp[n][m];
+}
+
 export default async function SearchPage({
   searchParams,
 }: {
@@ -60,6 +81,52 @@ export default async function SearchPage({
 
   // Author profile stats (when searching by author)
   let authorStats: { packages: number; totalStars: number; languages: string[]; categories: string[] } | null = null;
+  let rescueTags: { tag: string; count: number }[] = [];
+  let rescueProjects: { name: string; short_desc: string }[] = [];
+  let typoSuggestions: string[] = [];
+  if (hasQuery && results.length === 0) {
+    const raw = (q || author || "").trim().toLowerCase();
+    if (raw) {
+      const like = `%${raw.replace(/[%_]/g, "")}%`;
+      rescueTags = db
+        .prepare(
+          "SELECT tag, COUNT(DISTINCT project_id) as count FROM tags WHERE tag LIKE ? GROUP BY tag ORDER BY count DESC LIMIT 8"
+        )
+        .all(like) as { tag: string; count: number }[];
+      if (rescueTags.length === 0) {
+        rescueTags = db
+          .prepare(
+            "SELECT tag, COUNT(DISTINCT project_id) as count FROM tags GROUP BY tag ORDER BY count DESC LIMIT 8"
+          )
+          .all() as { tag: string; count: number }[];
+      }
+
+      const candidateTags = db
+        .prepare("SELECT tag FROM tags GROUP BY tag ORDER BY COUNT(*) DESC LIMIT 400")
+        .all() as { tag: string }[];
+      typoSuggestions = candidateTags
+        .map((r) => r.tag)
+        .filter((t) => t.length >= 2 && Math.abs(t.length - raw.length) <= 3)
+        .map((t) => ({ tag: t, d: editDistance(raw, t) }))
+        .filter((x) => x.d > 0 && x.d <= 2)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 5)
+        .map((x) => x.tag);
+
+      rescueProjects = db
+        .prepare(
+          `SELECT p.name, p.short_desc
+           FROM projects p
+           LEFT JOIN tags t ON t.project_id = p.id
+           WHERE p.name LIKE ? OR p.short_desc LIKE ? OR t.tag LIKE ?
+           GROUP BY p.id
+           ORDER BY COALESCE(p.stars, 0) DESC, p.updated_at DESC
+           LIMIT 6`
+        )
+        .all(like, like, like) as { name: string; short_desc: string }[];
+    }
+  }
+
   if (author) {
     const stats = db.prepare(
       "SELECT COUNT(*) as c, SUM(stars) as s FROM projects WHERE author = ?"
@@ -253,9 +320,76 @@ export default async function SearchPage({
         </div>
 
         {hasQuery && results.length === 0 && (
-          <p className="text-[11px] text-fm-text-light py-4">
-            No packages found matching &ldquo;{q || author}&rdquo;.
-          </p>
+          <div className="py-4 space-y-3">
+            <p className="text-[11px] text-fm-text-light">
+              No packages found matching &ldquo;{q || author}&rdquo;.
+            </p>
+
+            {(rescueTags.length > 0 || rescueProjects.length > 0) && (
+              <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3">
+                <h3 className="text-[11px] font-bold text-fm-green mb-2">Try these instead</h3>
+
+                {typoSuggestions.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] text-fm-text-light mb-1">Did you mean</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {typoSuggestions.map((s) => (
+                        <TrackedNextLink
+                          key={s}
+                          event="related_click"
+                          eventTarget={`search-typo:${(q || author || "").slice(0, 40)}->${s}`}
+                          href={`/search?q=${encodeURIComponent(s)}`}
+                          className="text-[9px] bg-fm-green/10 text-fm-green px-1.5 py-0.5 rounded hover:bg-fm-green/20"
+                        >
+                          {s}
+                        </TrackedNextLink>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {rescueTags.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] text-fm-text-light mb-1">Related tags</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {rescueTags.map((r) => (
+                        <TrackedNextLink
+                          key={r.tag}
+                          event="related_click"
+                          eventTarget={`search-rescue-tag:${(q || author || "").slice(0, 40)}->${r.tag}`}
+                          href={`/tag/${encodeURIComponent(r.tag)}`}
+                          className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                        >
+                          #{r.tag} ({r.count})
+                        </TrackedNextLink>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {rescueProjects.length > 0 && (
+                  <div>
+                    <p className="text-[10px] text-fm-text-light mb-1">Closest projects</p>
+                    <div className="space-y-1">
+                      {rescueProjects.map((p) => (
+                        <div key={p.name} className="text-[10px]">
+                          <TrackedNextLink
+                            event="related_click"
+                            eventTarget={`search-rescue-project:${(q || author || "").slice(0, 40)}->${p.name}`}
+                            href={`/projects/${p.name}`}
+                            className="font-bold text-fm-link hover:text-fm-link-hover"
+                          >
+                            {p.name}
+                          </TrackedNextLink>
+                          <span className="text-fm-text-light"> — {p.short_desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Search tips */}

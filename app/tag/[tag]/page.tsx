@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { cleanAuthor } from "@/lib/author-slug";
 import { computeLifecycle } from "@/lib/lifecycle";
 import { getProjectsByTag } from "@/lib/queries";
+import TrackedLink from "@/app/components/tracked-link";
 
 export async function generateMetadata({
   params,
@@ -35,6 +36,25 @@ export default async function TagPage({
   const totalStars = projects.reduce((sum, p) => sum + (p.stars || 0), 0);
   const authorSet = new Set(projects.map((p) => p.author).filter(Boolean));
   const categorySet = new Set(projects.map((p) => p.category).filter(Boolean));
+  const relatedTags = Object.entries(
+    projects.reduce((acc, p) => {
+      for (const t of p.tags || []) {
+        if (t === normalizedTag) continue;
+        acc[t] = (acc[t] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>)
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  const trendingInTag = [...projects]
+    .sort((a, b) => {
+      const starDelta = (b.stars || 0) - (a.stars || 0);
+      if (starDelta !== 0) return starDelta;
+      return new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime();
+    })
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col md:flex-row gap-5">
@@ -51,6 +71,25 @@ export default async function TagPage({
             {projects.length} package{projects.length !== 1 ? "s" : ""} • ⭐ {totalStars.toLocaleString()} total stars
           </p>
         </div>
+
+        {trendingInTag.length > 0 && (
+          <div className="mb-3 bg-fm-sidebar-bg border border-fm-border rounded p-2.5">
+            <h3 className="text-[11px] font-bold text-fm-green mb-1">Trending in #{normalizedTag}</h3>
+            <div className="flex flex-wrap gap-2">
+              {trendingInTag.map((p) => (
+                <TrackedLink
+                  key={`inline-${p.id}`}
+                  event="related_click"
+                  eventTarget={`tag:${normalizedTag}->inline-trending:${p.name}`}
+                  href={`/projects/${p.name}`}
+                  className="text-[10px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                >
+                  {p.name} ⭐{(p.stars || 0).toLocaleString()}
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-0">
           {projects.map((project, i) => {
@@ -70,12 +109,14 @@ export default async function TagPage({
                 className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
-                  <Link
+                  <TrackedLink
+                    event="related_click"
+                    eventTarget={`tag:${normalizedTag}->project:${project.name}`}
                     href={`/projects/${project.name}`}
                     className="text-[13px] font-bold text-fm-link hover:text-fm-link-hover"
                   >
                     {project.name}
-                  </Link>
+                  </TrackedLink>
                   <span className="text-[11px] text-fm-text-light font-mono">{project.latest_version}</span>
                   <span className={`${lc.color} ${lc.textColor} px-1.5 py-0.5 rounded text-[9px] font-bold`} title={lc.reason}>
                     {lc.emoji} {lc.label}
@@ -89,13 +130,15 @@ export default async function TagPage({
 
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   {project.tags.slice(0, 10).map((projectTag) => (
-                    <Link
+                    <TrackedLink
                       key={projectTag}
+                      event="related_click"
+                      eventTarget={`tag:${normalizedTag}->tag:${projectTag}`}
                       href={`/tag/${encodeURIComponent(projectTag)}`}
                       className={`text-[9px] px-1.5 py-0.5 rounded ${projectTag === normalizedTag ? "bg-fm-green/15 text-fm-green font-bold" : "bg-[#bbddff]/50 text-fm-link hover:bg-[#bbddff]"}`}
                     >
                       {projectTag}
-                    </Link>
+                    </TrackedLink>
                   ))}
                   <span className="text-[9px] text-fm-text-light ml-auto">
                     by <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">{cleanAuthor(project.author)}</Link>
@@ -145,6 +188,50 @@ export default async function TagPage({
             </Link>
           </div>
         </div>
+
+        {trendingInTag.length > 0 && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
+            <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
+              Trending in #{normalizedTag}
+            </h3>
+            <div className="space-y-1 text-[11px]">
+              {trendingInTag.map((p) => (
+                <TrackedLink
+                  key={p.id}
+                  event="related_click"
+                  eventTarget={`tag:${normalizedTag}->trending:${p.name}`}
+                  href={`/projects/${p.name}`}
+                  className="flex items-center justify-between text-fm-link hover:text-fm-link-hover"
+                >
+                  <span className="truncate pr-2">{p.name}</span>
+                  <span className="text-fm-text-light text-[10px]">⭐{(p.stars || 0).toLocaleString()}</span>
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {relatedTags.length > 0 && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
+            <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
+              Related Tags
+            </h3>
+            <div className="space-y-1 text-[11px]">
+              {relatedTags.map(([t, count]) => (
+                <TrackedLink
+                  key={t}
+                  event="related_click"
+                  eventTarget={`tag:${normalizedTag}->related:${t}`}
+                  href={`/tag/${encodeURIComponent(t)}`}
+                  className="flex items-center justify-between text-fm-link hover:text-fm-link-hover"
+                >
+                  <span>#{t}</span>
+                  <span className="text-fm-text-light text-[10px]">{count}</span>
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
       </aside>
     </div>
   );
