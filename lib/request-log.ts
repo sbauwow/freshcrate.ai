@@ -84,13 +84,21 @@ export function logRequest(
  *   export const GET = withRequestLog(async (request) => { ... });
  *   export const POST = withRequestLog(async (request, { params }) => { ... });
  */
+export function withRequestLog<R extends Response>(
+  handler: () => Promise<R> | R,
+): (request?: NextRequest) => Promise<R>;
 export function withRequestLog<R extends Response, T extends unknown[]>(
-  handler: (request?: NextRequest, ...rest: T) => Promise<R> | R,
+  handler: (request: NextRequest, ...rest: T) => Promise<R> | R,
+): (request: NextRequest, ...rest: T) => Promise<R>;
+export function withRequestLog<R extends Response, T extends unknown[]>(
+  handler: ((request: NextRequest, ...rest: T) => Promise<R> | R) | (() => Promise<R> | R),
 ): (request?: NextRequest, ...rest: T) => Promise<R> {
   return async (request, ...rest) => {
     const start = Date.now();
     try {
-      const res = await handler(request, ...rest);
+      const res = request
+        ? await (handler as (request: NextRequest, ...rest: T) => Promise<R> | R)(request, ...rest)
+        : await (handler as () => Promise<R> | R)();
       if (request) logRequest(request, res.status, start);
       return res;
     } catch (err) {
