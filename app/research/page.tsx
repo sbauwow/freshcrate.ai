@@ -4,11 +4,7 @@ import { cookies } from "next/headers";
 import TrackedLink from "@/app/components/tracked-link";
 import TrackedNextLink from "@/app/components/tracked-next-link";
 import {
-  fetchArxivSections,
-  fetchHFDatasets,
-  fetchHFModels,
-  fetchHFPapers,
-  fetchHFSpaces,
+  getResearchSnapshot,
   formatDownloads,
   type Paper,
   type TrendingDataset,
@@ -253,24 +249,24 @@ export default async function ResearchPage() {
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
   const t = getCopy(locale).researchPage;
-  const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
-    fetchArxivSections(),
-    fetchHFPapers(),
-    fetchHFModels(),
-    fetchHFDatasets(),
-    fetchHFSpaces(),
-  ]);
-
+  const snapshot = await getResearchSnapshot();
   const {
-    agentResearch,
-    llmModels,
-    machineLearning,
+    categorized_papers,
+    hf_papers: hfPapers,
+    trending_models: trendingModels,
+    trending_datasets: trendingDatasets,
+    trending_spaces: trendingSpaces,
+  } = snapshot;
+  const {
+    agent_research: agentResearch,
+    llm_models: llmModels,
+    machine_learning: machineLearning,
     rag,
-    codeGen,
+    code_gen: codeGen,
     safety,
     benchmarks,
-    toolUse,
-  } = arxivSections;
+    tool_use: toolUse,
+  } = categorized_papers;
 
   return (
     <div>

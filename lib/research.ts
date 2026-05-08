@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 export interface Paper {
   title: string;
   url: string;
@@ -40,6 +42,25 @@ export interface ResearchSections {
   safety: Paper[];
   benchmarks: Paper[];
   toolUse: Paper[];
+}
+
+export interface ResearchSnapshot {
+  papers: Paper[];
+  categorized_papers: {
+    agent_research: Paper[];
+    llm_models: Paper[];
+    machine_learning: Paper[];
+    rag: Paper[];
+    code_gen: Paper[];
+    safety: Paper[];
+    benchmarks: Paper[];
+    tool_use: Paper[];
+  };
+  hf_papers: Paper[];
+  trending_models: TrendingModel[];
+  trending_datasets: TrendingDataset[];
+  trending_spaces: TrendingSpace[];
+  fetched_at: string;
 }
 
 type FetchLike = (input: string | URL | Request, init?: RequestInit & { next?: { revalidate?: number } }) => Promise<Response>;
@@ -262,3 +283,49 @@ export async function fetchHFSpaces(fetchImpl: FetchLike = fetch): Promise<Trend
     return [];
   }
 }
+
+export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promise<ResearchSnapshot> {
+  const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
+    fetchArxivSections(fetchImpl),
+    fetchHFPapers(fetchImpl),
+    fetchHFModels(fetchImpl),
+    fetchHFDatasets(fetchImpl),
+    fetchHFSpaces(fetchImpl),
+  ]);
+
+  const {
+    agentResearch,
+    llmModels,
+    machineLearning,
+    rag,
+    codeGen,
+    safety,
+    benchmarks,
+    toolUse,
+  } = arxivSections;
+
+  return {
+    papers: [...hfPapers, ...agentResearch],
+    categorized_papers: {
+      agent_research: agentResearch,
+      llm_models: llmModels,
+      machine_learning: machineLearning,
+      rag,
+      code_gen: codeGen,
+      safety,
+      benchmarks,
+      tool_use: toolUse,
+    },
+    hf_papers: hfPapers,
+    trending_models: trendingModels,
+    trending_datasets: trendingDatasets,
+    trending_spaces: trendingSpaces,
+    fetched_at: new Date().toISOString(),
+  };
+}
+
+export const getResearchSnapshot = unstable_cache(
+  async () => buildResearchSnapshot(),
+  ["freshcrate-research-snapshot-v1"],
+  { revalidate: 3600 }
+);
