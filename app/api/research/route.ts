@@ -11,6 +11,7 @@ import { withRequestLog } from "@/lib/request-log";
 
 const EXTERNAL_FETCH_TIMEOUT_MS = 7000;
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 type FetchOptions = RequestInit & { next?: { revalidate?: number } };
