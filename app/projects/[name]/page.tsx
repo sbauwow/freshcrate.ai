@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import ShareLinks from "@/app/components/share-links";
+import RankExplanation from "@/app/components/rank-explanation";
 import { cleanAuthor } from "@/lib/author-slug";
 import { classifyLicense } from "@/lib/license";
 import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects, getProjectsByAuthor, getProjectsByCategory } from "@/lib/queries";
@@ -101,6 +102,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
               </Link>
             ))}
           </div>
+          <RankExplanation breakdown={project.rank_breakdown} className="mt-2" />
         </div>
 
         {/* Description */}

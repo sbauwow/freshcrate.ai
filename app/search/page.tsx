@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedForm from "@/app/components/tracked-form";
+import RankExplanation from "@/app/components/rank-explanation";
 import { cookies } from "next/headers";
 import { cleanAuthor } from "@/lib/author-slug";
 import { searchProjects, getCategories } from "@/lib/queries";
@@ -295,6 +296,7 @@ export default async function SearchPage({
                   )}
                 </div>
                 <p className="text-[11px] text-fm-text">{project.short_desc}</p>
+                <RankExplanation breakdown={project.rank_breakdown} className="mt-1" />
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   {project.tags.map((tag) => (
                     <Link

@@ -2,7 +2,7 @@ import { getDb } from "./db";
 import { authorCleanSql, cleanAuthor } from "./author-slug";
 import { classifyLicense } from "./license";
 import { buildCanonicalKey } from "./provenance";
-import { isRankingV2Enabled, rankProjectsV2 } from "./ranking";
+import { attachRankBreakdown, isRankingV2Enabled, rankProjectsV2, type RankBreakdown } from "./ranking";
 
 function maybeApplyRankingV2(
   projects: ProjectWithRelease[],
@@ -56,6 +56,7 @@ export interface ProjectWithRelease extends Project {
   release_date: string;
   release_count: number;
   tags: string[];
+  rank_breakdown?: RankBreakdown;
 }
 
 export type ReleaseSort = "rank" | "newest" | "oldest" | "stars" | "name";
@@ -176,14 +177,16 @@ export function getProjectByName(name: string): ProjectWithRelease | null {
   const db = getDb();
   const row = db.prepare(`
     SELECT p.*, r.version as latest_version, r.changes as latest_changes,
-           r.urgency as latest_urgency, r.created_at as release_date
+           r.urgency as latest_urgency, r.created_at as release_date,
+           (SELECT COUNT(*) FROM releases r3 WHERE r3.project_id = p.id) as release_count
     FROM projects p
     JOIN releases r ON r.project_id = p.id
     WHERE p.name = ? AND r.id = (SELECT r2.id FROM releases r2 WHERE r2.project_id = p.id ORDER BY r2.created_at DESC LIMIT 1)
   `).get(name) as ProjectWithRelease | undefined;
 
   if (!row) return null;
-  return { ...row, tags: getProjectTags(row.id) };
+  const project = { ...row, tags: getProjectTags(row.id) };
+  return isRankingV2Enabled() ? attachRankBreakdown(project) : project;
 }
 
 /**

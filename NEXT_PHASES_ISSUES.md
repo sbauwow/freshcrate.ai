@@ -179,6 +179,7 @@ Outcome:
 
 ### FC-302: “Why this rank?” explainability
 Priority: P1
+Status: Shipped
 
 Scope:
 - Add rank breakdown on result cards/project page.
@@ -187,6 +188,10 @@ Scope:
 Acceptance criteria:
 - Top ranking factors visible per package.
 - Explanation available in API for agent consumption.
+
+Outcome:
+- Machine-readable `rank_breakdown` now ships in ranked search results and project detail API payloads.
+- Lightweight "Why this rank:" factor pills now render on search cards, browse cards, and project pages.
 
 ---
 

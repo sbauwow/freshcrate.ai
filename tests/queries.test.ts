@@ -164,6 +164,28 @@ describe("getProjectByName", () => {
     expect(project!.tags).toEqual(expect.arrayContaining(["agent", "coding"]));
   });
 
+  it("includes rank breakdown for explainability consumers", () => {
+    const id = insertTestProject(db, {
+      name: "ranked-agent",
+      short_desc: "verified agent assistant",
+      description: "verified agent assistant with active releases",
+      tags: ["agent", "assistant"],
+      repo_url: "https://github.com/test/ranked-agent",
+    });
+
+    db.prepare("UPDATE projects SET stars = 180, forks = 30, verified = 1, verification_json = '{\"score\":96}', created_at = datetime('now', '-120 days') WHERE id = ?").run(id);
+    db.prepare("UPDATE releases SET created_at = datetime('now', '-4 days') WHERE project_id = ?").run(id);
+    db.prepare("INSERT INTO releases (project_id, version, changes, urgency, created_at) VALUES (?, '1.1.0', 'fresh', 'Low', datetime('now', '-2 days'))").run(id);
+
+    const project = getProjectByName("ranked-agent");
+    expect(project?.rank_breakdown).toBeDefined();
+    expect(project?.rank_breakdown?.total).toBeGreaterThan(0);
+    expect(project?.rank_breakdown?.topFactors.length).toBeGreaterThan(0);
+    expect(project?.rank_breakdown?.factors.map((factor) => factor.key)).toEqual(
+      expect.arrayContaining(["verification", "recency", "adoption", "cadence"])
+    );
+  });
+
   it("returns null for nonexistent project", () => {
     const project = getProjectByName("does-not-exist");
     expect(project).toBeNull();
@@ -390,6 +412,23 @@ describe("searchProjects", () => {
     const results = searchProjects("agent orchestration");
     expect(results.length).toBeGreaterThanOrEqual(2);
     expect(results[0].name).toBe("strong-match");
+  });
+
+  it("returns query-aware ranking factors for explainability", () => {
+    const id = insertTestProject(db, {
+      name: "vector-helper",
+      short_desc: "vector helper for agents",
+      description: "vector helper for agents",
+      tags: ["vector", "agent"],
+      repo_url: "https://github.com/test/vector-helper",
+    });
+
+    db.prepare("UPDATE projects SET stars = 90, forks = 10, verified = 1, verification_json = '{\"score\":80}', created_at = datetime('now', '-180 days') WHERE id = ?").run(id);
+    db.prepare("UPDATE releases SET created_at = datetime('now', '-7 days') WHERE project_id = ?").run(id);
+
+    const [result] = searchProjects("vector helper");
+    expect(result.rank_breakdown).toBeDefined();
+    expect(result.rank_breakdown?.factors.find((factor) => factor.key === "query")?.score).toBeGreaterThan(0);
   });
 
   it("finds projects by description", () => {

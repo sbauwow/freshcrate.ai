@@ -1,7 +1,26 @@
 import type { ProjectWithRelease } from "@/lib/queries";
 
+export type RankFactorKey = "verification" | "recency" | "adoption" | "cadence" | "query";
+
+export interface RankFactor {
+  key: RankFactorKey;
+  label: string;
+  score: number;
+  detail: string;
+}
+
+export interface RankBreakdown {
+  total: number;
+  factors: RankFactor[];
+  topFactors: RankFactor[];
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function roundScore(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function daysSince(input?: string | null): number {
@@ -44,7 +63,7 @@ export function isRankingV2Enabled(): boolean {
   return raw !== "0" && raw !== "false" && raw !== "off";
 }
 
-export function scoreProjectRankingV2(project: ProjectWithRelease, query?: string): number {
+export function getProjectRankBreakdown(project: ProjectWithRelease, query?: string): RankBreakdown {
   const verification = parseJsonObject(project.verification_json);
   const verificationScore = Number(verification.score || 0);
 
@@ -53,20 +72,74 @@ export function scoreProjectRankingV2(project: ProjectWithRelease, query?: strin
   const releaseCount = Number(project.release_count || 1);
   const stars = Number(project.stars || 0);
   const forks = Number(project.forks || 0);
+  const queryHits = countQueryHits(project, query);
 
-  const verifiedComponent = (project.verified ? 18 : 0) + clamp(verificationScore / 6, 0, 16);
-  const recencyComponent = clamp(24 - releaseDays / 14, -12, 24);
-  const adoptionVelocity = (stars + forks * 2) / createdDays;
-  const adoptionComponent = clamp(Math.log1p(stars) * 4 + Math.log1p(forks) * 2 + Math.log1p(adoptionVelocity * 30) * 4, 0, 28);
-  const cadenceComponent = clamp(releaseCount * 2.5 + (releaseDays <= 30 ? 4 : 0), 0, 16);
-  const queryComponent = clamp(countQueryHits(project, query) * 3, 0, 12);
+  const factors: RankFactor[] = [
+    {
+      key: "verification",
+      label: project.verified ? "Verified & scored" : "Package trust signals",
+      score: roundScore((project.verified ? 18 : 0) + clamp(verificationScore / 6, 0, 16)),
+      detail: project.verified
+        ? `Verified package with verification score ${verificationScore || 0}`
+        : "Unverified package with limited trust boost",
+    },
+    {
+      key: "recency",
+      label: releaseDays <= 30 ? "Recent release" : "Release freshness",
+      score: roundScore(clamp(24 - releaseDays / 14, -12, 24)),
+      detail: `Latest release ${Math.round(releaseDays)} days ago`,
+    },
+    {
+      key: "adoption",
+      label: "Strong adoption",
+      score: roundScore(
+        clamp(
+          Math.log1p(stars) * 4 + Math.log1p(forks) * 2 + Math.log1p(((stars + forks * 2) / createdDays) * 30) * 4,
+          0,
+          28
+        )
+      ),
+      detail: `${stars} stars and ${forks} forks`,
+    },
+    {
+      key: "cadence",
+      label: "Healthy release cadence",
+      score: roundScore(clamp(releaseCount * 2.5 + (releaseDays <= 30 ? 4 : 0), 0, 16)),
+      detail: `${releaseCount} releases tracked`,
+    },
+    {
+      key: "query",
+      label: "Matches your search",
+      score: roundScore(clamp(queryHits * 3, 0, 12)),
+      detail: queryHits > 0 ? `${queryHits} query term hits` : "No direct query boost",
+    },
+  ];
 
-  return verifiedComponent + recencyComponent + adoptionComponent + cadenceComponent + queryComponent;
+  const total = roundScore(factors.reduce((sum, factor) => sum + factor.score, 0));
+  const topFactors = [...factors]
+    .filter((factor) => factor.score > 0)
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+    .slice(0, 3);
+
+  return { total, factors, topFactors };
 }
 
-export function rankProjectsV2(projects: ProjectWithRelease[], query?: string): ProjectWithRelease[] {
-  return [...projects].sort((a, b) => {
-    const scoreDelta = scoreProjectRankingV2(b, query) - scoreProjectRankingV2(a, query);
+export function scoreProjectRankingV2(project: ProjectWithRelease, query?: string): number {
+  return getProjectRankBreakdown(project, query).total;
+}
+
+export function attachRankBreakdown<T extends ProjectWithRelease>(project: T, query?: string): T & { rank_breakdown: RankBreakdown } {
+  return {
+    ...project,
+    rank_breakdown: getProjectRankBreakdown(project, query),
+  };
+}
+
+export function rankProjectsV2(projects: ProjectWithRelease[], query?: string): (ProjectWithRelease & { rank_breakdown: RankBreakdown })[] {
+  const scoredProjects = projects.map((project) => attachRankBreakdown(project, query));
+
+  return scoredProjects.sort((a, b) => {
+    const scoreDelta = b.rank_breakdown.total - a.rank_breakdown.total;
     if (scoreDelta !== 0) return scoreDelta;
 
     const verifiedDelta = Number(b.verified || 0) - Number(a.verified || 0);

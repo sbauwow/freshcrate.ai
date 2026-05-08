@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import RankExplanation from "@/app/components/rank-explanation";
 import { getCategories, getProjectsByCategory } from "@/lib/queries";
 import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 
@@ -48,6 +49,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
                   <span className="text-[11px] text-fm-text-light font-mono">{project.latest_version}</span>
                 </div>
                 <p className="text-[11px] text-fm-text">{project.short_desc}</p>
+                <RankExplanation breakdown={project.rank_breakdown} className="mt-1" />
                 <div className="flex items-center gap-2 mt-1">
                   {project.tags.map((tag) => (
                     <Link key={tag} href={`/search?q=${tag}`} className="text-[9px] bg-fm-green/10 text-fm-green px-1.5 py-0.5 rounded">
