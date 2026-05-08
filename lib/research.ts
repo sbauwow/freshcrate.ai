@@ -1,4 +1,6 @@
 import { unstable_cache } from "next/cache";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import * as path from "node:path";
 
 export interface Paper {
   title: string;
@@ -61,6 +63,11 @@ export interface ResearchSnapshot {
   trending_datasets: TrendingDataset[];
   trending_spaces: TrendingSpace[];
   fetched_at: string;
+}
+
+export interface ResearchSnapshotStore {
+  read(): Promise<ResearchSnapshot | null>;
+  write(snapshot: ResearchSnapshot): Promise<void>;
 }
 
 type FetchLike = (input: string | URL | Request, init?: RequestInit & { next?: { revalidate?: number } }) => Promise<Response>;
@@ -284,6 +291,61 @@ export async function fetchHFSpaces(fetchImpl: FetchLike = fetch): Promise<Trend
   }
 }
 
+const RESEARCH_SNAPSHOT_PATH = path.join(process.cwd(), "data", "research-snapshot.json");
+
+async function readSnapshotFile(): Promise<ResearchSnapshot | null> {
+  try {
+    const raw = await readFile(RESEARCH_SNAPSHOT_PATH, "utf8");
+    return JSON.parse(raw) as ResearchSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+async function writeSnapshotFile(snapshot: ResearchSnapshot): Promise<void> {
+  await mkdir(path.dirname(RESEARCH_SNAPSHOT_PATH), { recursive: true });
+  await writeFile(RESEARCH_SNAPSHOT_PATH, JSON.stringify(snapshot), "utf8");
+}
+
+const fileSnapshotStore: ResearchSnapshotStore = {
+  read: readSnapshotFile,
+  write: writeSnapshotFile,
+};
+
+export async function getResearchSnapshotWithFallback(
+  fetchImpl: FetchLike = fetch,
+  store: ResearchSnapshotStore = fileSnapshotStore
+): Promise<ResearchSnapshot> {
+  try {
+    const snapshot = await buildResearchSnapshot(fetchImpl);
+    const hasFreshContent =
+      snapshot.papers.length > 0 ||
+      snapshot.hf_papers.length > 0 ||
+      snapshot.trending_models.length > 0 ||
+      snapshot.trending_datasets.length > 0 ||
+      snapshot.trending_spaces.length > 0 ||
+      snapshot.categorized_papers.agent_research.length > 0 ||
+      snapshot.categorized_papers.llm_models.length > 0 ||
+      snapshot.categorized_papers.machine_learning.length > 0;
+
+    if (!hasFreshContent) {
+      const stale = await store.read();
+      if (stale) {
+        return stale;
+      }
+    }
+
+    await store.write(snapshot);
+    return snapshot;
+  } catch (error) {
+    const stale = await store.read();
+    if (stale) {
+      return stale;
+    }
+    throw error;
+  }
+}
+
 export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promise<ResearchSnapshot> {
   const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
     fetchArxivSections(fetchImpl),
@@ -325,7 +387,7 @@ export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promi
 }
 
 export const getResearchSnapshot = unstable_cache(
-  async () => buildResearchSnapshot(),
+  async () => getResearchSnapshotWithFallback(),
   ["freshcrate-research-snapshot-v1"],
   { revalidate: 3600 }
 );

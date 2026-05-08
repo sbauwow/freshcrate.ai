@@ -16,7 +16,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("buildResearchSnapshot", () => {
+describe("research snapshot helpers", () => {
   it("returns one shared snapshot shape for page/api consumers", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn((input: string | URL | Request) => {
@@ -61,5 +61,40 @@ describe("buildResearchSnapshot", () => {
     expect(snapshot.trending_datasets[0]?.name).toBe("org/dataset");
     expect(snapshot.trending_spaces[0]?.name).toBe("org/space");
     expect(snapshot.fetched_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("falls back to the last saved snapshot when a refresh fails", async () => {
+    vi.useFakeTimers();
+    const staleSnapshot = {
+      papers: [{ title: "Stale Paper", url: "https://example.com", source: "cache", date: "2026-05-07" }],
+      categorized_papers: {
+        agent_research: [],
+        llm_models: [],
+        machine_learning: [],
+        rag: [],
+        code_gen: [],
+        safety: [],
+        benchmarks: [],
+        tool_use: [],
+      },
+      hf_papers: [],
+      trending_models: [],
+      trending_datasets: [],
+      trending_spaces: [],
+      fetched_at: "2026-05-07T00:00:00.000Z",
+    };
+
+    const { getResearchSnapshotWithFallback } = await import("@/lib/research");
+    const snapshotPromise = getResearchSnapshotWithFallback(
+      (() => Promise.reject(new Error("upstream down"))) as typeof fetch,
+      {
+        read: vi.fn().mockResolvedValue(staleSnapshot),
+        write: vi.fn(),
+      }
+    );
+    await vi.runAllTimersAsync();
+    const snapshot = await snapshotPromise;
+
+    expect(snapshot).toEqual(staleSnapshot);
   });
 });
