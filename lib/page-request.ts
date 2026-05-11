@@ -4,6 +4,10 @@ import { getDb } from "./db";
 import { log } from "./logger";
 import { classifyHeaders } from "./traffic-classification";
 
+export function shouldRecordPageStatus(method: string, status: number): boolean {
+  return !(method.toUpperCase() === "HEAD" && status >= 400);
+}
+
 /**
  * Server-side page request recorder. Called from the root layout so every
  * page render — including ones from bots that never run JS — lands in
@@ -19,6 +23,7 @@ export async function recordPageRequest(opts?: { status?: number; method?: strin
     const h = await headers();
     const status = opts?.status ?? 200;
     const method = opts?.method ?? (h.get("x-fc-method") || "GET");
+    if (!shouldRecordPageStatus(method, status)) return;
     const path = opts?.path ?? (h.get("x-fc-path") || h.get("x-invoke-path") || "/");
     const rawIp = h.get("x-forwarded-for")?.split(",")[0]?.trim()
       || h.get("x-real-ip")
