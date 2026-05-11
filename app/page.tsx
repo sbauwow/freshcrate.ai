@@ -71,6 +71,7 @@ export default async function Home({
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
   const t = getCopy(locale);
+  const homeT = t.home;
   const categories = getCategories();
   const languages = getLanguages();
   const stats = getStats();
@@ -113,49 +114,49 @@ export default async function Home({
       {/* Main content */}
       <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-3 border-b-2 border-fm-green pb-1">
-            <h2 className="text-[14px] font-bold text-fm-green">Latest Releases</h2>
-            <span className="text-[10px] text-fm-text-light">{stats.projects} packages indexed</span>
+            <h2 className="text-[14px] font-bold text-fm-green">{homeT.latestReleases}</h2>
+            <span className="text-[10px] text-fm-text-light">{stats.projects} {homeT.packagesIndexed}</span>
           </div>
 
           <div className="bg-fm-sidebar-bg border border-fm-border rounded px-3 py-3 mb-3 text-[10px]">
             <div className="text-[12px] font-bold text-fm-green">freshcrate</div>
-            <div className="text-fm-text mt-1 font-bold">{t.home.heroTitle}</div>
+            <div className="text-fm-text mt-1 font-bold">{homeT.heroTitle}</div>
             <div className="text-fm-text-light mt-1 leading-relaxed">
-              {t.home.heroBody1}
+              {homeT.heroBody1}
             </div>
             <div className="text-fm-text-light mt-1 leading-relaxed">
-              {t.home.heroBody2}
+              {homeT.heroBody2}
             </div>
             <div className="flex flex-wrap gap-2 mt-2 text-[9px]">
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">agent ecosystem</span>
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">MCP servers</span>
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">orchestration</span>
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">research + infra</span>
+              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipAgentEcosystem}</span>
+              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipMcpServers}</span>
+              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipOrchestration}</span>
+              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipResearchInfra}</span>
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">{t.home.browse}</TrackedNextLink>
-              <TrackedNextLink event="click" eventTarget="nav:orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">{t.home.orchestra}</TrackedNextLink>
-              <TrackedNextLink event="install" eventTarget="install:agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">{t.home.agentEdition}</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">{homeT.browse}</TrackedNextLink>
+              <TrackedNextLink event="click" eventTarget="nav:orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">{homeT.orchestra}</TrackedNextLink>
+              <TrackedNextLink event="install" eventTarget="install:agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">{homeT.agentEdition}</TrackedNextLink>
             </div>
           </div>
 
           <TrackedForm event="search" eventTarget="search:home-filter" method="GET" className="bg-fm-sidebar-bg border border-fm-border rounded px-2 py-2 mb-3 text-[10px]">
 <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-0.5">
-              <span className="text-fm-text-light">Sort</span>
+              <span className="text-fm-text-light">{homeT.sort}</span>
               <select name="sort" defaultValue={sort} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
-                <option value="rank">Recommended</option>
-                <option value="newest">Newest release</option>
-                <option value="oldest">Oldest release</option>
-                <option value="stars">Most stars</option>
-                <option value="name">Name A→Z</option>
+                <option value="rank">{homeT.sortRecommended}</option>
+                <option value="newest">{homeT.sortNewest}</option>
+                <option value="oldest">{homeT.sortOldest}</option>
+                <option value="stars">{homeT.sortMostStars}</option>
+                <option value="name">{homeT.sortName}</option>
               </select>
             </label>
 
             <label className="flex flex-col gap-0.5">
-              <span className="text-fm-text-light">Category</span>
+              <span className="text-fm-text-light">{homeT.category}</span>
               <select name="category" defaultValue={category ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
-                <option value="">All categories</option>
+                <option value="">{homeT.allCategories}</option>
                 {categories.map((c) => (
                   <option key={c.category} value={c.category}>{c.category}</option>
                 ))}
@@ -163,9 +164,9 @@ export default async function Home({
             </label>
 
             <label className="flex flex-col gap-0.5">
-              <span className="text-fm-text-light">Language</span>
+              <span className="text-fm-text-light">{homeT.language}</span>
               <select name="language" defaultValue={language ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
-                <option value="">All languages</option>
+                <option value="">{homeT.allLanguages}</option>
                 {languages.map((l) => (
                   <option key={l.language} value={l.language}>{l.language}</option>
                 ))}
@@ -173,17 +174,17 @@ export default async function Home({
             </label>
 
             <button type="submit" className="border border-[#999] bg-[#dddddd] text-black px-2 py-0.5 font-bold hover:bg-[#cccccc]">
-              Apply
+              {homeT.apply}
             </button>
-            <Link href="/" className="text-fm-link hover:text-fm-link-hover">Reset</Link>
-            <span className="ml-auto text-fm-text-light">Showing {releases.length} results</span>
+            <Link href="/" className="text-fm-link hover:text-fm-link-hover">{homeT.reset}</Link>
+            <span className="ml-auto text-fm-text-light">{homeT.showingResults.replace("{count}", String(releases.length))}</span>
           </div>
         </TrackedForm>
 
         <div className="space-y-0">
           {releases.length === 0 && (
             <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 text-[11px] text-fm-text-light italic">
-              No releases match these filters.
+              {homeT.noReleases}
             </div>
           )}
           {releases.map((project, i) => (

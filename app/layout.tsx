@@ -147,7 +147,7 @@ export default async function RootLayout({
         >
           <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4">
             <span style={{ color: "#8b7aa8" }}>
-              🥩 freshmeat is dead. long live freshcrate 📦
+              {t.footerBadge}
             </span>
             <br />
             <span className="text-[10px]" style={{ color: "#9990b0" }}>
@@ -157,19 +157,19 @@ export default async function RootLayout({
             <span className="inline-flex flex-wrap justify-center gap-0 mt-1">
               <Link href="/api" className="hover:text-fm-link" style={{ color: "#9990b0" }}>API</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
-              <Link href="/submit" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Submit</Link>
+              <Link href="/submit" className="hover:text-fm-link" style={{ color: "#9990b0" }}>{t.footerSubmit}</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
-              <Link href="/learn" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Learn</Link>
+              <Link href="/learn" className="hover:text-fm-link" style={{ color: "#9990b0" }}>{t.footerLearn}</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
               <Link href="/agent-edition" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Agent Edition</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
               <Link href="/orchestra" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Orchestra</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
-              <Link href="/legislation" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Legislation</Link>
+              <Link href="/legislation" className="hover:text-fm-link" style={{ color: "#9990b0" }}>{t.nav.legislation}</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
-              <Link href="/privacy" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Privacy</Link>
+              <Link href="/privacy" className="hover:text-fm-link" style={{ color: "#9990b0" }}>{t.footerPrivacy}</Link>
               <span style={{ color: "#c8c0d8" }}>{" | "}</span>
-              <Link href="/terms" className="hover:text-fm-link" style={{ color: "#9990b0" }}>Terms</Link>
+              <Link href="/terms" className="hover:text-fm-link" style={{ color: "#9990b0" }}>{t.footerTerms}</Link>
             </span>
           </div>
         </footer>
