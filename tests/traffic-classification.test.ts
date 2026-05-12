@@ -11,9 +11,9 @@ function build(headers: Record<string, string>): NextRequest {
 }
 
 describe("classifyTraffic — declared bots", () => {
-  it("classifies Amazonbot as crawler_bot", () => {
+  it("classifies Amazonbot as ai_training", () => {
     const r = build({ "user-agent": "Mozilla/5.0 (compatible; Amazonbot/0.1; +https://developer.amazon.com/support/amazonbot)" });
-    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({ trafficType: "crawler_bot", uaFamily: "Amazonbot" }));
+    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({ trafficType: "ai_training", uaFamily: "Amazonbot" }));
   });
 
   it("classifies Bingbot as crawler_bot", () => {
@@ -79,10 +79,19 @@ describe("classifyTraffic — well-formed clients still pass", () => {
     expect(classifyTraffic(r, "api")).toEqual(expect.objectContaining({ trafficType: "api_client", uaFamily: "curl" }));
   });
 
-  it("classifies a non-Chrome browser UA as human_browser via Mozilla/", () => {
+  it("classifies a browser-like request with no language or sec-* hints as crawler_bot", () => {
     const r = build({
       "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
       accept: "text/html",
+    });
+    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({ trafficType: "crawler_bot", uaFamily: "BrowserLikeNoLang" }));
+  });
+
+  it("classifies a non-Chrome browser UA as human_browser when it has real browser signals", () => {
+    const r = build({
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+      accept: "text/html",
+      "accept-language": "en-US,en;q=0.9",
     });
     expect(classifyTraffic(r, "page").trafficType).toBe("human_browser");
   });

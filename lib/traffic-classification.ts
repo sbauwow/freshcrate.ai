@@ -89,13 +89,40 @@ function firstMatch(ua: string, patterns: Array<{ pattern: RegExp; family: strin
 
 type HeaderSource = { get(name: string): string | null; has?(name: string): boolean };
 
+function hasHeader(headers: HeaderSource, name: string): boolean {
+  return headers.has?.(name) ?? headers.get(name) !== null;
+}
+
 function browserLike(headers: HeaderSource, ua: string): boolean {
   const accept = headers.get("accept") || "";
   return ua.includes("Mozilla/")
     || accept.includes("text/html")
     || accept.includes("image/")
-    || (headers.has?.("sec-ch-ua") ?? headers.get("sec-ch-ua") !== null)
-    || (headers.has?.("sec-fetch-mode") ?? headers.get("sec-fetch-mode") !== null);
+    || hasHeader(headers, "sec-ch-ua")
+    || hasHeader(headers, "sec-fetch-mode");
+}
+
+function strongBrowserSignals(headers: HeaderSource, ua: string): boolean {
+  const accept = headers.get("accept") || "";
+  const hasAcceptLanguage = !!(headers.get("accept-language") || "").trim();
+  const hasSecFetch = hasHeader(headers, "sec-fetch-mode") || hasHeader(headers, "sec-fetch-site") || hasHeader(headers, "sec-fetch-dest");
+  const hasClientHints = hasHeader(headers, "sec-ch-ua") || hasHeader(headers, "sec-ch-ua-mobile") || hasHeader(headers, "sec-ch-ua-platform");
+  const wantsHtml = accept.includes("text/html") || accept.includes("application/xhtml+xml");
+
+  if (hasSecFetch || hasClientHints) return true;
+  if ((/Safari\//.test(ua) || /Firefox\//.test(ua)) && wantsHtml && hasAcceptLanguage) return true;
+  if (ua.includes("Mozilla/") && wantsHtml && hasAcceptLanguage) return true;
+  return false;
+}
+
+function looksLikeSuspiciousBrowserLike(headers: HeaderSource, ua: string): boolean {
+  if (!ua.includes("Mozilla/")) return false;
+  const accept = headers.get("accept") || "";
+  const wantsHtml = accept.includes("text/html") || accept.includes("application/xhtml+xml");
+  const hasAcceptLanguage = !!(headers.get("accept-language") || "").trim();
+  const hasSecFetch = hasHeader(headers, "sec-fetch-mode") || hasHeader(headers, "sec-fetch-site") || hasHeader(headers, "sec-fetch-dest");
+  const hasClientHints = hasHeader(headers, "sec-ch-ua") || hasHeader(headers, "sec-ch-ua-mobile") || hasHeader(headers, "sec-ch-ua-platform");
+  return wantsHtml && !hasAcceptLanguage && !hasSecFetch && !hasClientHints;
 }
 
 /**
@@ -106,8 +133,8 @@ function browserLike(headers: HeaderSource, ua: string): boolean {
  */
 function looksLikeSpoofedChrome(headers: HeaderSource, ua: string): boolean {
   if (!/Chrome\/\d+/i.test(ua)) return false;
-  const hasSecCh = headers.has?.("sec-ch-ua") ?? headers.get("sec-ch-ua") !== null;
-  const hasSecFetch = headers.has?.("sec-fetch-mode") ?? headers.get("sec-fetch-mode") !== null;
+  const hasSecCh = hasHeader(headers, "sec-ch-ua");
+  const hasSecFetch = hasHeader(headers, "sec-fetch-mode");
   return !hasSecCh && !hasSecFetch;
 }
 
@@ -147,7 +174,11 @@ export function classifyHeaders(headers: HeaderSource, surface: "api" | "page"):
     return { trafficType: "api_client", uaFamily: apiFamily, host };
   }
 
-  if (browserLike(headers, ua)) {
+  if (looksLikeSuspiciousBrowserLike(headers, ua)) {
+    return { trafficType: "crawler_bot", uaFamily: "BrowserLikeNoLang", host };
+  }
+
+  if (browserLike(headers, ua) && strongBrowserSignals(headers, ua)) {
     return { trafficType: "human_browser", uaFamily: ua.includes("Mozilla/") ? "Browser" : "Unknown Browser", host };
   }
 

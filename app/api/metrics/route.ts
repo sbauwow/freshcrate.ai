@@ -82,12 +82,48 @@ function getTrafficWindowSummary(db: ReturnType<typeof getDb>, days: number) {
     }
   })();
 
+  const top4xxHumanBrowserPaths = (() => {
+    try {
+      return db.prepare(`SELECT path, COUNT(*) as hits FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500 AND traffic_type = 'human_browser' GROUP BY path ORDER BY hits DESC LIMIT 10`).all() as Array<{ path: string; hits: number }>;
+    } catch {
+      return [] as Array<{ path: string; hits: number }>;
+    }
+  })();
+
+  const top4xxHumanBrowserMethods = (() => {
+    try {
+      return db.prepare(`SELECT method, COUNT(*) as hits FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500 AND traffic_type = 'human_browser' GROUP BY method ORDER BY hits DESC LIMIT 10`).all() as Array<{ method: string; hits: number }>;
+    } catch {
+      return [] as Array<{ method: string; hits: number }>;
+    }
+  })();
+
+  const top4xxHumanBrowserHosts = (() => {
+    try {
+      return db.prepare(`SELECT COALESCE(NULLIF(host, ''), '(unknown)') as host, COUNT(*) as hits FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500 AND traffic_type = 'human_browser' GROUP BY host ORDER BY hits DESC LIMIT 10`).all() as Array<{ host: string; hits: number }>;
+    } catch {
+      return [] as Array<{ host: string; hits: number }>;
+    }
+  })();
+
+  const top4xxHumanBrowserCountries = (() => {
+    try {
+      return db.prepare(`SELECT COALESCE(NULLIF(country, ''), '(unknown)') as country, COUNT(*) as hits FROM request_log WHERE created_at > ${window} AND status >= 400 AND status < 500 AND traffic_type = 'human_browser' GROUP BY country ORDER BY hits DESC LIMIT 10`).all() as Array<{ country: string; hits: number }>;
+    } catch {
+      return [] as Array<{ country: string; hits: number }>;
+    }
+  })();
+
   return {
     requests,
     errors,
     top_4xx_paths: top4xxPaths,
     top_4xx_clients: top4xxClients,
     top_4xx_route_groups: top4xxRouteGroups,
+    top_4xx_human_browser_paths: top4xxHumanBrowserPaths,
+    top_4xx_human_browser_methods: top4xxHumanBrowserMethods,
+    top_4xx_human_browser_hosts: top4xxHumanBrowserHosts,
+    top_4xx_human_browser_countries: top4xxHumanBrowserCountries,
   };
 }
 
@@ -263,6 +299,10 @@ export const GET = withRequestLog(async () => {
       top_4xx_paths: traffic24hSummary.top_4xx_paths,
       top_4xx_clients: traffic24hSummary.top_4xx_clients,
       top_4xx_route_groups: traffic24hSummary.top_4xx_route_groups,
+      top_4xx_human_browser_paths: traffic24hSummary.top_4xx_human_browser_paths,
+      top_4xx_human_browser_methods: traffic24hSummary.top_4xx_human_browser_methods,
+      top_4xx_human_browser_hosts: traffic24hSummary.top_4xx_human_browser_hosts,
+      top_4xx_human_browser_countries: traffic24hSummary.top_4xx_human_browser_countries,
       avg_duration_ms: Math.round(avgDuration),
       page_views: (() => { try { return (db.prepare("SELECT COUNT(*) as c FROM page_views WHERE created_at > datetime('now', '-1 day')").get() as { c: number }).c; } catch { return 0; } })(),
       unique_visitors: (() => { try { return (db.prepare("SELECT COUNT(DISTINCT ip_hash) as c FROM page_views WHERE created_at > datetime('now', '-1 day') AND is_bot = 0").get() as { c: number }).c; } catch { return 0; } })(),
@@ -284,6 +324,10 @@ export const GET = withRequestLog(async () => {
       top_4xx_paths: traffic7dSummary.top_4xx_paths,
       top_4xx_clients: traffic7dSummary.top_4xx_clients,
       top_4xx_route_groups: traffic7dSummary.top_4xx_route_groups,
+      top_4xx_human_browser_paths: traffic7dSummary.top_4xx_human_browser_paths,
+      top_4xx_human_browser_methods: traffic7dSummary.top_4xx_human_browser_methods,
+      top_4xx_human_browser_hosts: traffic7dSummary.top_4xx_human_browser_hosts,
+      top_4xx_human_browser_countries: traffic7dSummary.top_4xx_human_browser_countries,
     },
   };
 
