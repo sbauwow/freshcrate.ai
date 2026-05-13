@@ -124,9 +124,6 @@ export default async function Home({
             <div className="text-fm-text-light mt-1 leading-relaxed">
               {homeT.heroBody1}
             </div>
-            <div className="text-fm-text-light mt-1 leading-relaxed">
-              {homeT.heroBody2}
-            </div>
             <div className="flex flex-wrap gap-2 mt-2 text-[9px]">
               <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipAgentEcosystem}</span>
               <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipMcpServers}</span>
