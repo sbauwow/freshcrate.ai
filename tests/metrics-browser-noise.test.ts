@@ -16,7 +16,7 @@ describe("metrics browser-noise diagnostics", () => {
   it("hardens browser classification so weak Mozilla-like requests are not treated as human browsers", () => {
     const classifier = fs.readFileSync(path.join(process.cwd(), "lib", "traffic-classification.ts"), "utf-8");
 
-    expect(classifier).toContain("BrowserLikeNoLang");
+    expect(classifier).toContain("BrowserLikeWeakSignals");
     expect(classifier).toContain("looksLikeSuspiciousBrowserLike");
     expect(classifier).toContain("strongBrowserSignals");
     expect(classifier).toContain("accept-language");

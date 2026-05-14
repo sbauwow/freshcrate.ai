@@ -47,20 +47,36 @@ describe("classifyTraffic — SpoofedChromeUA", () => {
     expect(classifyTraffic(r, "page").trafficType).toBe("human_browser");
   });
 
-  it("does NOT flag a Chrome UA that sends only sec-fetch-mode (privacy extension stripped sec-ch-ua)", () => {
+  it("classifies a Chrome UA with only sec-fetch-mode and no accept-language as crawler noise", () => {
     const r = build({
       "user-agent": CHROME_133,
       accept: "text/html",
       "sec-fetch-mode": "navigate",
     });
-    expect(classifyTraffic(r, "page").trafficType).toBe("human_browser");
+    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({
+      trafficType: "crawler_bot",
+      uaFamily: "BrowserLikeWeakSignals",
+    }));
   });
 
-  it("does NOT flag a Chrome UA that sends only sec-ch-ua", () => {
+  it("classifies a Chrome UA with only sec-ch-ua and no accept-language as crawler noise", () => {
     const r = build({
       "user-agent": CHROME_133,
       accept: "text/html",
       "sec-ch-ua": '"Chromium";v="133"',
+    });
+    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({
+      trafficType: "crawler_bot",
+      uaFamily: "BrowserLikeWeakSignals",
+    }));
+  });
+
+  it("keeps a Chrome UA with accept-language and sec-fetch-mode as human_browser", () => {
+    const r = build({
+      "user-agent": CHROME_133,
+      accept: "text/html",
+      "accept-language": "en-US,en;q=0.9",
+      "sec-fetch-mode": "navigate",
     });
     expect(classifyTraffic(r, "page").trafficType).toBe("human_browser");
   });
@@ -84,7 +100,7 @@ describe("classifyTraffic — well-formed clients still pass", () => {
       "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
       accept: "text/html",
     });
-    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({ trafficType: "crawler_bot", uaFamily: "BrowserLikeNoLang" }));
+    expect(classifyTraffic(r, "page")).toEqual(expect.objectContaining({ trafficType: "crawler_bot", uaFamily: "BrowserLikeWeakSignals" }));
   });
 
   it("classifies a non-Chrome browser UA as human_browser when it has real browser signals", () => {

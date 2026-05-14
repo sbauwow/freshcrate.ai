@@ -122,7 +122,8 @@ function looksLikeSuspiciousBrowserLike(headers: HeaderSource, ua: string): bool
   const hasAcceptLanguage = !!(headers.get("accept-language") || "").trim();
   const hasSecFetch = hasHeader(headers, "sec-fetch-mode") || hasHeader(headers, "sec-fetch-site") || hasHeader(headers, "sec-fetch-dest");
   const hasClientHints = hasHeader(headers, "sec-ch-ua") || hasHeader(headers, "sec-ch-ua-mobile") || hasHeader(headers, "sec-ch-ua-platform");
-  return wantsHtml && !hasAcceptLanguage && !hasSecFetch && !hasClientHints;
+  if (!wantsHtml || hasAcceptLanguage) return false;
+  return !(hasSecFetch && hasClientHints);
 }
 
 /**
@@ -175,7 +176,7 @@ export function classifyHeaders(headers: HeaderSource, surface: "api" | "page"):
   }
 
   if (looksLikeSuspiciousBrowserLike(headers, ua)) {
-    return { trafficType: "crawler_bot", uaFamily: "BrowserLikeNoLang", host };
+    return { trafficType: "crawler_bot", uaFamily: "BrowserLikeWeakSignals", host };
   }
 
   if (browserLike(headers, ua) && strongBrowserSignals(headers, ua)) {
