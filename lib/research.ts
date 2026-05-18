@@ -79,6 +79,12 @@ const ARXIV_REVALIDATE_SECONDS = 3600;
 const ARXIV_INTER_REQUEST_DELAY_MS = 3000;
 const ARXIV_MAX_ATTEMPTS = 2;
 const ARXIV_USER_AGENT = "freshcrate.ai/0.1 (+https://www.freshcrate.ai)";
+// Per-request socket cap so a hung upstream can't block the chain unbounded.
+const ARXIV_FETCH_TIMEOUT_MS = 8000;
+const HF_FETCH_TIMEOUT_MS = 8000;
+// Overall build deadline — on exceed we reject and serve the stale snapshot
+// instead of letting the serialized arXiv chain run for minutes.
+const SNAPSHOT_BUILD_DEADLINE_MS = 15000;
 
 const ARXIV_SECTION_QUERIES: Array<{ key: SectionKey; query: string; max: number }> = [
   { key: "agentResearch", query: "all:agent AND cat:cs.AI", max: 8 },
@@ -147,6 +153,14 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function withDeadline<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} exceeded ${ms}ms deadline`)), ms);
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
 async function fetchArxiv(query: string, max: number, fetchImpl: FetchLike = fetch): Promise<Paper[]> {
   const encoded = encodeURIComponent(query);
   const url = `https://export.arxiv.org/api/query?search_query=${encoded}&sortBy=submittedDate&sortOrder=descending&max_results=${max}`;
@@ -157,6 +171,7 @@ async function fetchArxiv(query: string, max: number, fetchImpl: FetchLike = fet
         headers: {
           "User-Agent": ARXIV_USER_AGENT,
         },
+        signal: AbortSignal.timeout(ARXIV_FETCH_TIMEOUT_MS),
         next: { revalidate: ARXIV_REVALIDATE_SECONDS },
       });
 
@@ -204,6 +219,7 @@ export async function fetchArxivSections(fetchImpl: FetchLike = fetch): Promise<
 export async function fetchHFPapers(fetchImpl: FetchLike = fetch): Promise<Paper[]> {
   try {
     const res = await fetchImpl("https://huggingface.co/api/daily_papers?limit=10", {
+      signal: AbortSignal.timeout(HF_FETCH_TIMEOUT_MS),
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
@@ -237,6 +253,7 @@ export async function fetchHFPapers(fetchImpl: FetchLike = fetch): Promise<Paper
 export async function fetchHFModels(fetchImpl: FetchLike = fetch): Promise<TrendingModel[]> {
   try {
     const res = await fetchImpl("https://huggingface.co/api/models?sort=trendingScore&direction=-1&limit=10", {
+      signal: AbortSignal.timeout(HF_FETCH_TIMEOUT_MS),
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
@@ -258,6 +275,7 @@ export async function fetchHFModels(fetchImpl: FetchLike = fetch): Promise<Trend
 export async function fetchHFDatasets(fetchImpl: FetchLike = fetch): Promise<TrendingDataset[]> {
   try {
     const res = await fetchImpl("https://huggingface.co/api/datasets?sort=trendingScore&direction=-1&limit=8", {
+      signal: AbortSignal.timeout(HF_FETCH_TIMEOUT_MS),
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
@@ -275,6 +293,7 @@ export async function fetchHFDatasets(fetchImpl: FetchLike = fetch): Promise<Tre
 export async function fetchHFSpaces(fetchImpl: FetchLike = fetch): Promise<TrendingSpace[]> {
   try {
     const res = await fetchImpl("https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=10", {
+      signal: AbortSignal.timeout(HF_FETCH_TIMEOUT_MS),
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
@@ -317,7 +336,11 @@ export async function getResearchSnapshotWithFallback(
   store: ResearchSnapshotStore = fileSnapshotStore
 ): Promise<ResearchSnapshot> {
   try {
-    const snapshot = await buildResearchSnapshot(fetchImpl);
+    const snapshot = await withDeadline(
+      buildResearchSnapshot(fetchImpl),
+      SNAPSHOT_BUILD_DEADLINE_MS,
+      "research snapshot build"
+    );
     const hasFreshContent =
       snapshot.papers.length > 0 ||
       snapshot.hf_papers.length > 0 ||
