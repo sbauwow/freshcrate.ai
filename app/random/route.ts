@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { externalUrl } from "@/lib/admin-auth";
 
 /**
  * GET /random — Redirect to a random project page.
@@ -11,9 +12,9 @@ export async function GET(request: NextRequest) {
     .prepare("SELECT name FROM projects ORDER BY RANDOM() LIMIT 1")
     .get() as { name: string } | undefined;
 
-  // Clone the request URL and just swap the pathname — preserves host/proto/port
-  const url = request.nextUrl.clone();
-  url.pathname = row ? `/projects/${encodeURIComponent(row.name)}` : "/";
+  // Use forwarded headers — behind Railway's proxy `request.nextUrl`
+  // resolves to internal localhost:8080 and leaks into the Location header.
+  const path = row ? `/projects/${encodeURIComponent(row.name)}` : "/";
 
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(externalUrl(request, path));
 }
