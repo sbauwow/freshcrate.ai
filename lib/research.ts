@@ -441,7 +441,17 @@ export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promi
 }
 
 export const getResearchSnapshot = unstable_cache(
-  async () => getResearchSnapshotWithFallback(),
+  async () => {
+    // The hourly cron (POST /api/cron/refresh-research) owns building the
+    // snapshot. The request path just reads the volume-persisted file —
+    // fast (~ms) instead of running an inline build that always burns the
+    // 15s deadline before falling back. Only when no snapshot exists yet
+    // (cold volume, before the first cron run) do we do the bounded
+    // bootstrap build.
+    const persisted = await fileSnapshotStore.read();
+    if (persisted) return persisted;
+    return getResearchSnapshotWithFallback();
+  },
   ["freshcrate-research-snapshot-v1"],
   { revalidate: 3600 }
 );
