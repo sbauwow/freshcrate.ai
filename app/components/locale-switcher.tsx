@@ -26,11 +26,14 @@ export default function LocaleSwitcher({
   return (
     <div className="flex items-center gap-1 text-[10px]">
       <span className="text-[#666]">{label}:</span>
-      <Link href={`/api/locale?lang=en&redirect=${encodeURIComponent(redirect)}`} className={itemClass("en")}>
+      {/* prefetch={false}: /api/locale is a state-changing GET (sets the
+          fc_lang cookie). Prefetching it would silently switch the user's
+          language on page load. */}
+      <Link prefetch={false} href={`/api/locale?lang=en&redirect=${encodeURIComponent(redirect)}`} className={itemClass("en")}>
         {englishLabel}
       </Link>
       <span className="text-[#999]">/</span>
-      <Link href={`/api/locale?lang=zh-CN&redirect=${encodeURIComponent(redirect)}`} className={itemClass("zh-CN")}>
+      <Link prefetch={false} href={`/api/locale?lang=zh-CN&redirect=${encodeURIComponent(redirect)}`} className={itemClass("zh-CN")}>
         {chineseLabel}
       </Link>
     </div>

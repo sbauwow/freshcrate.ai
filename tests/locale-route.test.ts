@@ -18,4 +18,37 @@ describe("locale route", () => {
     expect(res.headers.get("location")).toBe("https://www.freshcrate.ai/");
     expect(res.cookies.get("fc_lang")?.value).toBe("zh-CN");
   });
+
+  it("does not set the locale cookie on a prefetch request", async () => {
+    const req = new NextRequest("http://localhost:8080/api/locale?lang=zh-CN&redirect=%2Fagent-edition", {
+      headers: {
+        host: "localhost:8080",
+        "x-forwarded-host": "www.freshcrate.ai",
+        "x-forwarded-proto": "https",
+        "next-router-prefetch": "1",
+      },
+    });
+
+    const res = await localeGET(req);
+
+    // Prefetch must be a no-op — otherwise Next's <Link> prefetch silently
+    // flips the user's language on page load.
+    expect(res.status).toBe(204);
+    expect(res.cookies.get("fc_lang")?.value).toBeUndefined();
+  });
+
+  it("still sets the cookie on a real (non-prefetch) click", async () => {
+    const req = new NextRequest("http://localhost:8080/api/locale?lang=zh-CN&redirect=%2Fagent-edition", {
+      headers: {
+        host: "localhost:8080",
+        "x-forwarded-host": "www.freshcrate.ai",
+        "x-forwarded-proto": "https",
+      },
+    });
+
+    const res = await localeGET(req);
+
+    expect(res.status).toBe(307);
+    expect(res.cookies.get("fc_lang")?.value).toBe("zh-CN");
+  });
 });
