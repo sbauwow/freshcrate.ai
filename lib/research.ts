@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
+import { getDbPath } from "@/lib/db-path";
 
 export interface Paper {
   title: string;
@@ -310,7 +311,10 @@ export async function fetchHFSpaces(fetchImpl: FetchLike = fetch): Promise<Trend
   }
 }
 
-const RESEARCH_SNAPSHOT_PATH = path.join(process.cwd(), "data", "research-snapshot.json");
+// Persist next to the SQLite DB so the snapshot lands on the Railway volume
+// (prod sets FRESHCRATE_DB_PATH=/data/...) and survives redeploys, instead of
+// the ephemeral /app/data image layer that was silently discarded every deploy.
+const RESEARCH_SNAPSHOT_PATH = path.join(path.dirname(getDbPath()), "research-snapshot.json");
 
 async function readSnapshotFile(): Promise<ResearchSnapshot | null> {
   try {
@@ -331,6 +335,19 @@ const fileSnapshotStore: ResearchSnapshotStore = {
   write: writeSnapshotFile,
 };
 
+function snapshotHasContent(s: ResearchSnapshot): boolean {
+  return (
+    s.papers.length > 0 ||
+    s.hf_papers.length > 0 ||
+    s.trending_models.length > 0 ||
+    s.trending_datasets.length > 0 ||
+    s.trending_spaces.length > 0 ||
+    s.categorized_papers.agent_research.length > 0 ||
+    s.categorized_papers.llm_models.length > 0 ||
+    s.categorized_papers.machine_learning.length > 0
+  );
+}
+
 export async function getResearchSnapshotWithFallback(
   fetchImpl: FetchLike = fetch,
   store: ResearchSnapshotStore = fileSnapshotStore
@@ -341,17 +358,7 @@ export async function getResearchSnapshotWithFallback(
       SNAPSHOT_BUILD_DEADLINE_MS,
       "research snapshot build"
     );
-    const hasFreshContent =
-      snapshot.papers.length > 0 ||
-      snapshot.hf_papers.length > 0 ||
-      snapshot.trending_models.length > 0 ||
-      snapshot.trending_datasets.length > 0 ||
-      snapshot.trending_spaces.length > 0 ||
-      snapshot.categorized_papers.agent_research.length > 0 ||
-      snapshot.categorized_papers.llm_models.length > 0 ||
-      snapshot.categorized_papers.machine_learning.length > 0;
-
-    if (!hasFreshContent) {
+    if (!snapshotHasContent(snapshot)) {
       const stale = await store.read();
       if (stale) {
         return stale;
@@ -367,6 +374,30 @@ export async function getResearchSnapshotWithFallback(
     }
     throw error;
   }
+}
+
+/**
+ * Out-of-band refresh: run the full build with the polite serial arXiv pacing
+ * and NO request deadline (invoked by the cron route, not user traffic), then
+ * persist it so /api/research can serve it fast within its 15s deadline.
+ */
+export async function refreshResearchSnapshot(
+  fetchImpl: FetchLike = fetch,
+  store: ResearchSnapshotStore = fileSnapshotStore
+): Promise<{ written: boolean; fetched_at: string; counts: Record<string, number> }> {
+  const snapshot = await buildResearchSnapshot(fetchImpl);
+  const counts = {
+    papers: snapshot.papers.length,
+    hf_papers: snapshot.hf_papers.length,
+    trending_models: snapshot.trending_models.length,
+    trending_datasets: snapshot.trending_datasets.length,
+    trending_spaces: snapshot.trending_spaces.length,
+  };
+  if (!snapshotHasContent(snapshot)) {
+    return { written: false, fetched_at: snapshot.fetched_at, counts };
+  }
+  await store.write(snapshot);
+  return { written: true, fetched_at: snapshot.fetched_at, counts };
 }
 
 export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promise<ResearchSnapshot> {
