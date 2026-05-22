@@ -163,8 +163,11 @@ export const GET = withRequestLog(async () => {
     watchedTopics = (db.prepare("SELECT COUNT(*) as c FROM watched_topics WHERE active = 1").get() as { c: number }).c;
   } catch { /* table may not exist */ }
 
+  const uptimeSeconds = Math.round(process.uptime());
+  const traffic1hSummary = getTrafficWindowSummary(db, 1 / 24);
   const traffic24hSummary = getTrafficWindowSummary(db, 1);
   const traffic7dSummary = getTrafficWindowSummary(db, 7);
+  const trafficSinceBootSummary = getTrafficWindowSummary(db, uptimeSeconds / 86400);
 
   let avgDuration = 0;
   try {
@@ -261,7 +264,7 @@ export const GET = withRequestLog(async () => {
 
   const metrics = {
     timestamp: new Date().toISOString(),
-    uptime_seconds: Math.round(process.uptime()),
+    uptime_seconds: uptimeSeconds,
     memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
 
     database: {
@@ -293,6 +296,18 @@ export const GET = withRequestLog(async () => {
       watched: watchedTopics,
     },
 
+    traffic_1h: {
+      requests: traffic1hSummary.requests,
+      errors: traffic1hSummary.errors,
+      top_4xx_paths: traffic1hSummary.top_4xx_paths,
+      top_4xx_clients: traffic1hSummary.top_4xx_clients,
+      top_4xx_route_groups: traffic1hSummary.top_4xx_route_groups,
+      top_4xx_human_browser_paths: traffic1hSummary.top_4xx_human_browser_paths,
+      top_4xx_human_browser_methods: traffic1hSummary.top_4xx_human_browser_methods,
+      top_4xx_human_browser_hosts: traffic1hSummary.top_4xx_human_browser_hosts,
+      top_4xx_human_browser_countries: traffic1hSummary.top_4xx_human_browser_countries,
+    },
+
     traffic_24h: {
       requests: traffic24hSummary.requests,
       errors: traffic24hSummary.errors,
@@ -316,6 +331,18 @@ export const GET = withRequestLog(async () => {
       top_referrer_sessions: topReferrerSessions,
       top_source_sessions: topSourceSessions,
       top_country_sessions: topCountrySessions,
+    },
+
+    traffic_since_boot: {
+      requests: trafficSinceBootSummary.requests,
+      errors: trafficSinceBootSummary.errors,
+      top_4xx_paths: trafficSinceBootSummary.top_4xx_paths,
+      top_4xx_clients: trafficSinceBootSummary.top_4xx_clients,
+      top_4xx_route_groups: trafficSinceBootSummary.top_4xx_route_groups,
+      top_4xx_human_browser_paths: trafficSinceBootSummary.top_4xx_human_browser_paths,
+      top_4xx_human_browser_methods: trafficSinceBootSummary.top_4xx_human_browser_methods,
+      top_4xx_human_browser_hosts: trafficSinceBootSummary.top_4xx_human_browser_hosts,
+      top_4xx_human_browser_countries: trafficSinceBootSummary.top_4xx_human_browser_countries,
     },
 
     traffic_7d: {
