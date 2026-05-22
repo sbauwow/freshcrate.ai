@@ -21,11 +21,12 @@ const QUIPS = [
 ];
 
 export default async function NotFound() {
-  // Server-side 404 row so bots (which never fire the JS beacon) still
-  // surface in top_4xx_paths. Layout already inserted a baseline 200; this
-  // is an additional 404 row, accepted over-count in exchange for accurate
-  // bot 4xx attribution.
-  await recordPageRequest({ status: 404 });
+  // Suppress server-side 404 request_log rows from not-found renders.
+  // Valid routes can hit this render path internally in Next and create
+  // bogus page-route 4xx inflation even when the real response is 200.
+  // We keep the client beacon for human sessions and rely on proxy/request
+  // logs for bot/scanner visibility.
+  await recordPageRequest({ status: 404, source: "not-found" });
   // Pick a deterministic-ish quip based on the current minute
   // (server-rendered, changes every minute for variety)
   const quip = QUIPS[new Date().getMinutes() % QUIPS.length];

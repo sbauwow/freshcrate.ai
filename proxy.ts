@@ -27,6 +27,15 @@ const SKIP_PREFIXES = ["/_next/", "/api/beacon"]; // beacon has its own log path
 // so it is excluded here and from robots.txt.
 const GONE_RE = /^\/projects\/[^/]+\/(docs|documentation|i18n|\.github)(\/|$)|^\/projects\/[^/]+\/(SETUP|CHANGELOG|CODE_OF_CONDUCT|CONTRIBUTING|README-)|^\/projects\/[^/]+\.(yaml(\.example)?)$/i;
 
+// Generic hostile/scanner probes that should never hit app rendering.
+// Return 410 Gone so they disappear from crawler recrawl loops and stop
+// polluting normal page-route 4xx summaries.
+const PROBE_RE = /^\/(?:\.env(?:\.|$)?|\.git(?:\/|$)|wp-admin(?:\/|$)|wp-login\.php$|xmlrpc\.php$|adminer\.php$|boaform(?:\/|$))/i;
+
+export function shouldReturnGone(path: string): boolean {
+  return GONE_RE.test(path) || PROBE_RE.test(path);
+}
+
 export function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const path = url.pathname;
@@ -35,10 +44,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (GONE_RE.test(path)) {
+  if (shouldReturnGone(path)) {
     return new NextResponse("Gone", {
       status: 410,
-      headers: { "content-type": "text/plain; charset=utf-8", "x-fc-gate": "phantom-doc" },
+      headers: { "content-type": "text/plain; charset=utf-8", "x-fc-gate": "gone-path" },
     });
   }
 

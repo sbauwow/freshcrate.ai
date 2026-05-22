@@ -4,7 +4,14 @@ import { getDb } from "./db";
 import { log } from "./logger";
 import { classifyHeaders } from "./traffic-classification";
 
-export function shouldRecordPageStatus(method: string, status: number): boolean {
+export type PageRequestSource = "layout" | "not-found";
+
+export function shouldRecordPageStatus(
+  method: string,
+  status: number,
+  source: PageRequestSource = "layout",
+): boolean {
+  if (source === "not-found") return false;
   return !(method.toUpperCase() === "HEAD" && status >= 400);
 }
 
@@ -18,12 +25,13 @@ export function shouldRecordPageStatus(method: string, status: number): boolean 
  * site already needs for DB-driven pages. status defaults to 200 — pages
  * that render not-found.tsx / error.tsx call this with the right code.
  */
-export async function recordPageRequest(opts?: { status?: number; method?: string; path?: string }) {
+export async function recordPageRequest(opts?: { status?: number; method?: string; path?: string; source?: PageRequestSource }) {
   try {
     const h = await headers();
     const status = opts?.status ?? 200;
     const method = opts?.method ?? (h.get("x-fc-method") || "GET");
-    if (!shouldRecordPageStatus(method, status)) return;
+    const source = opts?.source ?? "layout";
+    if (!shouldRecordPageStatus(method, status, source)) return;
     const path = opts?.path ?? (h.get("x-fc-path") || h.get("x-invoke-path") || "/");
     const rawIp = h.get("x-forwarded-for")?.split(",")[0]?.trim()
       || h.get("x-real-ip")
