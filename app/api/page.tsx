@@ -19,7 +19,7 @@ export default async function ApiDocsPage() {
       <div className="space-y-6">
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">List Latest Releases</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/projects</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns the latest package releases, newest first.</div>
             <div className="text-[10px] text-fm-text-light mb-2">Each project now includes provenance fields: <code className="font-mono">source_type</code>, <code className="font-mono">source_package_id</code>, <code className="font-mono">canonical_key</code>, <code className="font-mono">provenance_json</code>, <code className="font-mono">imported_at</code>.</div>
@@ -39,7 +39,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Search Packages</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/search?q=query</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Search packages by name, description, or tags.</div>
             <div className="text-[10px]">
@@ -56,7 +56,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">List Categories</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/categories</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns all categories with package counts.</div>
             <div className="mt-2 bg-fm-bg rounded p-2">
@@ -67,7 +67,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Project Dependency Audit</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/projects/:name/deps</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns cached dependency rows, the full license audit, and a compact summary with conflict count, unresolved licenses, score, and last scanned time.</div>
             <div className="text-[10px]">
@@ -85,7 +85,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Hosted Agent Edition Installer</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/install/agent-edition</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns a single-file shell installer suitable for <code className="font-mono">curl | bash</code> for freshcrate Agent Edition.</div>
             <div className="text-[10px] text-fm-text-light mb-2">Default release lane is <code className="font-mono">stable</code>. Installer arguments support deterministic bundle/mode/channel selection.</div>
@@ -97,7 +97,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Workbench Recommendation</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/workbench/recommend</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns the recommended Agent Edition bundle plus alternatives for a persona/task combination.</div>
             <div className="text-[10px]">
@@ -115,7 +115,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Workbench Manifest</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/workbench/manifest</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns a machine-readable Agent Edition manifest with normalized bundle/mode/channel, versioned release lane, commands, package list, and verification checks.</div>
             <div className="text-[10px]">
@@ -135,7 +135,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Cloud Images / VM Images</h3>
-          <div className="bg-white border border-fm-border rounded p-3 space-y-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3 space-y-3">
             <div>
               <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/workbench/image-build</code>
               <div className="text-[10px] text-fm-text-light mt-1">Returns a versioned image-build manifest for Packer/cloud-image pipelines. Supports <code className="font-mono">bundle</code>, <code className="font-mono">mode</code>, <code className="font-mono">channel</code>, <code className="font-mono">image</code>, and <code className="font-mono">download=1</code>. Concrete starter templates live under <code className="font-mono">images/*.pkr.hcl</code>, local builds run through <code className="font-mono">scripts/build-agent-edition-image.sh</code>, and the first publish-ready Linux image lane is <code className="font-mono">vm-qcow2-headless</code> with packaging via <code className="font-mono">scripts/package-agent-edition-image.sh</code>.</div>
@@ -163,7 +163,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Workbench</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/workbench</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns freshcrate Agent Edition bundles, install modes, and the minimal-agentic-substrate playbook.</div>
             <div className="text-[10px]">
@@ -183,7 +183,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Orchestra</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/orchestra</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns freshcrate's opinionated patterns, anti-patterns, and operator playbook for orchestrating agents.</div>
             <div className="text-[10px]">
@@ -202,7 +202,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Legislation Tracker</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/legislation</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns AI governance instruments, issue watchlist, and an operator playbook by optional filters.</div>
             <div className="text-[10px]">
@@ -222,7 +222,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Agent Decision: Recommend</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/agent/recommend?task=...</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns ranked package recommendations for an agent task with rationale and score.</div>
             <div className="text-[10px]">
@@ -246,7 +246,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Agent Decision: Compare</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/agent/compare?a=...&b=...</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Scores two packages under the same context and returns winner + score delta.</div>
             <div className="text-[10px] text-fm-text-light mb-2">Each compared project includes full accountability metadata, plus a top-level <code className="font-mono">comparison.accountability</code> summary showing manifest coverage and the preferred accountable option.</div>
@@ -270,7 +270,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Agent Decision: Preflight</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/agent/preflight?name=...</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Runs readiness checks before an agent commits to a package.</div>
             <div className="text-[10px] text-fm-text-light mb-2">Preflight payloads now include <code className="font-mono">accountability</code> so callers can see active manifest ownership, risk tier, and expiry before acting.</div>
@@ -288,7 +288,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Agent Decision: Composite Endpoint</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">POST /api/agent/decision</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Single endpoint for recommend, compare, and preflight decisions.</div>
             <div className="text-[10px]">
@@ -310,7 +310,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Agent Accountability Manifest</h3>
-          <div className="bg-white border border-fm-border rounded p-3 space-y-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3 space-y-3">
             <div>
               <code className="text-[11px] text-fm-green font-mono font-bold">POST /api/agents/register-manifest</code>
               <div className="text-[10px] text-fm-text-light mt-1">Register or upsert a signed accountable agent manifest.</div>
@@ -359,7 +359,7 @@ export default async function ApiDocsPage() {
 
         <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Submit a Package</h3>
-          <div className="bg-white border border-fm-border rounded p-3">
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">POST /api/projects</code>
             <div className="text-[10px] text-fm-text-light mt-1 mb-2">Submit a new package to the directory.</div>
             <div className="text-[10px]">

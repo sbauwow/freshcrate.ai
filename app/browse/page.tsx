@@ -28,7 +28,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
               <Link
                 key={cat.category}
                 href={`/browse?category=${encodeURIComponent(cat.category)}`}
-                className="bg-white/50 border border-fm-border rounded p-3 hover:bg-white/80 transition-colors"
+                className="bg-fm-surface/50 border border-fm-border rounded p-3 hover:bg-fm-surface/80 transition-colors"
               >
                 <div className="text-[13px] font-bold text-fm-link">{cat.category}</div>
                 <div className="text-[10px] text-fm-text-light">{cat.count} {cat.count !== 1 ? t.packagesWord : t.packageWord}</div>
@@ -40,7 +40,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
             {projects.map((project, i) => (
               <div
                 key={project.id}
-                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50`}
+                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-fm-surface/50" : ""} border-b border-fm-border/50`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
                   <Link href={`/projects/${project.name}`} className="text-[13px] font-bold text-fm-link hover:text-fm-link-hover">

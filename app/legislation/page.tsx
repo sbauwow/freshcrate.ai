@@ -110,13 +110,13 @@ export default async function LegislationPage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="e.g. foundation models, deepfake, audit"
-              className="border border-fm-border bg-white px-1 py-0.5 text-[10px]"
+              className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]"
             />
           </label>
 
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">{t.region}</span>
-            <select name="region" defaultValue={region ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="region" defaultValue={region ?? ""} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="">{t.allRegions}</option>
               {options.regions.map((r) => (
                 <option key={r} value={r}>{r}</option>
@@ -126,7 +126,7 @@ export default async function LegislationPage({
 
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">{t.status}</span>
-            <select name="status" defaultValue={status ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="status" defaultValue={status ?? ""} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="">{t.allStatuses}</option>
               {options.statuses.map((s) => (
                 <option key={s} value={s}>{prettyStatus(s as GovernanceStatus)}</option>
@@ -136,7 +136,7 @@ export default async function LegislationPage({
 
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">{t.theme}</span>
-            <select name="theme" defaultValue={theme ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="theme" defaultValue={theme ?? ""} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="">{t.allThemes}</option>
               {options.themes.map((t) => (
                 <option key={t} value={t}>{t}</option>
@@ -144,7 +144,7 @@ export default async function LegislationPage({
             </select>
           </label>
 
-          <button type="submit" className="border border-[#999] bg-[#dddddd] text-black px-2 py-0.5 font-bold hover:bg-[#cccccc]">
+          <button type="submit" className="border border-fm-border bg-fm-btn-bg text-fm-btn-text px-2 py-0.5 font-bold hover:opacity-90">
             {t.apply}
           </button>
           <a href="/legislation" className="text-fm-link hover:text-fm-link-hover">{t.reset}</a>
@@ -152,14 +152,14 @@ export default async function LegislationPage({
         </div>
       </TrackedForm>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           {t.playbook}
         </div>
         <div className="p-2 space-y-2 text-[11px]">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-fm-text">{t.pressureScore}</span>
-            <span className="px-1.5 py-0.5 rounded bg-[#bbddff]/60 text-fm-link font-bold">{playbook.score}/100</span>
+            <span className="px-1.5 py-0.5 rounded bg-fm-accent/10 text-fm-link font-bold">{playbook.score}/100</span>
             <span className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${playbook.level === "high" ? "bg-red-100 text-red-800" : playbook.level === "medium" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}>
               {playbook.level}
             </span>
@@ -187,7 +187,7 @@ export default async function LegislationPage({
         </div>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           {t.globalTracker}
         </div>
@@ -213,7 +213,7 @@ export default async function LegislationPage({
 
               <div className="flex flex-wrap gap-1 mb-1">
                 {item.themes.map((themeTag) => (
-                  <span key={themeTag} className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">
+                  <span key={themeTag} className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">
                     {themeTag}
                   </span>
                 ))}
@@ -231,7 +231,7 @@ export default async function LegislationPage({
         </div>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           {t.watchlist}
         </div>

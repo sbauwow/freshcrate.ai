@@ -100,7 +100,7 @@ export default async function Home({
       {/* Main content */}
       <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-3 border-b-2 border-fm-green pb-1">
-            <h2 className="text-[14px] font-bold text-fm-green">{homeT.latestReleases}</h2>
+            <h2 className="feed-heading text-[14px] font-bold text-fm-green">{homeT.latestReleases}</h2>
             <span className="text-[10px] text-fm-text-light">{stats.projects} {homeT.packagesIndexed}</span>
           </div>
 
@@ -111,10 +111,10 @@ export default async function Home({
               {homeT.heroBody1}
             </div>
             <div className="flex flex-wrap gap-2 mt-2 text-[9px]">
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipAgentEcosystem}</span>
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipMcpServers}</span>
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipOrchestration}</span>
-              <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipResearchInfra}</span>
+              <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipAgentEcosystem}</span>
+              <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipMcpServers}</span>
+              <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipOrchestration}</span>
+              <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">{homeT.chipResearchInfra}</span>
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
               <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">{homeT.browse}</TrackedNextLink>
@@ -127,7 +127,7 @@ export default async function Home({
 <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-0.5">
               <span className="text-fm-text-light">{homeT.sort}</span>
-              <select name="sort" defaultValue={sort} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+              <select name="sort" defaultValue={sort} className="border border-fm-border bg-fm-bg px-1 py-0.5 text-[10px]">
                 <option value="rank">{homeT.sortRecommended}</option>
                 <option value="newest">{homeT.sortNewest}</option>
                 <option value="oldest">{homeT.sortOldest}</option>
@@ -138,7 +138,7 @@ export default async function Home({
 
             <label className="flex flex-col gap-0.5">
               <span className="text-fm-text-light">{homeT.category}</span>
-              <select name="category" defaultValue={category ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+              <select name="category" defaultValue={category ?? ""} className="border border-fm-border bg-fm-bg px-1 py-0.5 text-[10px]">
                 <option value="">{homeT.allCategories}</option>
                 {categories.map((c) => (
                   <option key={c.category} value={c.category}>{c.category}</option>
@@ -148,7 +148,7 @@ export default async function Home({
 
             <label className="flex flex-col gap-0.5">
               <span className="text-fm-text-light">{homeT.language}</span>
-              <select name="language" defaultValue={language ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+              <select name="language" defaultValue={language ?? ""} className="border border-fm-border bg-fm-bg px-1 py-0.5 text-[10px]">
                 <option value="">{homeT.allLanguages}</option>
                 {languages.map((l) => (
                   <option key={l.language} value={l.language}>{l.language}</option>
@@ -156,7 +156,7 @@ export default async function Home({
               </select>
             </label>
 
-            <button type="submit" className="border border-[#999] bg-[#dddddd] text-black px-2 py-0.5 font-bold hover:bg-[#cccccc]">
+            <button type="submit" className="border border-fm-nav-border bg-fm-btn-bg text-fm-btn-text px-2 py-0.5 font-bold hover:opacity-90 rounded-fm-sm">
               {homeT.apply}
             </button>
             <Link href="/" className="text-fm-link hover:text-fm-link-hover">{homeT.reset}</Link>
@@ -173,7 +173,7 @@ export default async function Home({
           {releases.map((project, i) => (
             <div
               key={project.id}
-              className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50 hover:bg-white/80 transition-colors`}
+              className={`feed-item py-2.5 px-2 ${i % 2 === 0 ? "bg-fm-surface/40" : ""} border-b border-fm-border/50 hover:bg-fm-surface/70 transition-colors`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -182,7 +182,7 @@ export default async function Home({
                       event="click"
                       eventTarget={`project:${project.name}@home`}
                       href={`/projects/${project.name}`}
-                      className="text-[13px] font-bold text-fm-link hover:text-fm-link-hover"
+                      className="feed-title text-[13px] font-bold text-fm-link hover:text-fm-link-hover"
                     >
                       {project.name}
                     </TrackedNextLink>
@@ -228,7 +228,7 @@ export default async function Home({
                       <Link
                         key={tag}
                         href={`/tag/${encodeURIComponent(tag)}`}
-                        className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                        className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                       >
                         {tag}
                       </Link>

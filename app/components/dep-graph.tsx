@@ -268,7 +268,7 @@ export default function DepGraph({ projectName }: { projectName: string }) {
                     <tr
                       key={i}
                       className={`border-t border-fm-border/50 ${
-                        hasConflict ? "bg-red-50" : i % 2 === 0 ? "bg-white/50" : ""
+                        hasConflict ? "bg-red-50" : i % 2 === 0 ? "bg-fm-surface/50" : ""
                       }`}
                     >
                       <td className="px-2 py-1 font-mono">

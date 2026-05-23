@@ -86,7 +86,7 @@ export function ProgressBar({
                     : crate.difficulty === "builder"
                       ? "bg-blue-400 border-blue-500"
                       : "bg-purple-400 border-purple-500"
-                  : "border-fm-border/50 bg-white/60 hover:bg-fm-green/30"
+                  : "border-fm-border/50 bg-fm-surface/60 hover:bg-fm-green/30"
               }`}
               title={`Crate ${crate.number}: ${crate.title}${done ? " ✓" : ""}`}
             />
@@ -115,7 +115,7 @@ export function CrateCompleteToggle({ slug }: { slug: string }) {
       className={`text-[12px] font-mono px-3 py-1.5 rounded border transition-colors cursor-pointer ${
         done
           ? "bg-fm-green text-white border-fm-green hover:bg-fm-green/80"
-          : "bg-white text-fm-text border-fm-border hover:border-fm-green hover:text-fm-green"
+          : "bg-fm-surface text-fm-text border-fm-border hover:border-fm-green hover:text-fm-green"
       }`}
     >
       {done ? "✓ Completed" : "Mark as completed"}

@@ -47,7 +47,7 @@ function SectionHeader({ id, title }: { id: string; title: string }) {
 
 function PercentBar({ pct, color = "#5b8c5b" }: { pct: number; color?: string }) {
   return (
-    <div className="inline-block w-[120px] h-[10px] bg-[#eee] border border-fm-border align-middle">
+    <div className="inline-block w-[120px] h-[10px] bg-fm-sidebar-bg border border-fm-border align-middle">
       <div style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color, height: "100%" }} />
     </div>
   );
@@ -138,7 +138,7 @@ export default function StatsPage() {
             {stats.topByStars.map((pkg, i) => {
               const pct = maxStars > 0 ? Math.round((pkg.stars / maxStars) * 100) : 0;
               return (
-                <tr key={pkg.name} className={`${i % 2 === 0 ? "bg-white/50" : ""} ${pkg.name === "freshcrate" ? "bg-yellow-50" : ""}`}>
+                <tr key={pkg.name} className={`${i % 2 === 0 ? "bg-fm-surface/50" : ""} ${pkg.name === "freshcrate" ? "bg-yellow-50" : ""}`}>
                   <td className="px-2 py-1 border border-fm-border text-fm-text-light">{pkg.name === "freshcrate" ? "🏠" : i + 1}</td>
                   <td className="px-2 py-1 border border-fm-border">
                     <Link href={`/projects/${encodeURIComponent(pkg.name)}`} className="text-fm-link font-bold">
@@ -184,7 +184,7 @@ export default function StatsPage() {
           </thead>
           <tbody>
             {stats.topByVitality.map((pkg, i) => (
-              <tr key={pkg.name} className={i % 2 === 0 ? "bg-white/50" : ""}>
+              <tr key={pkg.name} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                 <td className="px-2 py-1 border border-fm-border text-fm-text-light">{i + 1}</td>
                 <td className="px-2 py-1 border border-fm-border">
                   <Link href={`/projects/${encodeURIComponent(pkg.name)}`} className="text-fm-link font-bold">
@@ -227,7 +227,7 @@ export default function StatsPage() {
           </thead>
           <tbody>
             {stats.topVerified.map((pkg, i) => (
-              <tr key={pkg.name} className={i % 2 === 0 ? "bg-white/50" : ""}>
+              <tr key={pkg.name} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                 <td className="px-2 py-1 border border-fm-border text-fm-text-light">{i + 1}</td>
                 <td className="px-2 py-1 border border-fm-border">
                   <Link href={`/projects/${encodeURIComponent(pkg.name)}`} className="text-fm-link font-bold">
@@ -267,7 +267,7 @@ export default function StatsPage() {
         </thead>
         <tbody>
           {stats.licenseBreakdown.map((row, i) => (
-            <tr key={row.license} className={i % 2 === 0 ? "bg-white/50" : ""}>
+            <tr key={row.license} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
               <td className="px-2 py-1 border border-fm-border font-bold">
                 {row.license === "non-standard" ? (
                   <Link href="/dependencies#license-risk" className="text-fm-link hover:text-fm-link-hover" title="Pasted custom text, EULAs, or unknown SPDX identifiers — see the license risk view for the per-package breakdown.">
@@ -304,7 +304,7 @@ export default function StatsPage() {
           </thead>
           <tbody>
             {stats.languageBreakdown.map((row, i) => (
-              <tr key={row.language} className={i % 2 === 0 ? "bg-white/50" : ""}>
+              <tr key={row.language} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                 <td className="px-2 py-1 border border-fm-border font-bold">{row.language}</td>
                 <td className="px-2 py-1 border border-fm-border text-right font-mono">{row.count}</td>
                 <td className="px-2 py-1 border border-fm-border">
@@ -335,7 +335,7 @@ export default function StatsPage() {
         </thead>
         <tbody>
           {stats.hallOfFame.longestReadme && (
-            <tr className="bg-white/50">
+            <tr className="bg-fm-surface/50">
               <td className="px-2 py-1 border border-fm-border font-bold">📜 Most Overachieving README</td>
               <td className="px-2 py-1 border border-fm-border">
                 <Link href={`/projects/${encodeURIComponent(stats.hallOfFame.longestReadme.name)}`} className="text-fm-link font-bold">
@@ -359,7 +359,7 @@ export default function StatsPage() {
             </tr>
           )}
           {stats.hallOfFame.tagHoarder && (
-            <tr className="bg-white/50">
+            <tr className="bg-fm-surface/50">
               <td className="px-2 py-1 border border-fm-border font-bold">🏷️ Tag Hoarder</td>
               <td className="px-2 py-1 border border-fm-border">
                 <Link href={`/projects/${encodeURIComponent(stats.hallOfFame.tagHoarder.name)}`} className="text-fm-link font-bold">
@@ -385,7 +385,7 @@ export default function StatsPage() {
             </tr>
           )}
           {stats.hallOfFame.licenseRebel && (
-            <tr className="bg-white/50">
+            <tr className="bg-fm-surface/50">
               <td className="px-2 py-1 border border-fm-border font-bold">🏴‍☠️ License Rebel</td>
               <td className="px-2 py-1 border border-fm-border">
                 <Link href={`/projects/${encodeURIComponent(stats.hallOfFame.licenseRebel.name)}`} className="text-fm-link font-bold">
@@ -411,7 +411,7 @@ export default function StatsPage() {
             </tr>
           )}
           {stats.hallOfFame.freshest && (
-            <tr className="bg-white/50">
+            <tr className="bg-fm-surface/50">
               <td className="px-2 py-1 border border-fm-border font-bold">🆕 Fresh Off The Press</td>
               <td className="px-2 py-1 border border-fm-border">
                 <Link href={`/projects/${encodeURIComponent(stats.hallOfFame.freshest.name)}`} className="text-fm-link font-bold">

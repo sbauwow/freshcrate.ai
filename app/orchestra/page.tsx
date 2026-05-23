@@ -93,13 +93,13 @@ export default async function OrchestraPage({
               name="q"
               defaultValue={q ?? ""}
               placeholder="e.g. review gate, delegation, artifact spine"
-              className="border border-fm-border bg-white px-1 py-0.5 text-[10px]"
+              className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]"
             />
           </label>
 
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">{t.theme}</span>
-            <select name="theme" defaultValue={theme ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="theme" defaultValue={theme ?? ""} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="">{t.allThemes}</option>
               {options.themes.map((item) => (
                 <option key={item} value={item}>{item}</option>
@@ -109,7 +109,7 @@ export default async function OrchestraPage({
 
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">{t.stage}</span>
-            <select name="stage" defaultValue={stage ?? ""} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="stage" defaultValue={stage ?? ""} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="">{t.allStages}</option>
               {options.stages.map((item) => (
                 <option key={item} value={item}>{item}</option>
@@ -117,7 +117,7 @@ export default async function OrchestraPage({
             </select>
           </label>
 
-          <button type="submit" className="border border-[#999] bg-[#dddddd] text-black px-2 py-0.5 font-bold hover:bg-[#cccccc]">
+          <button type="submit" className="border border-fm-border bg-fm-btn-bg text-fm-btn-text px-2 py-0.5 font-bold hover:opacity-90">
             {t.apply}
           </button>
           <a href="/orchestra" className="text-fm-link hover:text-fm-link-hover">{t.reset}</a>
@@ -125,7 +125,7 @@ export default async function OrchestraPage({
         </div>
       </TrackedForm>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           {t.playbook}
         </div>
@@ -150,7 +150,7 @@ export default async function OrchestraPage({
         </div>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           {t.bestPractices}
         </div>
@@ -172,7 +172,7 @@ export default async function OrchestraPage({
 
               <div className="flex flex-wrap gap-1 mb-2">
                 {item.themes.map((themeTag) => (
-                  <span key={themeTag} className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">
+                  <span key={themeTag} className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">
                     {themeTag}
                   </span>
                 ))}

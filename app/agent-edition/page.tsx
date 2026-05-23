@@ -86,12 +86,12 @@ export default async function AgentEditionPage({
         </p>
       </div>
 
-      <section className="bg-white border border-fm-border rounded p-3 text-[11px] space-y-2">
+      <section className="bg-fm-surface border border-fm-border rounded p-3 text-[11px] space-y-2">
         <div className="flex flex-wrap gap-2 text-[9px]">
-          <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">minimal agentic substrate</span>
-          <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">Ubuntu 24.04</span>
-          <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">headless first</span>
-          <span className="bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded">stable channel v0.1.0</span>
+          <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">minimal agentic substrate</span>
+          <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">Ubuntu 24.04</span>
+          <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">headless first</span>
+          <span className="bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded">stable channel v0.1.0</span>
         </div>
         <p>
           Agent Edition is the operator lane of freshcrate: reproducible bootstrap, one base bundle, shippable VM and ISO artifacts, and a machine-readable manifest.
@@ -103,7 +103,7 @@ export default async function AgentEditionPage({
         </ul>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           What&rsquo;s in the bundle — {bundle.name}
         </div>
@@ -142,7 +142,7 @@ export default async function AgentEditionPage({
         <div className="inline-flex border border-fm-border rounded overflow-hidden">
           {TARGETS.map((t) => {
             const active = t.id === target;
-            const className = `px-2 py-0.5 text-[10px] font-bold ${active ? "bg-fm-green text-white" : "bg-white text-fm-link hover:bg-fm-bg"}`;
+            const className = `px-2 py-0.5 text-[10px] font-bold ${active ? "bg-fm-green text-white" : "bg-fm-surface text-fm-link hover:bg-fm-bg"}`;
             return (
               <TrackedLink
                 key={t.id}
@@ -164,7 +164,7 @@ export default async function AgentEditionPage({
         </span>
       </div>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           Option 1 — Hosted install script (fastest)
         </div>
@@ -178,7 +178,7 @@ export default async function AgentEditionPage({
         </div>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           Option 2 — Boot from USB (ISO)
         </div>
@@ -230,7 +230,7 @@ export default async function AgentEditionPage({
         </div>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           Option 3 — Import QCOW2 (KVM / Proxmox / libvirt)
         </div>
@@ -246,7 +246,7 @@ export default async function AgentEditionPage({
         </div>
       </section>
 
-      <section className="bg-white border border-fm-border rounded">
+      <section className="bg-fm-surface border border-fm-border rounded">
         <div className="px-2 py-1 border-b border-fm-border bg-fm-sidebar-bg text-[11px] font-bold text-fm-green">
           Guardrails
         </div>

@@ -31,7 +31,7 @@ export default function NavClock() {
   if (!time) return null;
 
   return (
-    <span className="text-[10px] text-[#666] font-normal" suppressHydrationWarning>
+    <span className="text-[10px] text-fm-text-light font-normal" suppressHydrationWarning>
       {time}
     </span>
   );

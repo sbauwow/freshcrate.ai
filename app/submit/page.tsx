@@ -110,7 +110,7 @@ export default function SubmitPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 required
-                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white"
+                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-fm-bg text-fm-text"
                 placeholder="https://github.com/owner/repo  or  owner/repo"
               />
             </div>
@@ -122,7 +122,7 @@ export default function SubmitPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={2}
-                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white resize-y"
+                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-fm-bg text-fm-text resize-y"
                 placeholder={t.suggestPlaceholder}
               />
             </div>
@@ -151,7 +151,7 @@ export default function SubmitPage() {
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white"
+                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-fm-bg text-fm-text"
               >
                 <option value="missing-package">{t.issueTypes.missingPackage}</option>
                 <option value="wrong-category">{t.issueTypes.wrongCategory}</option>
@@ -171,7 +171,7 @@ export default function SubmitPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 required
-                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white"
+                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-fm-bg text-fm-text"
                 placeholder="package-name or https://www.freshcrate.ai/projects/..."
               />
             </div>
@@ -184,7 +184,7 @@ export default function SubmitPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 required
                 rows={3}
-                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-white resize-y"
+                className="w-full px-2 py-1.5 text-[11px] border border-fm-border rounded outline-none focus:border-fm-green bg-fm-bg text-fm-text resize-y"
                 placeholder={t.detailsPlaceholder}
               />
             </div>
@@ -231,7 +231,7 @@ export default function SubmitPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-white border border-fm-border rounded p-3">
+            <div className="bg-fm-surface border border-fm-border rounded p-3">
               <div className="text-[10px] font-bold text-fm-green mb-1">🔭 Discovery</div>
               <p className="text-[10px] text-fm-text-light leading-relaxed">
                 Every 6 hours, our topic watcher polls 13 GitHub topics
@@ -239,7 +239,7 @@ export default function SubmitPage() {
                 If you tag your repo with a watched topic, we&apos;ll find it automatically.
               </p>
             </div>
-            <div className="bg-white border border-fm-border rounded p-3">
+            <div className="bg-fm-surface border border-fm-border rounded p-3">
               <div className="text-[10px] font-bold text-fm-green mb-1">📦 Ingestion</div>
               <p className="text-[10px] text-fm-text-light leading-relaxed">
                 New repos get their metadata pulled: description, stars, forks,
@@ -247,7 +247,7 @@ export default function SubmitPage() {
                 is stored locally — no external dependencies at query time.
               </p>
             </div>
-            <div className="bg-white border border-fm-border rounded p-3">
+            <div className="bg-fm-surface border border-fm-border rounded p-3">
               <div className="text-[10px] font-bold text-fm-green mb-1">✅ Verification</div>
               <p className="text-[10px] text-fm-text-light leading-relaxed">
                 Every package gets a 10-point automated verification: repo exists,
@@ -255,7 +255,7 @@ export default function SubmitPage() {
                 has releases, has README, minimum stars, not a fork, has a license file.
               </p>
             </div>
-            <div className="bg-white border border-fm-border rounded p-3">
+            <div className="bg-fm-surface border border-fm-border rounded p-3">
               <div className="text-[10px] font-bold text-fm-green mb-1">📡 Monitoring</div>
               <p className="text-[10px] text-fm-text-light leading-relaxed">
                 A daily monitor checks all listed repos for new releases.
@@ -274,15 +274,15 @@ export default function SubmitPage() {
             </p>
             <div className="space-y-1 text-[11px]">
               <div>
-                <code className="text-[10px] font-mono bg-white px-1 py-0.5 rounded">POST /api/projects</code>
+                <code className="text-[10px] font-mono bg-fm-surface px-1 py-0.5 rounded">POST /api/projects</code>
                 <span className="text-fm-text-light"> — submit a package via REST API (requires API key)</span>
               </div>
               <div>
-                <code className="text-[10px] font-mono bg-white px-1 py-0.5 rounded">npm run mcp</code>
+                <code className="text-[10px] font-mono bg-fm-surface px-1 py-0.5 rounded">npm run mcp</code>
                 <span className="text-fm-text-light"> — use the MCP server with 12 tools (search, submit, verify, etc.)</span>
               </div>
               <div>
-                <code className="text-[10px] font-mono bg-white px-1 py-0.5 rounded">POST /api/enrich</code>
+                <code className="text-[10px] font-mono bg-fm-surface px-1 py-0.5 rounded">POST /api/enrich</code>
                 <span className="text-fm-text-light"> — send a GitHub URL, get pre-filled package data</span>
               </div>
             </div>
