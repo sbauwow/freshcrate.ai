@@ -17,7 +17,7 @@ function CompareRow({
   const strB = typeof valB === "string" ? valB : "";
   const isDiff = highlight && strA !== strB;
   return (
-    <tr className={isDiff ? "bg-[#fffbe6]" : ""}>
+    <tr className={isDiff ? "bg-fm-sidebar-bg" : ""}>
       <td className="py-1.5 px-2 font-bold text-fm-text-light border-b border-fm-border/30 w-[140px]">
         {label}
       </td>
@@ -60,7 +60,7 @@ export default async function ComparePage({
             <select
               name="a"
               defaultValue={a || ""}
-              className="text-[11px] border border-[#999] bg-white px-2 py-1 w-full outline-none"
+              className="text-[11px] border border-fm-border bg-fm-bg text-fm-text px-2 py-1 w-full outline-none"
             >
               <option value="">-- select package --</option>
               {allProjects.map((p) => (
@@ -76,7 +76,7 @@ export default async function ComparePage({
             <select
               name="b"
               defaultValue={b || ""}
-              className="text-[11px] border border-[#999] bg-white px-2 py-1 w-full outline-none"
+              className="text-[11px] border border-fm-border bg-fm-bg text-fm-text px-2 py-1 w-full outline-none"
             >
               <option value="">-- select package --</option>
               {allProjects.map((p) => (
@@ -89,7 +89,7 @@ export default async function ComparePage({
 
           <button
             type="submit"
-            className="text-[11px] font-bold px-4 py-1 border border-[#999] bg-[#dddddd] text-black cursor-pointer hover:bg-[#cccccc]"
+            className="text-[11px] font-bold px-4 py-1 border border-fm-border bg-fm-btn-bg text-fm-btn-text cursor-pointer hover:opacity-90"
           >
             Compare
           </button>

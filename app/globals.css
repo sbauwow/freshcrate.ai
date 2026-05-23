@@ -1,21 +1,123 @@
 @import "tailwindcss";
 
+/* ===========================================================================
+   SKIN TOKEN LAYER
+   ---------------------------------------------------------------------------
+   Two skins share one DOM. Everything visual keys off the CSS custom
+   properties below, scoped by `data-theme` on <html>:
+
+     :root (no attr / data-theme="modern")  -> MODERN (bold / editorial), default
+     [data-theme="retro"]                    -> RETRO (pixel-faithful freshmeat)
+
+   Components must read these tokens (via the `fm-*` Tailwind utilities mapped
+   in @theme inline, or var(--fm-*)) rather than hardcoding hex literals, or
+   they will not respond to the toggle.
+   =========================================================================== */
+
+/* ---- MODERN (default) — dark-first, cyan glow ---------------------------- */
 :root {
-  --fm-green: #6f6f6f;
-  --fm-green-light: #888888;
-  --fm-green-dark: #555555;
-  --fm-orange: #3366cc;
+  /* core palette — deep near-black surfaces, light text */
+  --fm-bg: #0a0b10;
+  --fm-surface: #14161f;          /* elevated card/panel */
+  --fm-sidebar-bg: #14161f;
+  --fm-border: #262a38;
+  --fm-text: #e6e8f0;
+  --fm-text-light: #8b91a6;
+  --fm-link: #6fe3f5;
+  --fm-link-hover: #22d3ee;
+  --fm-accent: #22d3ee;           /* cyan */
+  --fm-accent-2: #ff5cf0;         /* pink (secondary glow) */
+  --fm-accent-bar: #22d3ee;
+  --fm-accent-glow: rgba(34, 211, 238, 0.18);
+
+  /* legacy names kept so existing fm-green/fm-orange utilities still resolve */
+  --fm-green: #8b91a6;
+  --fm-green-light: #aab0c4;
+  --fm-green-dark: #6b7180;
+  --fm-orange: #22d3ee;
+
+  /* chrome (was hardcoded in layout.tsx) */
+  --fm-nav-bg: #0c0e15;
+  --fm-nav-border: #22d3ee;
+  --fm-search-bg: #14161f;
+  --fm-btn-bg: #22d3ee;
+  --fm-btn-text: #04121a;
+  --fm-footer-bg: #07080c;
+  --fm-footer-text: #6b7180;
+  --fm-footer-text-strong: #22d3ee;
+
+  /* urgency badges (kept legible on dark) */
+  --fm-urgency-low: #34d399;
+  --fm-urgency-medium: #fbbf24;
+  --fm-urgency-high: #fb923c;
+  --fm-urgency-critical: #f87171;
+
+  /* structural tokens — let skins differ in shape, not just color */
+  --fm-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fm-font-display: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fm-font-size-base: 14px;
+  --fm-line-height: 1.55;
+  --fm-radius: 12px;
+  --fm-radius-sm: 7px;
+  --fm-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 28px var(--fm-accent-glow);
+  --fm-card-gap: 12px;
+
+  /* selection + scrollbar */
+  --fm-selection-bg: #164e5b;
+  --fm-selection-text: #e6fbff;
+  --fm-scrollbar-track: #0c0e15;
+  --fm-scrollbar-thumb: #2a3340;
+  --fm-scrollbar-thumb-hover: #22d3ee;
+}
+
+/* ---- RETRO (pixel-faithful freshmeat) ------------------------------------ */
+[data-theme="retro"] {
   --fm-bg: #ffffff;
+  --fm-surface: #eeeeee;
   --fm-sidebar-bg: #eeeeee;
   --fm-border: #cccccc;
   --fm-text: #000000;
   --fm-text-light: #666666;
   --fm-link: #3366cc;
   --fm-link-hover: #3366cc;
+  --fm-accent: #3366cc;
+  --fm-accent-2: #3366cc;
+  --fm-accent-bar: transparent;
+  --fm-accent-glow: transparent;
+
+  --fm-green: #6f6f6f;
+  --fm-green-light: #888888;
+  --fm-green-dark: #555555;
+  --fm-orange: #3366cc;
+
+  --fm-nav-bg: #dddddd;
+  --fm-nav-border: #6f6f6f;
+  --fm-search-bg: #bbddff;
+  --fm-btn-bg: #dddddd;
+  --fm-btn-text: #000000;
+  --fm-footer-bg: linear-gradient(180deg, #f8f8f8 0%, #f0eef5 50%, #e8e0f0 100%);
+  --fm-footer-text: #9990b0;
+  --fm-footer-text-strong: #8b7aa8;
+
   --fm-urgency-low: #5b8c5b;
   --fm-urgency-medium: #c49000;
   --fm-urgency-high: #cc6600;
   --fm-urgency-critical: #cc0000;
+
+  --fm-font-body: Verdana, Geneva, "DejaVu Sans", Arial, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --fm-font-display: Verdana, Geneva, "DejaVu Sans", Arial, Helvetica, sans-serif;
+  --fm-font-size-base: 12px;
+  --fm-line-height: 1.5;
+  --fm-radius: 4px;
+  --fm-radius-sm: 2px;
+  --fm-shadow: none;
+  --fm-card-gap: 8px;
+
+  --fm-selection-bg: #e0c3fc;
+  --fm-selection-text: #1a0a2e;
+  --fm-scrollbar-track: #f0f0f0;
+  --fm-scrollbar-thumb: #b8b8d0;
+  --fm-scrollbar-thumb-hover: #9090b0;
 }
 
 @theme inline {
@@ -33,24 +135,39 @@
   --color-fm-green-dark: var(--fm-green-dark);
   --color-fm-orange: var(--fm-orange);
   --color-fm-bg: var(--fm-bg);
+  --color-fm-surface: var(--fm-surface);
   --color-fm-sidebar-bg: var(--fm-sidebar-bg);
   --color-fm-border: var(--fm-border);
   --color-fm-text: var(--fm-text);
   --color-fm-text-light: var(--fm-text-light);
   --color-fm-link: var(--fm-link);
   --color-fm-link-hover: var(--fm-link-hover);
+  --color-fm-accent: var(--fm-accent);
+  --color-fm-accent-2: var(--fm-accent-2);
   --color-fm-urgency-low: var(--fm-urgency-low);
   --color-fm-urgency-medium: var(--fm-urgency-medium);
   --color-fm-urgency-high: var(--fm-urgency-high);
   --color-fm-urgency-critical: var(--fm-urgency-critical);
+
+  /* chrome tokens as utilities (bg-fm-nav-bg, border-fm-nav-border, etc.) */
+  --color-fm-nav-bg: var(--fm-nav-bg);
+  --color-fm-nav-border: var(--fm-nav-border);
+  --color-fm-search-bg: var(--fm-search-bg);
+  --color-fm-btn-bg: var(--fm-btn-bg);
+  --color-fm-btn-text: var(--fm-btn-text);
+  --color-fm-footer-text: var(--fm-footer-text);
+  --color-fm-footer-text-strong: var(--fm-footer-text-strong);
+
+  --radius-fm: var(--fm-radius);
+  --radius-fm-sm: var(--fm-radius-sm);
 }
 
 body {
   background: var(--fm-bg);
   color: var(--fm-text);
-  font-family: Verdana, Geneva, "DejaVu Sans", Arial, Helvetica, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  font-size: 12px;
-  line-height: 1.5;
+  font-family: var(--fm-font-body);
+  font-size: var(--fm-font-size-base);
+  line-height: var(--fm-line-height);
 }
 
 a {
@@ -62,24 +179,81 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Selection highlight — subtle vaporwave */
 ::selection {
-  background: #e0c3fc;
-  color: #1a0a2e;
+  background: var(--fm-selection-bg);
+  color: var(--fm-selection-text);
 }
 
-/* Scrollbar — thin, tinted */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f0f0f0;
+  background: var(--fm-scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #b8b8d0;
+  background: var(--fm-scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9090b0;
+  background: var(--fm-scrollbar-thumb-hover);
+}
+
+/* ===========================================================================
+   MODERN-ONLY feed treatment (bold / dark / glow)
+   Retro keeps its flat freshmeat list — these rules are scoped to the modern
+   skin only, so toggling back is a no-op.
+   =========================================================================== */
+[data-theme="modern"] .feed-heading {
+  font-family: var(--fm-font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fm-text-light);
+}
+
+[data-theme="modern"] .feed-item {
+  position: relative;
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--fm-radius);
+  margin-bottom: var(--fm-card-gap);
+  padding-left: 1.1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+/* glowing accent bar down the left edge */
+[data-theme="modern"] .feed-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 11px;
+  bottom: 11px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--fm-accent-bar);
+  box-shadow: 0 0 10px 1px var(--fm-accent-glow);
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+[data-theme="modern"] .feed-item:hover {
+  background: var(--fm-surface);
+  border-color: var(--fm-accent);
+  box-shadow: var(--fm-shadow);
+  transform: translateY(-1px);
+}
+[data-theme="modern"] .feed-item:hover::before {
+  opacity: 1;
+}
+
+[data-theme="modern"] .feed-title {
+  font-family: var(--fm-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--fm-text);
+}
+[data-theme="modern"] .feed-title:hover {
+  color: var(--fm-accent);
 }

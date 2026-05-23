@@ -218,7 +218,7 @@ function SectionBox({
 }) {
   return (
     <div id={id} className="mb-4">
-      <h3 className="text-[12px] font-bold text-[#6f6f6f] border-b-2 border-[#6f6f6f] pb-1 mb-2 uppercase tracking-wide">
+      <h3 className="text-[12px] font-bold text-fm-text-light border-b-2 border-fm-nav-border pb-1 mb-2 uppercase tracking-wide">
         {title}
       </h3>
       {children}
@@ -286,11 +286,11 @@ export default async function ResearchPage() {
       </div>
 
       {/* Jump links */}
-      <div className="bg-[#f0f0f0] border border-fm-border px-3 py-1.5 mb-4 text-[10px]">
+      <div className="bg-fm-sidebar-bg border border-fm-border px-3 py-1.5 mb-4 text-[10px]">
         <span className="font-bold text-fm-text mr-1">{t.jumpTo}</span>
         {JUMP_LINKS.map((link, i) => (
           <span key={link.id}>
-            {i > 0 && <span className="text-[#999] mx-1">|</span>}
+            {i > 0 && <span className="text-fm-text-light mx-1">|</span>}
             <a href={`#${link.id}`} className="text-fm-link hover:underline">
               {link.label}
             </a>

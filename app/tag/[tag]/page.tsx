@@ -87,7 +87,7 @@ export default async function TagPage({
                   event="related_click"
                   eventTarget={`tag:${normalizedTag}->inline-trending:${p.name}`}
                   href={`/projects/${p.name}`}
-                  className="text-[10px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                  className="text-[10px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                 >
                   {p.name} ⭐{(p.stars || 0).toLocaleString()}
                 </TrackedLink>
@@ -111,7 +111,7 @@ export default async function TagPage({
             return (
               <div
                 key={project.id}
-                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50`}
+                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-fm-surface/50" : ""} border-b border-fm-border/50`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
                   <TrackedLink
@@ -140,7 +140,7 @@ export default async function TagPage({
                       event="related_click"
                       eventTarget={`tag:${normalizedTag}->tag:${projectTag}`}
                       href={`/tag/${encodeURIComponent(projectTag)}`}
-                      className={`text-[9px] px-1.5 py-0.5 rounded ${projectTag === normalizedTag ? "bg-fm-green/15 text-fm-green font-bold" : "bg-[#bbddff]/50 text-fm-link hover:bg-[#bbddff]"}`}
+                      className={`text-[9px] px-1.5 py-0.5 rounded ${projectTag === normalizedTag ? "bg-fm-green/15 text-fm-green font-bold" : "bg-fm-accent/10 text-fm-link hover:bg-fm-accent/20"}`}
                     >
                       {projectTag}
                     </TrackedLink>

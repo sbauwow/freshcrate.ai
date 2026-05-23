@@ -21,18 +21,18 @@ export default function LocaleSwitcher({
   const redirect = query ? `${pathname}?${query}` : pathname;
 
   const itemClass = (target: Locale) =>
-    `px-1 py-0.5 rounded ${locale === target ? "bg-white border border-[#999] text-black" : "text-fm-link hover:text-fm-link-hover"}`;
+    `px-1 py-0.5 rounded ${locale === target ? "bg-fm-btn-bg text-fm-btn-text border border-fm-nav-border" : "text-fm-link hover:text-fm-link-hover"}`;
 
   return (
     <div className="flex items-center gap-1 text-[10px]">
-      <span className="text-[#666]">{label}:</span>
+      <span className="text-fm-text-light">{label}:</span>
       {/* prefetch={false}: /api/locale is a state-changing GET (sets the
           fc_lang cookie). Prefetching it would silently switch the user's
           language on page load. */}
       <Link prefetch={false} href={`/api/locale?lang=en&redirect=${encodeURIComponent(redirect)}`} className={itemClass("en")}>
         {englishLabel}
       </Link>
-      <span className="text-[#999]">/</span>
+      <span className="text-fm-text-light">/</span>
       <Link prefetch={false} href={`/api/locale?lang=zh-CN&redirect=${encodeURIComponent(redirect)}`} className={itemClass("zh-CN")}>
         {chineseLabel}
       </Link>

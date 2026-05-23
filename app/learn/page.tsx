@@ -137,7 +137,7 @@ export default async function LearnPage() {
             <Link
               key={crate.slug}
               href={`/learn/${crate.slug}`}
-              className={`block py-3 px-3 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50 hover:bg-white/80 transition-colors`}
+              className={`block py-3 px-3 ${i % 2 === 0 ? "bg-fm-surface/50" : ""} border-b border-fm-border/50 hover:bg-fm-surface/80 transition-colors`}
             >
               <div className="flex items-start gap-3">
                 {/* Emoji + Number */}

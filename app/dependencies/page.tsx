@@ -346,7 +346,7 @@ export default async function DependenciesPage({
             <Link
               key={preset.label}
               href={preset.href}
-              className="px-2 py-0.5 rounded border border-fm-border bg-white text-fm-link hover:text-fm-link-hover hover:border-fm-green"
+              className="px-2 py-0.5 rounded border border-fm-border bg-fm-surface text-fm-link hover:text-fm-link-hover hover:border-fm-green"
             >
               {preset.label}
             </Link>
@@ -355,7 +355,7 @@ export default async function DependenciesPage({
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">View</span>
-            <select name="view" defaultValue={view} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="view" defaultValue={view} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="conflicts">conflicts only</option>
               <option value="unresolved">unresolved-heavy</option>
               <option value="all">all audited</option>
@@ -363,7 +363,7 @@ export default async function DependenciesPage({
           </label>
           <label className="flex flex-col gap-0.5">
             <span className="text-fm-text-light">Sort</span>
-            <select name="sort" defaultValue={sort} className="border border-fm-border bg-white px-1 py-0.5 text-[10px]">
+            <select name="sort" defaultValue={sort} className="border border-fm-border bg-fm-bg text-fm-text px-1 py-0.5 text-[10px]">
               <option value="conflicts">highest conflict count</option>
               <option value="unresolved">most unresolved</option>
               <option value="score">worst audit score</option>
@@ -371,7 +371,7 @@ export default async function DependenciesPage({
               <option value="name">name</option>
             </select>
           </label>
-          <button type="submit" className="border border-[#999] bg-[#dddddd] text-black px-2 py-0.5 font-bold hover:bg-[#cccccc]">
+          <button type="submit" className="border border-fm-border bg-fm-btn-bg text-fm-btn-text px-2 py-0.5 font-bold hover:opacity-90">
             Apply
           </button>
           <a href="/dependencies#scan-health" className="text-fm-link hover:text-fm-link-hover">Reset</a>
@@ -391,7 +391,7 @@ export default async function DependenciesPage({
           </thead>
           <tbody>
             {auditProjects.map((row, i) => (
-              <tr key={row.project_id} className={i % 2 === 0 ? "bg-white/50" : ""}>
+              <tr key={row.project_id} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                 <td className="px-2 py-1 border border-fm-border">
                   <Link href={`/projects/${encodeURIComponent(row.name)}`} className="text-fm-link font-bold">
                     {row.name}
@@ -425,7 +425,7 @@ export default async function DependenciesPage({
           </thead>
           <tbody>
             {mostDepended.map((row, i) => (
-              <tr key={row.dep_name} className={i % 2 === 0 ? "bg-white/50" : ""}>
+              <tr key={row.dep_name} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                 <td className="px-2 py-1 border border-fm-border text-fm-text-light font-mono">{i + 1}</td>
                 <td className="px-2 py-1 border border-fm-border font-bold">{row.dep_name}</td>
                 <td className="px-2 py-1 border border-fm-border text-right font-mono">
@@ -472,7 +472,7 @@ export default async function DependenciesPage({
                   ? "text-yellow-700"
                   : "text-green-700";
               return (
-                <tr key={row.project_id} className={i % 2 === 0 ? "bg-white/50" : ""}>
+                <tr key={row.project_id} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                   <td className="px-2 py-1 border border-fm-border text-fm-text-light font-mono">{i + 1}</td>
                   <td className="px-2 py-1 border border-fm-border">
                     <Link href={`/projects/${encodeURIComponent(row.name)}`} className="text-fm-link font-bold">
@@ -513,7 +513,7 @@ export default async function DependenciesPage({
             </thead>
             <tbody>
               {licenseConflicts.slice(0, 100).map((row, i) => (
-                <tr key={`${row.project_id}-${row.dep_name}`} className={i % 2 === 0 ? "bg-white/50" : ""}>
+                <tr key={`${row.project_id}-${row.dep_name}`} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                   <td className="px-2 py-1 border border-fm-border">
                     <Link href={`/projects/${encodeURIComponent(row.pkg_name)}`} className="text-fm-link font-bold">
                       {row.pkg_name}
@@ -611,7 +611,7 @@ export default async function DependenciesPage({
           </thead>
           <tbody>
             {ecoBreakdown.map((row, i) => (
-              <tr key={row.ecosystem} className={i % 2 === 0 ? "bg-white/50" : ""}>
+              <tr key={row.ecosystem} className={i % 2 === 0 ? "bg-fm-surface/50" : ""}>
                 <td className="px-2 py-1 border border-fm-border">
                   <EcoBadge eco={row.ecosystem} />
                 </td>

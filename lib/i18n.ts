@@ -40,6 +40,9 @@ export const copy = {
     localeLabel: "Language",
     localeEnglish: "English",
     localeChinese: "简体中文",
+    themeLabel: "Skin",
+    themeModern: "Modern",
+    themeRetro: "Nostalgia",
     home: {
       latestReleases: "Latest Releases",
       packagesIndexed: "packages indexed",
@@ -341,6 +344,9 @@ export const copy = {
     localeLabel: "语言",
     localeEnglish: "English",
     localeChinese: "简体中文",
+    themeLabel: "皮肤",
+    themeModern: "现代",
+    themeRetro: "怀旧",
     home: {
       latestReleases: "最新发布",
       packagesIndexed: "个项目已收录",

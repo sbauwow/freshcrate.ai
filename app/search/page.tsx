@@ -191,7 +191,7 @@ export default async function SearchPage({
             <select
               name="category"
               defaultValue={category || ""}
-              className="px-2 py-1 border border-fm-border rounded text-[10px] bg-white"
+              className="px-2 py-1 border border-fm-border rounded text-[10px] bg-fm-bg text-fm-text"
             >
               <option value="">{t.allCategories}</option>
               {categories.map((c) => (
@@ -203,7 +203,7 @@ export default async function SearchPage({
             <select
               name="language"
               defaultValue={language || ""}
-              className="px-2 py-1 border border-fm-border rounded text-[10px] bg-white"
+              className="px-2 py-1 border border-fm-border rounded text-[10px] bg-fm-bg text-fm-text"
             >
               <option value="">{t.allLanguages}</option>
               {languages.map((l) => (
@@ -267,7 +267,7 @@ export default async function SearchPage({
             return (
               <div
                 key={project.id}
-                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50`}
+                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-fm-surface/50" : ""} border-b border-fm-border/50`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
                   <TrackedNextLink
@@ -302,7 +302,7 @@ export default async function SearchPage({
                     <Link
                       key={tag}
                       href={`/tag/${encodeURIComponent(tag)}`}
-                      className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                      className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                     >
                       {tag}
                     </Link>
@@ -366,7 +366,7 @@ export default async function SearchPage({
                           event="related_click"
                           eventTarget={`search-rescue-tag:${(q || author || "").slice(0, 40)}->${r.tag}`}
                           href={`/tag/${encodeURIComponent(r.tag)}`}
-                          className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                          className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                         >
                           #{r.tag} ({r.count})
                         </TrackedNextLink>

@@ -125,7 +125,7 @@ export default async function CratePage({
       </nav>
 
       {/* ── Header ── */}
-      <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
+      <div className="border border-fm-nav-border bg-fm-sidebar-bg rounded p-4">
         <div className="flex items-start gap-3">
           <span className="text-[32px] leading-none shrink-0">
             {crate.emoji}
@@ -166,7 +166,7 @@ export default async function CratePage({
 
       {/* ── Prerequisites ── */}
       {prereqs.length > 0 && (
-        <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-3">
+        <div className="border border-fm-nav-border bg-fm-sidebar-bg rounded p-3">
           <h2 className="text-[11px] font-bold text-fm-text mb-1.5">
             {t.prerequisites}
           </h2>
@@ -206,7 +206,7 @@ export default async function CratePage({
       </div>
 
       {/* ── Think About It ── */}
-      <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
+      <div className="border border-fm-nav-border bg-fm-sidebar-bg rounded p-4">
         <h2 className="text-[14px] font-bold text-fm-text mb-3">
           {t.thinkAboutIt}
         </h2>
@@ -223,7 +223,7 @@ export default async function CratePage({
       </div>
 
       {/* ── Try This ── */}
-      <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
+      <div className="border border-fm-nav-border bg-fm-sidebar-bg rounded p-4">
         <h2 className="text-[14px] font-bold text-fm-text mb-3">
           {t.tryThis}
         </h2>
@@ -241,7 +241,7 @@ export default async function CratePage({
 
       {/* ── Go Deeper ── */}
       {crate.goDeeper.length > 0 && (
-        <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
+        <div className="border border-fm-nav-border bg-fm-sidebar-bg rounded p-4">
           <h2 className="text-[14px] font-bold text-fm-text mb-3">
             {t.goDeeper}
           </h2>

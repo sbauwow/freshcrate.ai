@@ -48,7 +48,7 @@ export function CrateQuiz({
   const allAnswered = Object.keys(answers).length === questions.length;
 
   return (
-    <div className="border border-[#6f6f6f] bg-[#dddddd] rounded p-4">
+    <div className="border border-fm-nav-border bg-fm-sidebar-bg rounded p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-[14px] font-bold text-fm-text">
           📝 Quick Quiz
@@ -78,9 +78,9 @@ export function CrateQuiz({
                   const isAnswer = submitted && ci === q.correct;
 
                   let style =
-                    "border-fm-border bg-white/80 hover:border-fm-green/50 cursor-pointer";
+                    "border-fm-border bg-fm-surface/80 hover:border-fm-green/50 cursor-pointer";
                   if (submitted) {
-                    style = "border-fm-border bg-white/40 cursor-default";
+                    style = "border-fm-border bg-fm-surface/40 cursor-default";
                     if (isAnswer)
                       style =
                         "border-green-500 bg-green-50 font-bold cursor-default";
@@ -130,7 +130,7 @@ export function CrateQuiz({
             className={`text-[12px] font-mono px-4 py-1.5 rounded border transition-colors cursor-pointer ${
               allAnswered
                 ? "bg-fm-green text-white border-fm-green hover:bg-fm-green/80"
-                : "bg-white/60 text-fm-text-light border-fm-border cursor-not-allowed"
+                : "bg-fm-surface/60 text-fm-text-light border-fm-border cursor-not-allowed"
             }`}
           >
             Check Answers
@@ -138,7 +138,7 @@ export function CrateQuiz({
         ) : (
           <button
             onClick={reset}
-            className="text-[12px] font-mono px-4 py-1.5 rounded border border-fm-border bg-white text-fm-text hover:border-fm-green hover:text-fm-green transition-colors cursor-pointer"
+            className="text-[12px] font-mono px-4 py-1.5 rounded border border-fm-border bg-fm-surface text-fm-text hover:border-fm-green hover:text-fm-green transition-colors cursor-pointer"
           >
             Try Again
           </button>

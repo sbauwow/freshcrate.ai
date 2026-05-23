@@ -66,7 +66,7 @@ export default async function AuthorPage({
             return (
               <div
                 key={project.id}
-                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-white/50" : ""} border-b border-fm-border/50`}
+                className={`py-2.5 px-2 ${i % 2 === 0 ? "bg-fm-surface/50" : ""} border-b border-fm-border/50`}
               >
                 <div className="flex items-center gap-2 mb-0.5">
                   <Link
@@ -91,7 +91,7 @@ export default async function AuthorPage({
                     <Link
                       key={tag}
                       href={`/tag/${encodeURIComponent(tag)}`}
-                      className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                      className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                     >
                       {tag}
                     </Link>

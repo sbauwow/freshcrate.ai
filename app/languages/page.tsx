@@ -274,7 +274,7 @@ export default function LanguagesPage() {
       </div>
 
       <SectionHeader id="source-audit" title="Language source audit" />
-      <div className="bg-white border border-fm-border rounded p-3 mb-4">
+      <div className="bg-fm-surface border border-fm-border rounded p-3 mb-4">
         <p className="text-[10px] text-fm-text-light mb-2">
           Audit trail for where each language label came from.
         </p>
@@ -297,7 +297,7 @@ export default function LanguagesPage() {
           return (
             <div
               key={row.language}
-              className="bg-white border border-fm-border rounded p-3"
+              className="bg-fm-surface border border-fm-border rounded p-3"
             >
               {/* Header */}
               <div className="flex items-center gap-2 mb-1">
@@ -399,7 +399,7 @@ export default function LanguagesPage() {
             </thead>
             <tbody>
               {categories.map((cat, ci) => (
-                <tr key={cat} className={ci % 2 === 0 ? "bg-white/50" : ""}>
+                <tr key={cat} className={ci % 2 === 0 ? "bg-fm-surface/50" : ""}>
                   <td className="px-2 py-1 border border-fm-border font-bold whitespace-nowrap">
                     {cat}
                   </td>
@@ -468,7 +468,7 @@ export default function LanguagesPage() {
                 {risingStars.map((row, i) => (
                   <tr
                     key={row.language}
-                    className={i % 2 === 0 ? "bg-white/50" : ""}
+                    className={i % 2 === 0 ? "bg-fm-surface/50" : ""}
                   >
                     <td className="px-2 py-1 border border-fm-border">
                       <span
@@ -558,7 +558,7 @@ export default function LanguagesPage() {
                     return (
                       <tr
                         key={cat}
-                        className={i % 2 === 0 ? "bg-white/50" : ""}
+                        className={i % 2 === 0 ? "bg-fm-surface/50" : ""}
                       >
                         <td className="px-2 py-1 border border-fm-border font-bold">
                           {cat}
