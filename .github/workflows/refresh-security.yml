@@ -1,0 +1,40 @@
+name: Refresh security snapshot
+
+on:
+  schedule:
+    # Every hour at :37, offset from research and release refresh jobs.
+    - cron: '37 * * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Hit refresh endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REFRESH_URL: ${{ secrets.REFRESH_SECURITY_URL || 'https://freshcrateai-production.up.railway.app/api/cron/refresh-security' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret is not set in repo settings"
+            exit 1
+          fi
+          if [ -z "${REFRESH_URL:-}" ]; then
+            echo "::error::REFRESH_URL is not set"
+            exit 1
+          fi
+          status=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 300 \
+            "${REFRESH_URL}")
+          echo "HTTP status: $status"
+          echo "Response body:"
+          cat /tmp/body
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::Refresh endpoint returned HTTP $status"
+            exit 1
+          fi
+          python3 -m json.tool < /tmp/body
