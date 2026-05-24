@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import ShareLinks from "@/app/components/share-links";
 import RankExplanation from "@/app/components/rank-explanation";
+import AgentInstallCard from "@/app/components/agent-install-card";
 import { cleanAuthor } from "@/lib/author-slug";
 import { classifyLicense } from "@/lib/license";
 import { getProjectByName, getProjectReleases, getProjectWithReadme, getSimilarProjects, getProjectsByAuthor, getProjectsByCategory } from "@/lib/queries";
@@ -16,6 +17,7 @@ import { notFound } from "next/navigation";
 import DepGraph from "@/app/components/dep-graph";
 import TrackedLink from "@/app/components/tracked-link";
 import { parseProvenanceJson } from "@/lib/provenance";
+import { buildAgentInstallInfo } from "@/lib/agent-install";
 
 function hostname(url: string): string {
   try { return new URL(url).hostname; } catch { return url.slice(0, 60); }
@@ -58,6 +60,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
   const mcp = getMCPManifest(project.id);
   const dependencySummary = getDependencyAuditSummary(project.id);
   const provenance = parseProvenanceJson(project.provenance_json);
+  const agentInstall = buildAgentInstallInfo(project, mcp, verification);
 
   const urgencyColors: Record<string, string> = {
     Low: "text-fm-urgency-low",
@@ -296,6 +299,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
             </div>
           </div>
         </div>
+
+        <AgentInstallCard
+          info={agentInstall}
+          labels={{
+            title: t.agentInstallCard,
+            installCommand: t.installCommand,
+            agentConfig: t.agentConfig,
+            runtimeRequirements: t.runtimeRequirements,
+            authEnv: t.authEnv,
+            authUnknown: t.authUnknown,
+            verifiedDate: t.verifiedDate,
+            source: t.source,
+            noAgentConfig: t.noAgentConfig,
+            copy: t.copy,
+            copied: t.copied,
+          }}
+        />
 
         {/* MCP compatibility matrix */}
         {mcp && (
