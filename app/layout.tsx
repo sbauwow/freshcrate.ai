@@ -133,9 +133,6 @@ export default async function RootLayout({
                 {t.searchButton}
               </button>
             </TrackedForm>
-            <span className="text-[10px] text-fm-text-light ml-auto">
-              {t.translationNote}
-            </span>
           </div>
         </div>
 
