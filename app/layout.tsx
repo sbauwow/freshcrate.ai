@@ -88,6 +88,8 @@ export default async function RootLayout({
               <span className="text-fm-border">|</span>
               <Link href="/research" className="text-fm-text hover:text-fm-link no-underline">{t.nav.research}</Link>
               <span className="text-fm-border">|</span>
+              <Link href="/security" className="text-fm-text hover:text-fm-link no-underline">{t.nav.security}</Link>
+              <span className="text-fm-border">|</span>
               <Link href="/agent-edition" className="text-fm-text hover:text-fm-link no-underline">{t.nav.agentEdition}</Link>
               <span className="text-fm-border">|</span>
               <Link href="/orchestra" className="text-fm-text hover:text-fm-link no-underline">{t.nav.orchestra}</Link>
@@ -167,6 +169,8 @@ export default async function RootLayout({
               <Link href="/orchestra" className="hover:text-fm-link" style={{ color: "var(--fm-footer-text)" }}>Orchestra</Link>
               <span style={{ color: "var(--fm-footer-text)" }}>{" | "}</span>
               <Link href="/legislation" className="hover:text-fm-link" style={{ color: "var(--fm-footer-text)" }}>{t.nav.legislation}</Link>
+              <span style={{ color: "var(--fm-footer-text)" }}>{" | "}</span>
+              <Link href="/security" className="hover:text-fm-link" style={{ color: "var(--fm-footer-text)" }}>{t.nav.security}</Link>
               <span style={{ color: "var(--fm-footer-text)" }}>{" | "}</span>
               <Link href="/privacy" className="hover:text-fm-link" style={{ color: "var(--fm-footer-text)" }}>{t.footerPrivacy}</Link>
               <span style={{ color: "var(--fm-footer-text)" }}>{" | "}</span>

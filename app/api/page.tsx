@@ -66,6 +66,17 @@ export default async function ApiDocsPage() {
         </section>
 
         <section>
+          <h3 className="text-[12px] font-bold text-fm-green mb-2">Security Snapshot</h3>
+          <div className="bg-fm-surface border border-fm-border rounded p-3">
+            <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/security</code>
+            <div className="text-[10px] text-fm-text-light mt-1 mb-2">Returns cached high-impact CVEs, CISA KEV exploited vulnerabilities, breach disclosures, security news, and source links.</div>
+            <div className="mt-2 bg-fm-bg rounded p-2">
+              <pre className="text-[10px] font-mono text-fm-text whitespace-pre-wrap">{`curl https://www.freshcrate.ai/api/security`}</pre>
+            </div>
+          </div>
+        </section>
+
+        <section>
           <h3 className="text-[12px] font-bold text-fm-green mb-2">Project Dependency Audit</h3>
           <div className="bg-fm-surface border border-fm-border rounded p-3">
             <code className="text-[11px] text-fm-green font-mono font-bold">GET /api/projects/:name/deps</code>
