@@ -80,7 +80,7 @@ export default async function RootLayout({
 
         {/* Nav bar */}
         <div className="bg-fm-nav-bg border-b border-fm-nav-border">
-          <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 py-1.5 flex items-center justify-between">
+          <div className="max-w-[1100px] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-4 py-1.5 flex flex-wrap items-center justify-between gap-y-1.5 gap-x-3">
             <nav className="flex flex-wrap gap-1 text-[11px] font-bold">
               <Link href="/" className="text-fm-text hover:text-fm-link no-underline">{t.nav.home}</Link>
               <span className="text-fm-border">|</span>
@@ -110,7 +110,7 @@ export default async function RootLayout({
               <span className="text-fm-border">|</span>
               <Link href="/learn" className="text-fm-text hover:text-fm-link no-underline">{t.nav.learn}</Link>
             </nav>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <ThemeSwitcher theme={theme} label={t.themeLabel} modernLabel={t.themeModern} retroLabel={t.themeRetro} />
               <LocaleSwitcher locale={locale} label={t.localeLabel} englishLabel={t.localeEnglish} chineseLabel={t.localeChinese} />
               <NavClock />
