@@ -55,12 +55,12 @@ export default async function Image({
         <div style={{ fontSize: 28, color: "#05ffa1", marginBottom: 16, letterSpacing: 1 }}>
           freshcrate • Mini Crates
         </div>
-        <div style={{ fontSize: 38, color: "#ff71ce", marginBottom: 8 }}>
+        <div style={{ display: "flex", fontSize: 38, color: "#ff71ce", marginBottom: 8 }}>
           {crate.emoji} Crate #{crate.number}
         </div>
         <div style={{ fontSize: 60, fontWeight: 800, lineHeight: 1.08 }}>{crate.title}</div>
         <div style={{ fontSize: 30, color: "#e0c3fc", marginTop: 16 }}>{crate.subtitle}</div>
-        <div style={{ fontSize: 22, color: "#05ffa1", marginTop: 24 }}>
+        <div style={{ display: "flex", fontSize: 22, color: "#05ffa1", marginTop: 24 }}>
           ~{crate.estimatedMinutes} min • {crate.tags.slice(0, 3).join(" • ")}
         </div>
       </div>
