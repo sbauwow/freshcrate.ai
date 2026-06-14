@@ -140,6 +140,60 @@ const PATTERNS: OrchestraPattern[] = [
       "Escalation with no context, logs, or diff attached.",
     ],
   },
+  {
+    id: "isolated-workspaces",
+    title: "Isolated workspaces for parallel writers",
+    stage: "production",
+    themes: ["isolation", "delegation", "coordination"],
+    summary: "Give each concurrent agent its own sandbox or git worktree so parallel edits can't corrupt shared state, then merge through one gate.",
+    why_it_works: "Parallelism only pays off when agents can't clobber each other — isolation turns collisions into explicit, reviewable diffs instead of silent corruption.",
+    best_practices: [
+      "Run write-capable agents in per-task worktrees or sandboxes, not the live tree.",
+      "Reconcile branches through a single synthesis step that owns conflict resolution.",
+      "Discard an isolated workspace if its task is abandoned — never half-merge.",
+    ],
+    anti_patterns: [
+      "Multiple agents writing the same working directory at once.",
+      "Merging worker output with no conflict-resolution owner.",
+      "Sharing one set of credentials or mutable state across isolated lanes.",
+    ],
+  },
+  {
+    id: "context-compaction",
+    title: "Context compaction for long horizons",
+    stage: "team",
+    themes: ["context", "memory", "grounding"],
+    summary: "For long-running agents, summarize and persist progress before the context window fills, so work survives compaction instead of degrading.",
+    why_it_works: "Long tasks outlive any single context window; without deliberate compaction, agents silently drop early decisions and start repeating or contradicting themselves.",
+    best_practices: [
+      "Checkpoint decisions and open threads to a durable artifact before compacting.",
+      "Summarize stale turns into structured state, not free prose.",
+      "Re-ground from the artifact after compaction instead of trusting recalled context.",
+    ],
+    anti_patterns: [
+      "Letting the window overflow and hoping the model still remembers.",
+      "Compacting history into vague prose that drops acceptance criteria.",
+      "Treating summarized memory as authoritative for current system facts.",
+    ],
+  },
+  {
+    id: "adversarial-verification",
+    title: "Adversarial multi-judge verification",
+    stage: "production",
+    themes: ["verification", "review", "safety"],
+    summary: "For high-stakes output, have several independent agents try to refute a result rather than one reviewer approve it; accept only on consensus.",
+    why_it_works: "A single reviewer shares the proposer's blind spots; independent skeptics with distinct lenses catch plausible-but-wrong results that pass one-pass review.",
+    best_practices: [
+      "Prompt verifiers to refute, not rubber-stamp, and default to reject-if-uncertain.",
+      "Give each verifier a distinct lens — correctness, security, does-it-reproduce.",
+      "Require majority agreement before a finding or change is trusted.",
+    ],
+    anti_patterns: [
+      "Treating one model's self-check as verification.",
+      "Running N identical reviewers instead of diverse lenses.",
+      "Confirmation-seeking prompts that nudge reviewers to agree.",
+    ],
+  },
 ];
 
 const ACTION_LIBRARY: Record<string, OrchestraAction> = {
@@ -193,6 +247,36 @@ const ACTION_LIBRARY: Record<string, OrchestraAction> = {
       "Save structured observations for downstream agents.",
     ],
   },
+  isolation: {
+    id: "isolation",
+    title: "Isolate parallel writers",
+    priority: "P1",
+    checklist: [
+      "Run write-capable agents in per-task worktrees or sandboxes.",
+      "Merge through one synthesis step that owns conflicts.",
+      "Discard abandoned workspaces instead of half-merging.",
+    ],
+  },
+  verification: {
+    id: "verification",
+    title: "Add adversarial verification for high-stakes output",
+    priority: "P1",
+    checklist: [
+      "Spawn independent skeptics prompted to refute, not approve.",
+      "Use distinct lenses: correctness, security, reproducibility.",
+      "Accept only on majority agreement.",
+    ],
+  },
+  compaction: {
+    id: "compaction",
+    title: "Compact context before it overflows",
+    priority: "P2",
+    checklist: [
+      "Checkpoint decisions and open threads to a durable artifact.",
+      "Summarize stale turns into structured state, not prose.",
+      "Re-ground from the artifact after compaction.",
+    ],
+  },
 };
 
 const THEME_TO_ACTIONS: Record<string, string[]> = {
@@ -212,6 +296,9 @@ const THEME_TO_ACTIONS: Record<string, string[]> = {
   cost: ["contracts"],
   ops: ["escalation", "grounding"],
   "human-in-the-loop": ["escalation"],
+  isolation: ["isolation", "review"],
+  context: ["compaction", "artifacts"],
+  verification: ["verification", "review"],
 };
 
 export function getOrchestraPatterns(filters: OrchestraFilters = {}): OrchestraPattern[] {
@@ -239,8 +326,10 @@ export function getOrchestraFilterOptions() {
 
 export function getOrchestraBrief() {
   const antiPatterns = PATTERNS.reduce((sum, item) => sum + item.anti_patterns.length, 0);
+  // "Principles" = the do-this best-practice items, not just the pattern count.
+  const principles = PATTERNS.reduce((sum, item) => sum + item.best_practices.length, 0);
   return {
-    principles: PATTERNS.length,
+    principles,
     patterns: PATTERNS.length,
     antiPatterns,
   };
