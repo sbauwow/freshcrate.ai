@@ -89,8 +89,8 @@
     "vitest": "^4.1.4"
   },
   "overrides": {
-    "hono": "4.12.19",
-    "@hono/node-server": "1.19.13",
+    "hono": "4.12.27",
+    "@hono/node-server": "2.0.6",
     "postcss": "^8.5.14"
   }
 }
