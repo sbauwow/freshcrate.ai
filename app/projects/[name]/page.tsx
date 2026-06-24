@@ -23,6 +23,79 @@ function hostname(url: string): string {
   try { return new URL(url).hostname; } catch { return url.slice(0, 60); }
 }
 
+const appearsInGuidesByProject: Record<string, Array<{ href: string; title: string; blurb: string }>> = {
+  "everything-claude-code": [
+    { href: "/learn/best-mcp-servers-for-claude-code", title: "Best MCP Servers for Claude Code", blurb: "Featured as a top Claude-oriented MCP stack." },
+  ],
+  "chrome-devtools-mcp": [
+    { href: "/learn/best-mcp-servers-for-claude-code", title: "Best MCP Servers for Claude Code", blurb: "Highlighted for live browser debugging inside Claude Code workflows." },
+    { href: "/learn/best-browser-automation-tools-for-ai-agents", title: "Best Browser Automation Tools for AI Agents", blurb: "Featured for real browser inspection and debugging." },
+  ],
+  "playwright-mcp": [
+    { href: "/learn/best-mcp-servers-for-claude-code", title: "Best MCP Servers for Claude Code", blurb: "Featured for deterministic browser automation." },
+    { href: "/learn/best-browser-automation-tools-for-ai-agents", title: "Best Browser Automation Tools for AI Agents", blurb: "Featured for repeatable QA and browser runbooks." },
+  ],
+  fastmcp: [
+    { href: "/learn/best-mcp-servers-for-claude-code", title: "Best MCP Servers for Claude Code", blurb: "Featured for building custom MCP servers quickly." },
+  ],
+  "mcp-toolbox": [
+    { href: "/learn/best-mcp-servers-for-claude-code", title: "Best MCP Servers for Claude Code", blurb: "Featured for broad operational tool access." },
+  ],
+  langgraph: [
+    { href: "/learn/best-open-source-ai-agent-frameworks", title: "Best Open Source AI Agent Frameworks", blurb: "Featured as a top framework pick." },
+    { href: "/compare/langgraph-vs-crewai-vs-autogen", title: "LangGraph vs CrewAI vs AutoGen", blurb: "Included in the direct framework comparison." },
+  ],
+  crewAI: [
+    { href: "/learn/best-open-source-ai-agent-frameworks", title: "Best Open Source AI Agent Frameworks", blurb: "Featured as a top framework pick." },
+    { href: "/compare/langgraph-vs-crewai-vs-autogen", title: "LangGraph vs CrewAI vs AutoGen", blurb: "Included in the direct framework comparison." },
+  ],
+  autogen: [
+    { href: "/compare/langgraph-vs-crewai-vs-autogen", title: "LangGraph vs CrewAI vs AutoGen", blurb: "Included in the direct framework comparison." },
+  ],
+  "hermes-agent": [
+    { href: "/learn/best-coding-agents", title: "Best Coding Agents and AI Dev Assistants", blurb: "Featured for terminal-first operator workflows." },
+  ],
+  continue: [
+    { href: "/learn/best-coding-agents", title: "Best Coding Agents and AI Dev Assistants", blurb: "Featured for editor-native coding workflows." },
+  ],
+  tabby: [
+    { href: "/learn/best-coding-agents", title: "Best Coding Agents and AI Dev Assistants", blurb: "Featured for local-first coding assistance." },
+  ],
+  sweep: [
+    { href: "/learn/best-coding-agents", title: "Best Coding Agents and AI Dev Assistants", blurb: "Featured for repo automation and code review workflows." },
+  ],
+  stagehand: [
+    { href: "/learn/best-browser-automation-tools-for-ai-agents", title: "Best Browser Automation Tools for AI Agents", blurb: "Featured as a browser agent SDK choice." },
+  ],
+  opentabs: [
+    { href: "/learn/best-browser-automation-tools-for-ai-agents", title: "Best Browser Automation Tools for AI Agents", blurb: "Featured for API-first browser escape hatches." },
+  ],
+  ragflow: [
+    { href: "/learn/best-rag-memory-tools-for-agents", title: "Best RAG and Memory Tools for Agents", blurb: "Featured as a top retrieval stack." },
+  ],
+  mem0: [
+    { href: "/learn/best-rag-memory-tools-for-agents", title: "Best RAG and Memory Tools for Agents", blurb: "Featured for persistent agent memory." },
+  ],
+  vllm: [
+    { href: "/learn/best-rag-memory-tools-for-agents", title: "Best RAG and Memory Tools for Agents", blurb: "Featured for serving retrieval-heavy systems." },
+  ],
+  "vector-graph-rag": [
+    { href: "/learn/best-rag-memory-tools-for-agents", title: "Best RAG and Memory Tools for Agents", blurb: "Featured for GraphRAG-style retrieval exploration." },
+  ],
+  langfuse: [
+    { href: "/learn/best-ai-agent-observability-tools", title: "Best AI Agent Observability Tools", blurb: "Featured as a broad observability stack." },
+  ],
+  mlflow: [
+    { href: "/learn/best-ai-agent-observability-tools", title: "Best AI Agent Observability Tools", blurb: "Featured for eval-heavy production loops." },
+  ],
+  phoenix: [
+    { href: "/learn/best-ai-agent-observability-tools", title: "Best AI Agent Observability Tools", blurb: "Featured for tracing and diagnosis." },
+  ],
+  agentops: [
+    { href: "/learn/best-ai-agent-observability-tools", title: "Best AI Agent Observability Tools", blurb: "Featured for coding-agent feedback loops." },
+  ],
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name } = await params;
   const project = getProjectByName(name);
@@ -61,6 +134,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
   const dependencySummary = getDependencyAuditSummary(project.id);
   const provenance = parseProvenanceJson(project.provenance_json);
   const agentInstall = buildAgentInstallInfo(project, mcp, verification);
+  const appearsInGuides = appearsInGuidesByProject[project.name] ?? [];
 
   const urgencyColors: Record<string, string> = {
     Low: "text-fm-urgency-low",
@@ -113,6 +187,26 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
           <h3 className="text-[12px] font-bold text-fm-green mb-1">{t.descriptionHeading}</h3>
           <p className="text-[11px] text-fm-text leading-relaxed">{project.description}</p>
         </div>
+
+        {appearsInGuides.length > 0 && (
+          <div className="mb-6 border border-fm-border rounded p-3 bg-fm-sidebar-bg">
+            <h3 className="text-[12px] font-bold text-fm-green mb-2">Appears in guides</h3>
+            <div className="space-y-2">
+              {appearsInGuides.map((guide) => (
+                <TrackedLink
+                  key={guide.href}
+                  event="related_click"
+                  eventTarget={`guide:${project.name}->${guide.href}`}
+                  href={guide.href}
+                  className="block rounded border border-fm-border bg-white/70 p-2 hover:bg-white"
+                >
+                  <div className="text-[11px] font-bold text-fm-link">{guide.title}</div>
+                  <p className="mt-1 text-[10px] text-fm-text-light leading-relaxed">{guide.blurb}</p>
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* README */}
         {enriched?.readme_html && (

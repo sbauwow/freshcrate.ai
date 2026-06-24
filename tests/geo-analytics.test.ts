@@ -24,9 +24,11 @@ describe("geo analytics", () => {
       {
         headers: {
           referer: "https://www.freshcrate.ai/projects/AntennaSim",
-          "user-agent": "Mozilla/5.0",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
           accept: "text/html",
+          "accept-language": "en-US,en;q=0.9",
           "sec-fetch-mode": "navigate",
+          "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="24"',
           "cf-ipcountry": "US",
           "x-vercel-ip-country-region": "TX",
           "x-vercel-ip-city": "Austin",
@@ -78,9 +80,11 @@ describe("geo analytics", () => {
     await beaconGET(new NextRequest("https://www.freshcrate.ai/api/beacon?p=%2Fprojects%2FAntennaSim&e=pageview", {
       headers: {
         referer: "https://www.freshcrate.ai/projects/AntennaSim",
-        "user-agent": "Mozilla/5.0",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         accept: "text/html",
+        "accept-language": "en-US,en;q=0.9",
         "sec-fetch-mode": "navigate",
+        "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="24"',
         cookie: "fc_sid=11111111-1111-4111-8111-111111111111",
         "cf-ipcountry": "US",
         "x-vercel-ip-country-region": "TX",
@@ -91,9 +95,11 @@ describe("geo analytics", () => {
     await beaconGET(new NextRequest("https://www.freshcrate.ai/api/beacon?p=%2Fsearch%3Fq%3Dagent&e=search", {
       headers: {
         referer: "https://www.freshcrate.ai/search?q=agent",
-        "user-agent": "Mozilla/5.0",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         accept: "text/html",
+        "accept-language": "en-US,en;q=0.9",
         "sec-fetch-mode": "navigate",
+        "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="24"',
         cookie: "fc_sid=11111111-1111-4111-8111-111111111111",
         "cf-ipcountry": "US",
         "x-vercel-ip-country-region": "TX",
@@ -104,9 +110,11 @@ describe("geo analytics", () => {
     await beaconGET(new NextRequest("https://www.freshcrate.ai/api/beacon?p=%2Fprojects%2FAntennaSim&e=pageview", {
       headers: {
         referer: "https://www.freshcrate.ai/projects/AntennaSim",
-        "user-agent": "Mozilla/5.0",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         accept: "text/html",
+        "accept-language": "en-US,en;q=0.9",
         "sec-fetch-mode": "navigate",
+        "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="24"',
         cookie: "fc_sid=22222222-2222-4222-8222-222222222222",
         "cf-ipcountry": "GB",
         "x-vercel-ip-country-region": "England",
@@ -117,9 +125,11 @@ describe("geo analytics", () => {
     await beaconGET(new NextRequest("https://www.freshcrate.ai/api/beacon?p=%2Fout&e=outbound&t=repo:test", {
       headers: {
         referer: "https://www.freshcrate.ai/projects/AntennaSim",
-        "user-agent": "Mozilla/5.0",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
         accept: "text/html",
+        "accept-language": "en-US,en;q=0.9",
         "sec-fetch-mode": "navigate",
+        "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="24"',
         cookie: "fc_sid=22222222-2222-4222-8222-222222222222",
         "cf-ipcountry": "GB",
         "x-vercel-ip-country-region": "England",

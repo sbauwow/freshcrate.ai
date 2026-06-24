@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TrackedForm from "@/app/components/tracked-form";
+import TrackedLink from "@/app/components/tracked-link";
 import { getProjectByName, getProjectReleases, getLatestReleases } from "@/lib/queries";
 
 function CompareRow({
@@ -94,6 +95,31 @@ export default async function ComparePage({
             Compare
           </button>
         </TrackedForm>
+
+        <div className="mt-5 border border-fm-border rounded p-4 bg-white/60 max-w-[760px]">
+          <h3 className="text-[12px] font-bold text-fm-text mb-2">Featured comparisons</h3>
+          <div className="space-y-2 text-[11px]">
+            <TrackedLink
+              event="related_click"
+              eventTarget="compare:featured:langgraph-crewai-autogen"
+              href="/compare/langgraph-vs-crewai-vs-autogen"
+              className="block text-fm-link hover:text-fm-link-hover"
+            >
+              LangGraph vs CrewAI vs AutoGen
+            </TrackedLink>
+            <p className="text-fm-text-light">
+              A direct verdict for stateful workflows, role-based multi-agent teams, and Microsoft-backed orchestration.
+            </p>
+            <TrackedLink
+              event="related_click"
+              eventTarget="compare:guide:frameworks"
+              href="/learn/best-open-source-ai-agent-frameworks"
+              className="block text-fm-link hover:text-fm-link-hover"
+            >
+              Need the broader picture? Read Best Open Source AI Agent Frameworks.
+            </TrackedLink>
+          </div>
+        </div>
       </div>
     );
   }

@@ -52,6 +52,44 @@ const tracks = [
   },
 ];
 
+const operatorGuides = [
+  {
+    title: "Best MCP Servers for Claude Code",
+    href: "/learn/best-mcp-servers-for-claude-code",
+    summary: "Ranked picks for browser control, MCP server building, and operator-grade Claude Code workflows.",
+  },
+  {
+    title: "Best Open Source AI Agent Frameworks",
+    href: "/learn/best-open-source-ai-agent-frameworks",
+    summary: "A practical selector for LangGraph, CrewAI, AgentScope, LangChain, and AutoGPT by workflow style.",
+  },
+  {
+    title: "Best Coding Agents and AI Dev Assistants",
+    href: "/learn/best-coding-agents",
+    summary: "Open source picks for terminal-first coding agents, local-first assistants, and repo automation workflows.",
+  },
+  {
+    title: "Best Browser Automation Tools for AI Agents",
+    href: "/learn/best-browser-automation-tools-for-ai-agents",
+    summary: "Ranked picks for live browser debugging, deterministic QA, and browser-agent workflows.",
+  },
+  {
+    title: "Best RAG and Memory Tools for Agents",
+    href: "/learn/best-rag-memory-tools-for-agents",
+    summary: "Practical picks for retrieval stacks, persistent agent memory, and context-serving infrastructure.",
+  },
+  {
+    title: "Best AI Agent Observability Tools",
+    href: "/learn/best-ai-agent-observability-tools",
+    summary: "Ranked picks for tracing, evals, monitoring, and operational feedback loops.",
+  },
+  {
+    title: "AI Agent Stack Map",
+    href: "/learn/ai-agent-stack-map",
+    summary: "A hub page mapping frameworks, coding agents, browser automation, memory, observability, and MCP layers.",
+  },
+];
+
 export default async function LearnPage() {
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
@@ -91,6 +129,25 @@ export default async function LearnPage() {
         <p className="text-[10px] text-fm-text-light mt-1">
           {t.stats}
         </p>
+      </div>
+
+      {/* Operator Guides */}
+      <div>
+        <div className="border-b border-fm-border pb-1 mb-3">
+          <h2 className="text-[13px] font-bold text-fm-text">Operator guides</h2>
+        </div>
+        <div className="space-y-2">
+          {operatorGuides.map((guide) => (
+            <Link
+              key={guide.href}
+              href={guide.href}
+              className="block border border-fm-border rounded p-3 bg-fm-sidebar-bg hover:bg-white/80 transition-colors"
+            >
+              <div className="text-[13px] font-bold text-fm-link">{guide.title}</div>
+              <p className="text-[11px] text-fm-text mt-1">{guide.summary}</p>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Choose Your Path */}

@@ -17,6 +17,33 @@ export const metadata: Metadata = {
   description: "Search packages by name, description, maintainer, tag, or language.",
 };
 
+const suggestedPaths = [
+  {
+    label: "Best MCP Servers for Claude Code",
+    href: "/learn/best-mcp-servers-for-claude-code",
+    blurb: "High-intent operator guide for Claude Code tool stacks.",
+    eventTarget: "search:suggested:mcp-guide",
+  },
+  {
+    label: "Best Open Source AI Agent Frameworks",
+    href: "/learn/best-open-source-ai-agent-frameworks",
+    blurb: "Direct framework selector for LangGraph, CrewAI, AgentScope, and more.",
+    eventTarget: "search:suggested:framework-guide",
+  },
+  {
+    label: "LangGraph vs CrewAI vs AutoGen",
+    href: "/compare/langgraph-vs-crewai-vs-autogen",
+    blurb: "Head-to-head compare page for a common framework decision.",
+    eventTarget: "search:suggested:framework-compare",
+  },
+  {
+    label: "Browse MCP Servers",
+    href: "/browse?category=MCP%20Servers",
+    blurb: "Jump straight into a high-signal category.",
+    eventTarget: "search:suggested:browse-mcp",
+  },
+] as const;
+
 function editDistance(a: string, b: string): number {
   const n = a.length;
   const m = b.length;
@@ -154,6 +181,37 @@ export default async function SearchPage({
     }
   }
 
+  const topCategoryPivots = Array.from(
+    results.reduce((acc, project) => {
+      acc.set(project.category, (acc.get(project.category) || 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 4);
+
+  const topTagPivots = Array.from(
+    results.reduce((acc, project) => {
+      for (const tag of project.tags || []) {
+        acc.set(tag, (acc.get(tag) || 0) + 1);
+      }
+      return acc;
+    }, new Map<string, number>())
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8);
+
+  const topAuthorPivots = Array.from(
+    results.reduce((acc, project) => {
+      const authorName = cleanAuthor(project.author);
+      if (!authorName) return acc;
+      acc.set(authorName, (acc.get(authorName) || 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 5);
+
   return (
     <div className="flex flex-col md:flex-row gap-5">
       {hasQuery && (
@@ -243,6 +301,88 @@ export default async function SearchPage({
           </div>
         )}
 
+        {!hasQuery && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
+            <h3 className="text-[11px] font-bold text-fm-green mb-2">Suggested paths</h3>
+            <div className="grid gap-2 md:grid-cols-2">
+              {suggestedPaths.map((item) => (
+                <TrackedNextLink
+                  key={item.href}
+                  event="related_click"
+                  eventTarget={item.eventTarget}
+                  href={item.href}
+                  className="block rounded border border-fm-border bg-white/70 p-2 hover:bg-white"
+                >
+                  <div className="text-[11px] font-bold text-fm-link">{item.label}</div>
+                  <p className="mt-1 text-[10px] text-fm-text-light leading-relaxed">{item.blurb}</p>
+                </TrackedNextLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasQuery && results.length > 0 && (topCategoryPivots.length > 0 || topTagPivots.length > 0 || topAuthorPivots.length > 0) && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
+            <h3 className="text-[11px] font-bold text-fm-green mb-2">Continue exploring</h3>
+            <div className="space-y-2 text-[10px]">
+              {topCategoryPivots.length > 0 && (
+                <div>
+                  <div className="text-fm-text-light mb-1">Categories</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {topCategoryPivots.map(([categoryName, count]) => (
+                      <TrackedNextLink
+                        key={categoryName}
+                        event="related_click"
+                        eventTarget={`search:continue:category:${categoryName}`}
+                        href={`/browse?category=${encodeURIComponent(categoryName)}`}
+                        className="text-[9px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded hover:bg-green-200"
+                      >
+                        {categoryName} ({count})
+                      </TrackedNextLink>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {topTagPivots.length > 0 && (
+                <div>
+                  <div className="text-fm-text-light mb-1">Tags</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {topTagPivots.map(([tagName, count]) => (
+                      <TrackedNextLink
+                        key={tagName}
+                        event="related_click"
+                        eventTarget={`search:continue:tag:${tagName}`}
+                        href={`/tag/${encodeURIComponent(tagName)}`}
+                        className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                      >
+                        #{tagName} ({count})
+                      </TrackedNextLink>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {topAuthorPivots.length > 0 && (
+                <div>
+                  <div className="text-fm-text-light mb-1">Maintainers</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {topAuthorPivots.map(([authorName, count]) => (
+                      <TrackedNextLink
+                        key={authorName}
+                        event="related_click"
+                        eventTarget={`search:continue:author:${authorName}`}
+                        href={`/author/${encodeURIComponent(authorName)}`}
+                        className="text-[9px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-200"
+                      >
+                        {authorName} ({count})
+                      </TrackedNextLink>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Result count */}
         {hasQuery && (
           <div className="text-[10px] text-fm-text-light mb-3">
@@ -299,27 +439,36 @@ export default async function SearchPage({
                 <RankExplanation breakdown={project.rank_breakdown} className="mt-1" />
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   {project.tags.map((tag) => (
-                    <Link
+                    <TrackedNextLink
                       key={tag}
+                      event="related_click"
+                      eventTarget={`search:continue:tag:${tag}`}
                       href={`/tag/${encodeURIComponent(tag)}`}
                       className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                     >
                       {tag}
-                    </Link>
+                    </TrackedNextLink>
                   ))}
                   <span className="text-[9px] text-fm-text-light ml-auto">
                     {t.byAuthor}{" "}
-                    <Link href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`} className="text-fm-link hover:text-fm-link-hover">
+                    <TrackedNextLink
+                      event="related_click"
+                      eventTarget={`search:continue:author:${cleanAuthor(project.author)}`}
+                      href={`/author/${encodeURIComponent(cleanAuthor(project.author))}`}
+                      className="text-fm-link hover:text-fm-link-hover"
+                    >
                       {cleanAuthor(project.author)}
-                    </Link>
+                    </TrackedNextLink>
                   </span>
                   {project.language && (
-                    <Link
+                    <TrackedNextLink
+                      event="related_click"
+                      eventTarget={`search:continue:language:${project.language}`}
                       href={`/search?q=${encodeURIComponent(q || "")}&language=${encodeURIComponent(project.language)}`}
-                      className="text-[9px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-mono"
+                      className="text-[9px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-mono hover:bg-gray-200"
                     >
                       {project.language}
-                    </Link>
+                    </TrackedNextLink>
                   )}
                 </div>
               </div>

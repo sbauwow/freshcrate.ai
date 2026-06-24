@@ -16,6 +16,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/security`, changeFrequency: "hourly", priority: 0.7 },
     { url: `${baseUrl}/api`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${baseUrl}/learn`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/learn/best-mcp-servers-for-claude-code`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/learn/best-open-source-ai-agent-frameworks`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/learn/best-coding-agents`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/learn/best-browser-automation-tools-for-ai-agents`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/learn/best-rag-memory-tools-for-agents`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/learn/best-ai-agent-observability-tools`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/learn/ai-agent-stack-map`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/compare/langgraph-vs-crewai-vs-autogen`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/learn/glossary`, changeFrequency: "monthly", priority: 0.5 },
   ];
 

@@ -8,6 +8,143 @@ import { getProjectsByTag } from "@/lib/queries";
 import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import TrackedLink from "@/app/components/tracked-link";
 
+const guideLinksByTag: Record<string, Array<{ href: string; label: string; blurb: string }>> = {
+  tracing: [
+    {
+      href: "/learn/best-ai-agent-observability-tools",
+      label: "Best AI Agent Observability Tools",
+      blurb: "Use this when you need a direct selector for tracing, prompt diagnosis, and failure analysis.",
+    },
+  ],
+  evaluation: [
+    {
+      href: "/learn/best-ai-agent-observability-tools",
+      label: "Best AI Agent Observability Tools",
+      blurb: "A practical guide for eval loops, production quality monitoring, and agent debugging.",
+    },
+  ],
+  observability: [
+    {
+      href: "/learn/best-ai-agent-observability-tools",
+      label: "Best AI Agent Observability Tools",
+      blurb: "A practical selector for tracing, evals, monitoring, and operational feedback loops.",
+    },
+  ],
+  "vector-database": [
+    {
+      href: "/learn/best-rag-memory-tools-for-agents",
+      label: "Best RAG and Memory Tools for Agents",
+      blurb: "A practical guide for vector retrieval, memory layers, and agent context infrastructure.",
+    },
+  ],
+  rag: [
+    {
+      href: "/learn/best-rag-memory-tools-for-agents",
+      label: "Best RAG and Memory Tools for Agents",
+      blurb: "A practical selector for retrieval stacks, persistent memory, and context-serving infrastructure.",
+    },
+  ],
+  "browser-automation": [
+    {
+      href: "/learn/best-browser-automation-tools-for-ai-agents",
+      label: "Best Browser Automation Tools for AI Agents",
+      blurb: "A practical selector for live browser debugging, deterministic QA, and browser-agent workflows.",
+    },
+  ],
+  "code-generation": [
+    {
+      href: "/learn/best-coding-agents",
+      label: "Best Coding Agents and AI Dev Assistants",
+      blurb: "Use this when you want an answer-oriented shortlist instead of a raw code-generation package list.",
+    },
+  ],
+  "developer-tools": [
+    {
+      href: "/learn/best-coding-agents",
+      label: "Best Coding Agents and AI Dev Assistants",
+      blurb: "A practical selector for terminal-first agents, local-first assistants, and repo automation tools.",
+    },
+  ],
+  mcp: [
+    {
+      href: "/learn/best-mcp-servers-for-claude-code",
+      label: "Best MCP Servers for Claude Code",
+      blurb: "Ranked picks for browser control, docs/context access, and operator workflows.",
+    },
+  ],
+  "mcp-server": [
+    {
+      href: "/learn/best-mcp-servers-for-claude-code",
+      label: "Best MCP Servers for Claude Code",
+      blurb: "A direct guide for choosing practical MCP servers by workflow.",
+    },
+  ],
+  claude: [
+    {
+      href: "/learn/best-mcp-servers-for-claude-code",
+      label: "Best MCP Servers for Claude Code",
+      blurb: "The highest-signal operator guide for Claude-oriented MCP setups.",
+    },
+  ],
+  automation: [
+    {
+      href: "/learn/best-browser-automation-tools-for-ai-agents",
+      label: "Best Browser Automation Tools for AI Agents",
+      blurb: "A strong guide for agent workflows that need browsing, QA, and repeatable web actions.",
+    },
+  ],
+  "claude-code": [
+    {
+      href: "/learn/best-mcp-servers-for-claude-code",
+      label: "Best MCP Servers for Claude Code",
+      blurb: "Start here if you want the shortest path to a stronger Claude Code tool stack.",
+    },
+    {
+      href: "/learn/best-coding-agents",
+      label: "Best Coding Agents and AI Dev Assistants",
+      blurb: "A stronger guide if you are comparing Claude Code alternatives and operator-oriented coding agents.",
+    },
+  ],
+  agent: [
+    {
+      href: "/learn/best-open-source-ai-agent-frameworks",
+      label: "Best Open Source AI Agent Frameworks",
+      blurb: "A practical selector for graph-first, role-based, and general agent frameworks.",
+    },
+  ],
+  "ai-agent": [
+    {
+      href: "/learn/best-open-source-ai-agent-frameworks",
+      label: "Best Open Source AI Agent Frameworks",
+      blurb: "Use this when you need a direct framework recommendation instead of a package list.",
+    },
+  ],
+  "agentic-ai": [
+    {
+      href: "/learn/best-open-source-ai-agent-frameworks",
+      label: "Best Open Source AI Agent Frameworks",
+      blurb: "A concise guide for choosing production-ready agent orchestration stacks.",
+    },
+    {
+      href: "/compare/langgraph-vs-crewai-vs-autogen",
+      label: "LangGraph vs CrewAI vs AutoGen",
+      blurb: "Direct comparison page for the most citable multi-agent framework question.",
+    },
+  ],
+  "multi-agent": [
+    {
+      href: "/learn/best-open-source-ai-agent-frameworks",
+      label: "Best Open Source AI Agent Frameworks",
+      blurb: "Best picks for multi-agent systems, state graphs, and team-style workflows.",
+    },
+    {
+      href: "/compare/langgraph-vs-crewai-vs-autogen",
+      label: "LangGraph vs CrewAI vs AutoGen",
+      blurb: "A side-by-side verdict for the most common multi-agent framework choice.",
+    },
+  ],
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -52,6 +189,7 @@ export default async function TagPage({
   )
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
+  const contextualGuides = guideLinksByTag[normalizedTag] ?? [];
 
   const trendingInTag = [...projects]
     .sort((a, b) => {
@@ -232,6 +370,28 @@ export default async function TagPage({
                 >
                   <span>#{t}</span>
                   <span className="text-fm-text-light text-[10px]">{count}</span>
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {contextualGuides.length > 0 && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
+            <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">
+              Guides for this tag
+            </h3>
+            <div className="space-y-2 text-[11px]">
+              {contextualGuides.map((guide) => (
+                <TrackedLink
+                  key={guide.href}
+                  event="related_click"
+                  eventTarget={`tag:${normalizedTag}->guide:${guide.href}`}
+                  href={guide.href}
+                  className="block rounded border border-fm-border bg-white/70 p-2 hover:bg-white"
+                >
+                  <div className="font-bold text-fm-link">{guide.label}</div>
+                  <p className="mt-1 text-[10px] text-fm-text-light leading-relaxed">{guide.blurb}</p>
                 </TrackedLink>
               ))}
             </div>

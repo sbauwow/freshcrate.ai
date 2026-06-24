@@ -4,6 +4,7 @@ import { createTestDb, _resetDb } from "./setup";
 import {
   getLandingPageConversion,
   getSourceConversionBreakdown,
+  getSourceFunnel,
 } from "@/lib/analytics";
 
 let db: Database.Database;
@@ -78,6 +79,43 @@ describe("analytics conversion breakdowns", () => {
           sessions: 1,
           with_search: 0,
           with_outbound_or_install: 1,
+        }),
+      ])
+    );
+  });
+
+  it("keeps the source funnel on first-touch attribution even if later events carry a different utm source", () => {
+    insertEvent({
+      sessionId: "s5",
+      path: "/projects/B?utm_source=chatgpt.com",
+      createdAt: "2099-01-01 00:04:00",
+      referrer: "chatgpt.com",
+      utmSource: "chatgpt.com",
+      utmMedium: "referral",
+      utmCampaign: "launch",
+    });
+    insertEvent({
+      sessionId: "s5",
+      path: "/search?q=agent",
+      createdAt: "2099-01-01 00:04:10",
+      eventType: "search",
+      eventTarget: "search:header",
+      utmSource: "reddit",
+      utmMedium: "social",
+      utmCampaign: "late-touch",
+    });
+
+    expect(getSourceFunnel(1, 10)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "chatgpt.com",
+          sessions: 3,
+          with_search: 3,
+          with_outbound_or_install: 1,
+        }),
+        expect.not.objectContaining({
+          source: "reddit",
+          sessions: 2,
         }),
       ])
     );

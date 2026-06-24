@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { cleanAuthor } from "@/lib/author-slug";
@@ -10,6 +11,26 @@ import ResearchFeed from "./components/research-feed";
 import TrackedForm from "./components/tracked-form";
 import TrackedLink from "./components/tracked-link";
 import TrackedNextLink from "./components/tracked-next-link";
+
+export const metadata: Metadata = {
+  title: "freshcrate — open source packages for AI agents, MCP servers, and frameworks",
+  description:
+    "Discover open source AI agent packages, MCP servers, orchestration frameworks, coding agents, infrastructure, and research tooling. Fresh releases, ranked packages, and retrieval-friendly project pages.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "freshcrate — open source packages for AI agents, MCP servers, and frameworks",
+    description:
+      "Discover open source AI agent packages, MCP servers, orchestration frameworks, coding agents, infrastructure, and research tooling.",
+    url: "https://www.freshcrate.ai/",
+  },
+  twitter: {
+    title: "freshcrate — open source packages for AI agents, MCP servers, and frameworks",
+    description:
+      "Discover open source AI agent packages, MCP servers, orchestration frameworks, coding agents, infrastructure, and research tooling.",
+  },
+};
 
 function LicensePill({ license, projectName }: { license: string; projectName?: string }) {
   const info = classifyLicense(license);
@@ -60,6 +81,39 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
+const featuredGuideCards = [
+  {
+    title: "Best MCP Servers for Claude Code",
+    href: "/learn/best-mcp-servers-for-claude-code",
+    summary: "Ranked picks for browser control, internal tool bridges, and Claude Code operator workflows.",
+    eventTarget: "guide:mcp-claude-code@home",
+  },
+  {
+    title: "Best Open Source AI Agent Frameworks",
+    href: "/learn/best-open-source-ai-agent-frameworks",
+    summary: "Direct selector for LangGraph, CrewAI, AgentScope, LangChain, and AutoGPT by use case.",
+    eventTarget: "guide:agent-frameworks@home",
+  },
+  {
+    title: "LangGraph vs CrewAI vs AutoGen",
+    href: "/compare/langgraph-vs-crewai-vs-autogen",
+    summary: "A concise verdict for stateful workflows, role-based teams, and Microsoft-style orchestration.",
+    eventTarget: "guide:compare-langgraph-crewai-autogen@home",
+  },
+  {
+    title: "Best Coding Agents and AI Dev Assistants",
+    href: "/learn/best-coding-agents",
+    summary: "Open source picks for terminal-first coding agents, local-first assistants, and repo automation workflows.",
+    eventTarget: "guide:coding-agents@home",
+  },
+  {
+    title: "AI Agent Stack Map",
+    href: "/learn/ai-agent-stack-map",
+    summary: "A hub page tying together frameworks, coding agents, browser layers, memory, observability, and MCP.",
+    eventTarget: "guide:stack-map@home",
+  },
+] as const;
+
 export default async function Home({
   searchParams,
 }: {
@@ -94,9 +148,53 @@ export default async function Home({
       : undefined;
 
   const releases = getLatestReleases(50, 0, { sort, category, language });
+  const topStructuredProjects = releases.slice(0, 8).map((project, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: `https://www.freshcrate.ai/projects/${encodeURIComponent(project.name)}`,
+    name: project.name,
+    description: project.short_desc,
+  }));
+  const homeJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://www.freshcrate.ai/#website",
+        url: "https://www.freshcrate.ai/",
+        name: "freshcrate",
+        description:
+          "Open source package directory for AI agents, MCP servers, orchestration frameworks, coding agents, infrastructure, and research tooling.",
+        inLanguage: ["en", "zh-CN"],
+        potentialAction: {
+          "@type": "SearchAction",
+          target: "https://www.freshcrate.ai/search?q={search_term_string}",
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://www.freshcrate.ai/#organization",
+        name: "freshcrate",
+        url: "https://www.freshcrate.ai/",
+        logo: "https://www.freshcrate.ai/logo.png",
+      },
+      {
+        "@type": "ItemList",
+        "@id": "https://www.freshcrate.ai/#latest-releases",
+        name: "Freshcrate latest releases",
+        itemListElement: topStructuredProjects,
+      },
+    ],
+  };
 
   return (
-    <div className="flex flex-col md:flex-row gap-5">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}
+      />
+      <div className="flex flex-col md:flex-row gap-5">
       {/* Main content */}
       <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-3 border-b-2 border-fm-green pb-1">
@@ -106,7 +204,7 @@ export default async function Home({
 
           <div className="bg-fm-sidebar-bg border border-fm-border rounded px-3 py-3 mb-3 text-[10px]">
             <div className="text-[12px] font-bold text-fm-green">freshcrate</div>
-            <div className="text-fm-text mt-1 font-bold">{homeT.heroTitle}</div>
+            <h1 className="text-fm-text mt-1 text-[15px] font-bold">{homeT.heroTitle}</h1>
             <div className="text-fm-text-light mt-1 leading-relaxed">
               {homeT.heroBody1}
             </div>
@@ -120,6 +218,29 @@ export default async function Home({
               <TrackedNextLink event="click" eventTarget="nav:browse@home" href="/browse" className="text-fm-link hover:text-fm-link-hover font-bold">{homeT.browse}</TrackedNextLink>
               <TrackedNextLink event="click" eventTarget="nav:orchestra@home" href="/orchestra" className="text-fm-link hover:text-fm-link-hover font-bold">{homeT.orchestra}</TrackedNextLink>
               <TrackedNextLink event="install" eventTarget="install:agent-edition@home" href="/agent-edition" className="text-fm-link hover:text-fm-link-hover">{homeT.agentEdition}</TrackedNextLink>
+            </div>
+          </div>
+
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded px-3 py-3 mb-3 text-[10px]">
+            <div className="flex items-center justify-between border-b border-fm-border pb-1 mb-2">
+              <h2 className="text-[12px] font-bold text-fm-green">Best of freshcrate</h2>
+              <TrackedNextLink event="click" eventTarget="nav:learn@home-guides" href="/learn" className="text-fm-link hover:text-fm-link-hover text-[10px]">
+                more guides →
+              </TrackedNextLink>
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              {featuredGuideCards.map((guide) => (
+                <TrackedNextLink
+                  key={guide.href}
+                  event="related_click"
+                  eventTarget={guide.eventTarget}
+                  href={guide.href}
+                  className="block rounded border border-fm-border bg-white/70 p-2 hover:bg-white"
+                >
+                  <div className="text-[11px] font-bold text-fm-link">{guide.title}</div>
+                  <p className="mt-1 text-fm-text-light leading-relaxed">{guide.summary}</p>
+                </TrackedNextLink>
+              ))}
             </div>
           </div>
 
@@ -546,6 +667,7 @@ export default async function Home({
           </div>
         </TrackedLink>
       </aside>
-    </div>
+      </div>
+    </>
   );
 }

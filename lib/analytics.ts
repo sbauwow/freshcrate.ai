@@ -493,28 +493,23 @@ function resolveSessionSource(row: { utm_source: string; referrer: string }): st
 }
 
 export function getSourceFunnel(days = 7, limit = 20): SourceFunnelRow[] {
-  const db = getDb();
-  return db.prepare(`
-    WITH base AS (
-      SELECT
-        session_id,
-        COALESCE(NULLIF(MAX(CASE WHEN utm_source <> '' THEN utm_source END), ''), '(direct)') AS source,
-        MAX(CASE WHEN event_type = 'search' THEN 1 ELSE 0 END) AS has_search,
-        MAX(CASE WHEN event_type IN ('outbound', 'install') THEN 1 ELSE 0 END) AS has_outbound_or_install
-      FROM page_views
-      WHERE ${NON_BOT} AND ${windowClause(days)}
-      GROUP BY session_id
-    )
-    SELECT
-      source,
-      COUNT(*) AS sessions,
-      SUM(has_search) AS with_search,
-      SUM(has_outbound_or_install) AS with_outbound_or_install
-    FROM base
-    GROUP BY source
-    ORDER BY sessions DESC
-    LIMIT ?
-  `).all(limit) as SourceFunnelRow[];
+  const bySource = new Map<string, SourceFunnelRow>();
+  for (const row of getSessionSummaries(days)) {
+    const existing = bySource.get(row.source) || {
+      source: row.source,
+      sessions: 0,
+      with_search: 0,
+      with_outbound_or_install: 0,
+    };
+    existing.sessions += 1;
+    existing.with_search += row.has_search ? 1 : 0;
+    existing.with_outbound_or_install += row.has_outbound_or_install ? 1 : 0;
+    bySource.set(row.source, existing);
+  }
+
+  return Array.from(bySource.values())
+    .sort((a, b) => b.sessions - a.sessions || a.source.localeCompare(b.source))
+    .slice(0, limit);
 }
 
 export interface LandingBySourceRow {

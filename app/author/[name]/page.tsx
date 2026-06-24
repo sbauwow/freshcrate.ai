@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { cleanAuthor } from "@/lib/author-slug";
 import { computeLifecycle } from "@/lib/lifecycle";
 import { getProjectsByAuthor } from "@/lib/queries";
+import TrackedLink from "@/app/components/tracked-link";
+import TrackedNextLink from "@/app/components/tracked-next-link";
 
 export async function generateMetadata({
   params,
@@ -34,6 +36,32 @@ export default async function AuthorPage({
   const totalStars = projects.reduce((sum, p) => sum + (p.stars || 0), 0);
   const languageSet = new Set(projects.map((p) => p.language).filter(Boolean));
   const categorySet = new Set(projects.map((p) => p.category).filter(Boolean));
+  const topTags = Array.from(
+    projects.reduce((acc, project) => {
+      for (const tag of project.tags || []) {
+        acc.set(tag, (acc.get(tag) || 0) + 1);
+      }
+      return acc;
+    }, new Map<string, number>())
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8);
+  const topCategories = Array.from(
+    projects.reduce((acc, project) => {
+      acc.set(project.category, (acc.get(project.category) || 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 5);
+  const suggestedGuide =
+    topCategories.find(([categoryName]) => categoryName === "MCP Servers")
+      ? { href: "/learn/best-mcp-servers-for-claude-code", label: "Best MCP Servers for Claude Code" }
+      : topCategories.find(([categoryName]) => categoryName === "Frameworks")
+      ? { href: "/learn/best-open-source-ai-agent-frameworks", label: "Best Open Source AI Agent Frameworks" }
+      : topCategories.find(([categoryName]) => categoryName === "AI Agents")
+      ? { href: "/learn/best-coding-agents", label: "Best Coding Agents and AI Dev Assistants" }
+      : null;
 
   return (
     <div className="flex flex-col md:flex-row gap-5">
@@ -49,6 +77,36 @@ export default async function AuthorPage({
           <p className="text-[10px] text-fm-text-light mt-1">
             {projects.length} package{projects.length !== 1 ? "s" : ""} • ⭐ {totalStars.toLocaleString()} total stars
           </p>
+        </div>
+
+        <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mb-4">
+          <h3 className="text-[11px] font-bold text-fm-green mb-2">Related paths</h3>
+          <div className="flex flex-wrap gap-1.5 text-[10px]">
+            <TrackedNextLink event="related_click" eventTarget={`author:${author}->search`} href={`/search?author=${encodeURIComponent(author)}`} className="bg-white/70 border border-fm-border px-1.5 py-0.5 rounded text-fm-link hover:bg-white">
+              View in search
+            </TrackedNextLink>
+            {topCategories.slice(0, 3).map(([categoryName]) => (
+              <TrackedNextLink
+                key={categoryName}
+                event="related_click"
+                eventTarget={`author:${author}->category:${categoryName}`}
+                href={`/browse?category=${encodeURIComponent(categoryName)}`}
+                className="bg-green-100 px-1.5 py-0.5 rounded text-green-800 hover:bg-green-200"
+              >
+                {categoryName}
+              </TrackedNextLink>
+            ))}
+            {suggestedGuide && (
+              <TrackedNextLink
+                event="related_click"
+                eventTarget={`author:${author}->guide:${suggestedGuide.href}`}
+                href={suggestedGuide.href}
+                className="bg-[#bbddff]/50 px-1.5 py-0.5 rounded text-fm-link hover:bg-[#bbddff]"
+              >
+                {suggestedGuide.label}
+              </TrackedNextLink>
+            )}
+          </div>
         </div>
 
         <div className="space-y-0">
@@ -88,20 +146,24 @@ export default async function AuthorPage({
 
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   {project.tags.slice(0, 8).map((tag) => (
-                    <Link
+                    <TrackedNextLink
                       key={tag}
+                      event="related_click"
+                      eventTarget={`author:${author}->tag:${tag}`}
                       href={`/tag/${encodeURIComponent(tag)}`}
                       className="text-[9px] bg-fm-accent/10 text-fm-link px-1.5 py-0.5 rounded hover:bg-fm-accent/20"
                     >
                       {tag}
-                    </Link>
+                    </TrackedNextLink>
                   ))}
-                  <Link
+                  <TrackedNextLink
+                    event="related_click"
+                    eventTarget={`author:${author}->category:${project.category}`}
                     href={`/browse?category=${encodeURIComponent(project.category)}`}
                     className="text-[9px] text-fm-link hover:text-fm-link-hover ml-auto"
                   >
                     {project.category}
-                  </Link>
+                  </TrackedNextLink>
                 </div>
               </div>
             );
@@ -139,14 +201,53 @@ export default async function AuthorPage({
             Jump
           </h3>
           <div className="text-[11px] space-y-1">
-            <Link href={`/search?author=${encodeURIComponent(author)}`} className="block text-fm-link hover:text-fm-link-hover">
+            <TrackedNextLink event="related_click" eventTarget={`author:${author}->search`} href={`/search?author=${encodeURIComponent(author)}`} className="block text-fm-link hover:text-fm-link-hover">
               View in search
-            </Link>
-            <Link href="/browse" className="block text-fm-link hover:text-fm-link-hover">
+            </TrackedNextLink>
+            <TrackedNextLink event="related_click" eventTarget={`author:${author}->browse`} href="/browse" className="block text-fm-link hover:text-fm-link-hover">
               Browse categories
-            </Link>
+            </TrackedNextLink>
           </div>
         </div>
+
+        {topTags.length > 0 && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
+            <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">Top tags</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {topTags.map(([tagName, count]) => (
+                <TrackedLink
+                  key={tagName}
+                  event="related_click"
+                  eventTarget={`author:${author}->tag:${tagName}`}
+                  href={`/tag/${encodeURIComponent(tagName)}`}
+                  className="text-[9px] bg-[#bbddff]/50 text-fm-link px-1.5 py-0.5 rounded hover:bg-[#bbddff]"
+                >
+                  #{tagName} ({count})
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {topCategories.length > 0 && (
+          <div className="bg-fm-sidebar-bg border border-fm-border rounded p-3 mt-4">
+            <h3 className="text-[11px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">Top categories</h3>
+            <div className="space-y-1 text-[11px]">
+              {topCategories.map(([categoryName, count]) => (
+                <TrackedLink
+                  key={categoryName}
+                  event="related_click"
+                  eventTarget={`author:${author}->category:${categoryName}`}
+                  href={`/browse?category=${encodeURIComponent(categoryName)}`}
+                  className="flex items-center justify-between text-fm-link hover:text-fm-link-hover"
+                >
+                  <span>{categoryName}</span>
+                  <span className="text-fm-text-light text-[10px]">{count}</span>
+                </TrackedLink>
+              ))}
+            </div>
+          </div>
+        )}
       </aside>
     </div>
   );
