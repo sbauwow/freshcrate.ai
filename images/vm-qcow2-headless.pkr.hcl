@@ -97,6 +97,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "scripts/bootstrap-salt-local.sh"
+    destination = "/tmp/bootstrap-salt-local.sh"
+  }
+
+  provisioner "file" {
     source      = "scripts/verify-agent-edition.sh"
     destination = "/tmp/verify-agent-edition.sh"
   }
@@ -136,6 +141,7 @@ build {
       "sudo mkdir -p /opt/freshcrate/scripts/lib /opt/freshcrate/rootfs-contract",
       "sudo mv /tmp/provision-agent-edition-image.sh /opt/freshcrate/scripts/provision-agent-edition-image.sh",
       "sudo mv /tmp/bootstrap-agent-edition.sh /opt/freshcrate/scripts/bootstrap-agent-edition.sh",
+      "sudo mv /tmp/bootstrap-salt-local.sh /opt/freshcrate/scripts/bootstrap-salt-local.sh",
       "sudo mv /tmp/verify-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
       "sudo mv /tmp/bootstrap-common.sh /opt/freshcrate/scripts/lib/bootstrap-common.sh",
       "sudo mv /tmp/rootfs-bootstrap-agent-edition.sh /opt/freshcrate/rootfs-contract/bootstrap-agent-edition.sh",
@@ -143,7 +149,7 @@ build {
       "sudo mv /tmp/rootfs-bootstrap-common.sh /opt/freshcrate/rootfs-contract/bootstrap-common.sh",
       "sudo mv /tmp/rootfs-package-manifest.txt /opt/freshcrate/rootfs-contract/package-manifest.txt",
       "sudo mv /tmp/rootfs-image-build-receipt.txt /opt/freshcrate/rootfs-contract/image-build-receipt.txt",
-      "sudo chmod +x /opt/freshcrate/scripts/provision-agent-edition-image.sh /opt/freshcrate/scripts/bootstrap-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
+      "sudo chmod +x /opt/freshcrate/scripts/provision-agent-edition-image.sh /opt/freshcrate/scripts/bootstrap-agent-edition.sh /opt/freshcrate/scripts/bootstrap-salt-local.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
       "cd /opt/freshcrate/scripts && sudo FRESHCRATE_HOME=/opt/freshcrate/home WORKSPACE_DIR=/opt/freshcrate/workspace ./provision-agent-edition-image.sh ${var.bundle} ${var.mode} ${var.channel} vm-qcow2-headless /opt/freshcrate/rootfs-contract/package-manifest.txt /opt/freshcrate/rootfs-contract/image-build-receipt.txt",
     ]
   }

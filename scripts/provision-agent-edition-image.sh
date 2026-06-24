@@ -14,7 +14,7 @@ FRESHCRATE_HOME="${FRESHCRATE_HOME:-/opt/freshcrate/home}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-/opt/freshcrate/workspace}"
 
 mkdir -p /opt/freshcrate
-chmod +x "${SCRIPT_DIR}/bootstrap-agent-edition.sh" "${SCRIPT_DIR}/verify-agent-edition.sh"
+chmod +x "${SCRIPT_DIR}/bootstrap-agent-edition.sh" "${SCRIPT_DIR}/bootstrap-salt-local.sh" "${SCRIPT_DIR}/verify-agent-edition.sh"
 
 if [[ -n "$ROOTFS_MANIFEST_PATH" && -f "$ROOTFS_MANIFEST_PATH" ]]; then
   mkdir -p /opt/freshcrate/rootfs-contract
@@ -31,6 +31,13 @@ if [[ -n "$ROOTFS_RECEIPT_PATH" && -f "$ROOTFS_RECEIPT_PATH" ]]; then
 fi
 
 bash "${SCRIPT_DIR}/bootstrap-agent-edition.sh" \
+  --bundle "${BUNDLE}" \
+  --mode "${MODE}" \
+  --channel "${CHANNEL}" \
+  --freshcrate-home "${FRESHCRATE_HOME}" \
+  --workspace-dir "${WORKSPACE_DIR}"
+
+bash "${SCRIPT_DIR}/bootstrap-salt-local.sh" \
   --bundle "${BUNDLE}" \
   --mode "${MODE}" \
   --channel "${CHANNEL}" \

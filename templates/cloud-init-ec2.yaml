@@ -1,0 +1,89 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+preserve_hostname: false
+hostname: ${hostname}
+manage_etc_hosts: true
+write_files:
+  - path: /etc/freshcrate-agent-edition.json
+    permissions: '0644'
+    content: |
+      {"product":"freshcrate-agent-edition","bundle":"${bundle}","mode":"${mode}","channel":"${channel}","target":"${target}","runtime":"ec2"}
+  - path: /usr/local/bin/freshcrate-ec2-firstboot.sh
+    permissions: '0755'
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      FRESHCRATE_HOME="${freshcrate_home}"
+      WORKSPACE_DIR="${workspace_dir}"
+      RECEIPTS_DIR="${freshcrate_home}/receipts"
+      mkdir -p "$RECEIPTS_DIR"
+
+      metadata_value() {
+        local path="$1"
+        curl -fsS --max-time 2 "http://169.254.169.254/latest/meta-data/${path}" 2>/dev/null || true
+      }
+
+      metadata_doc() {
+        curl -fsS --max-time 2 http://169.254.169.254/latest/dynamic/instance-identity/document 2>/dev/null || true
+      }
+
+      write_receipt() {
+        local output_path="$1"
+        local tmp_path
+        mkdir -p "$(dirname "$output_path")"
+        tmp_path="$(mktemp "$(dirname "$output_path")/.tmp.XXXXXX")"
+        cat > "$tmp_path"
+        mv "$tmp_path" "$output_path"
+        sync "$output_path" 2>/dev/null || sync
+      }
+
+      if [[ -x /opt/freshcrate/scripts/bootstrap-agent-edition.sh ]]; then
+        /opt/freshcrate/scripts/bootstrap-agent-edition.sh \
+          --bundle "${bundle}" \
+          --mode "${mode}" \
+          --channel "${channel}" \
+          --freshcrate-home "$FRESHCRATE_HOME" \
+          --workspace-dir "$WORKSPACE_DIR"
+      fi
+
+      if [[ -x /opt/freshcrate/scripts/bootstrap-salt-local.sh ]]; then
+        /opt/freshcrate/scripts/bootstrap-salt-local.sh \
+          --bundle "${bundle}" \
+          --mode "${mode}" \
+          --channel "${channel}" \
+          --freshcrate-home "$FRESHCRATE_HOME" \
+          --workspace-dir "$WORKSPACE_DIR"
+      fi
+
+      if [[ -x /opt/freshcrate/scripts/verify-agent-edition.sh ]]; then
+        /opt/freshcrate/scripts/verify-agent-edition.sh \
+          --bundle "${bundle}" \
+          --mode "${mode}" \
+          --channel "${channel}" \
+          --freshcrate-home "$FRESHCRATE_HOME" \
+          --workspace-dir "$WORKSPACE_DIR"
+      fi
+
+      write_receipt "$RECEIPTS_DIR/ec2-firstboot-${bundle}.txt" <<EOF
+runtime=ec2
+bundle=${bundle}
+mode=${mode}
+channel=${channel}
+target=${target}
+hostname=${hostname}
+instance_id=$(metadata_value instance-id)
+instance_type=$(metadata_value instance-type)
+availability_zone=$(metadata_value placement/availability-zone)
+ami_id=$(metadata_value ami-id)
+private_ipv4=$(metadata_value local-ipv4)
+public_ipv4=$(metadata_value public-ipv4)
+instance_identity_document=$(metadata_doc | tr '\n' ' ')
+ssm_agent_installed=$(command -v amazon-ssm-agent >/dev/null 2>&1 && echo yes || echo no)
+timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+EOF
+runcmd:
+  - [ bash, -lc, "cloud-init status --wait || true" ]
+  - [ bash, -lc, "/usr/local/bin/freshcrate-ec2-firstboot.sh" ]
+final_message: "freshcrate-agent-edition ${bundle} ${channel} ec2 first-boot complete"

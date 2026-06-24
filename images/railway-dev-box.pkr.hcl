@@ -33,6 +33,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "scripts/bootstrap-salt-local.sh"
+    destination = "/tmp/bootstrap-salt-local.sh"
+  }
+
+  provisioner "file" {
     source      = "scripts/verify-agent-edition.sh"
     destination = "/tmp/verify-agent-edition.sh"
   }
@@ -49,9 +54,10 @@ build {
       "mkdir -p /opt/freshcrate/scripts/lib",
       "mv /tmp/provision-agent-edition-image.sh /opt/freshcrate/scripts/provision-agent-edition-image.sh",
       "mv /tmp/bootstrap-agent-edition.sh /opt/freshcrate/scripts/bootstrap-agent-edition.sh",
+      "mv /tmp/bootstrap-salt-local.sh /opt/freshcrate/scripts/bootstrap-salt-local.sh",
       "mv /tmp/verify-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
       "mv /tmp/bootstrap-common.sh /opt/freshcrate/scripts/lib/bootstrap-common.sh",
-      "chmod +x /opt/freshcrate/scripts/provision-agent-edition-image.sh /opt/freshcrate/scripts/bootstrap-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
+      "chmod +x /opt/freshcrate/scripts/provision-agent-edition-image.sh /opt/freshcrate/scripts/bootstrap-agent-edition.sh /opt/freshcrate/scripts/bootstrap-salt-local.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
       "cd /opt/freshcrate/scripts && FRESHCRATE_HOME=/opt/freshcrate/home WORKSPACE_DIR=/opt/freshcrate/workspace ./provision-agent-edition-image.sh ${var.bundle} ${var.mode} ${var.channel} railway-dev-box",
     ]
   }

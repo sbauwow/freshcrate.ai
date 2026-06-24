@@ -1,0 +1,21 @@
+region                 = "us-east-1"
+name                   = "freshcrate-research-node"
+hostname               = "freshcrate-research-node"
+ami_id                 = "ami-REPLACE_ME"
+instance_type          = "t3.small"
+subnet_id              = "subnet-REPLACE_ME"
+security_group_ids     = ["sg-REPLACE_ME"]
+iam_instance_profile_name = "freshcrate-agent-edition"
+associate_public_ip_address = false
+bundle                 = "research-node"
+mode                   = "headless"
+channel                = "stable"
+target                 = "ubuntu-24.04-x86_64"
+root_volume_size       = 64
+root_volume_type       = "gp3"
+root_volume_iops       = 3000
+root_volume_throughput = 125
+tags = {
+  Environment = "dev"
+  Owner       = "freshcrate"
+}

@@ -39,6 +39,15 @@ export interface AgentEditionImageBuildManifest {
   bundle: ReturnType<typeof getWorkbenchBundles>[number];
   channel: AgentEditionReleaseChannel;
   commands: ReturnType<typeof buildAgentEditionCommands>;
+  ec2?: {
+    module_path: string;
+    cloud_init_template: string;
+    launch_script: string;
+    render_cloud_init_command: string;
+    launch_command: string;
+    verify_command: string;
+    tfvars_example: string;
+  };
   packer: {
     template: string;
     template_exists: boolean;
@@ -156,11 +165,11 @@ const CLOUD_IMAGES: AgentEditionCloudImage[] = [
     name: "AWS AMI Builder",
     provider: "AWS",
     format: "ami",
-    status: "roadmap",
+    status: "preview",
     summary: "Opinionated cloud image lane for ephemeral research and automation workers on EC2.",
     target: "research-node",
     audience: "teams needing reproducible cloud agents with fast spin-up",
-    nextStep: "Turn manifest fields into Packer inputs and validate on Ubuntu 24.04 base images.",
+    nextStep: "Bake the AMI, launch infra/aws/ec2-agent-edition, and verify /opt/freshcrate/home/receipts/ec2-firstboot-*.txt on first boot.",
   },
 ];
 
@@ -322,6 +331,15 @@ export function getAgentEditionManifest(input: { bundle?: string; mode?: string;
       package_manifest: `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}/package-manifest.txt`,
       receipt: `output/ubuntu-24.04-rootfs/${bundle.id}/${channel.id}/image-build-receipt.txt`,
     },
+    ec2: {
+      module_path: "infra/aws/ec2-agent-edition",
+      cloud_init_template: "templates/cloud-init-ec2.yaml",
+      launch_script: "scripts/launch-agent-edition-ec2.sh",
+      render_cloud_init_command: `bash scripts/render-agent-edition-ec2-cloud-init.sh --bundle ${bundle.id} --mode ${commands.mode} --channel ${channel.id} --target ${commands.target}`,
+      launch_command: "bash scripts/launch-agent-edition-ec2.sh --plan --var-file infra/aws/ec2-agent-edition/dev.auto.tfvars",
+      verify_command: "bash scripts/verify-agent-edition-ec2-receipts.sh --host <ec2-host-or-ip> --bundle research-node",
+      tfvars_example: "infra/aws/ec2-agent-edition/dev.auto.tfvars.example",
+    },
   };
 }
 
@@ -364,6 +382,15 @@ export function getAgentEditionImageBuildManifest(input: { bundle?: string; mode
     bundle,
     channel,
     commands,
+    ec2: image.id === "aws-ami-builder" ? {
+      module_path: "infra/aws/ec2-agent-edition",
+      cloud_init_template: "templates/cloud-init-ec2.yaml",
+      launch_script: "scripts/launch-agent-edition-ec2.sh",
+      render_cloud_init_command: `bash scripts/render-agent-edition-ec2-cloud-init.sh --bundle ${bundle.id} --mode ${commands.mode} --channel ${channel.id} --target ${commands.target}`,
+      launch_command: "bash scripts/launch-agent-edition-ec2.sh --plan --var-file infra/aws/ec2-agent-edition/dev.auto.tfvars",
+      verify_command: `bash scripts/verify-agent-edition-ec2-receipts.sh --host <ec2-host-or-ip> --bundle ${bundle.id}`,
+      tfvars_example: "infra/aws/ec2-agent-edition/dev.auto.tfvars.example",
+    } : undefined,
     packer: {
       template,
       template_exists: true,
@@ -464,6 +491,7 @@ runcmd:
   - [ bash, -lc, "mkdir -p /opt/freshcrate" ]
   - [ bash, -lc, "echo freshcrate-agent-edition > /opt/freshcrate/release" ]
   - [ bash, -lc, "${commands.local}" ]
+  - [ bash, -lc, "bash scripts/bootstrap-salt-local.sh --bundle ${bundle.id} --mode ${commands.mode} --channel ${commands.channel}" ]
 final_message: "freshcrate-agent-edition ${bundle.id} ${commands.channel} bootstrap queued"
 `;
 }

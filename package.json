@@ -57,6 +57,8 @@
     "image:build:iso": "bash scripts/build-agent-edition-iso.sh --image iso-autoinstall-headless --bundle solo-builder-core --mode headless --channel stable",
     "image:build:liveusb": "bash scripts/build-agent-edition-live-usb.sh --image iso-live-persistent-x86_64 --bundle solo-builder-core --mode headless --channel stable",
     "image:build:rootfs": "bash scripts/build-agent-edition-rootfs.sh --bundle solo-builder-core --channel stable",
+    "image:launch:ec2": "bash scripts/launch-agent-edition-ec2.sh --plan --var-file infra/aws/ec2-agent-edition/dev.auto.tfvars",
+    "image:verify:ec2": "bash scripts/verify-agent-edition-ec2-receipts.sh --host 127.0.0.1 --bundle research-node",
     "image:smoke:iso": "bash scripts/qemu-smoke-test-agent-edition-iso.sh",
     "image:smoke:liveusb": "bash scripts/qemu-smoke-test-live-usb.sh",
     "image:package": "bash scripts/package-agent-edition-image.sh",
