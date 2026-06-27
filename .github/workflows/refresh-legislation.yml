@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       sources:
-        description: 'Comma-separated source list (uk-parliament,us-congress,us-federal-register,eu-eur-lex). Empty = all.'
+        description: 'Comma-separated source list (uk-parliament,us-federal-register,eu-eur-lex). Empty = all.'
         required: false
         default: ''
       dry_run:

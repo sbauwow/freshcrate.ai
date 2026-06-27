@@ -21,7 +21,7 @@ async function handle(req: NextRequest) {
   const dryRun = url.searchParams.get("dry") === "1";
   const sourcesParam = url.searchParams.get("sources");
   const sources = sourcesParam
-    ? (sourcesParam.split(",") as Array<"uk-parliament" | "us-congress" | "us-federal-register" | "eu-eur-lex">)
+    ? (sourcesParam.split(",") as Array<"uk-parliament" | "us-federal-register" | "eu-eur-lex">)
     : undefined;
 
   try {

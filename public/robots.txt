@@ -3,6 +3,10 @@ Allow: /
 Allow: /api
 Disallow: /admin/
 Disallow: /api/
+# Internal search UI — no SEO value, and AI crawlers were hammering it with
+# no query (~7k hits/day, almost all ai_training). Each named block below
+# repeats this since a matched crawler ignores the * rules entirely.
+Disallow: /search
 
 # These project sub-paths never existed — bots picked them up from sitemap
 # leaks or README references and have been hammering 4xx for them. Tell well-
@@ -29,65 +33,78 @@ User-agent: ChatGPT-User
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: GPTBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: PerplexityBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: Perplexity-User
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: ClaudeBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: Claude-Web
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: Claude-User
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: anthropic-ai
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: Google-Extended
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: CCBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: cohere-ai
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 User-agent: Meta-ExternalAgent
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /search
 
 Sitemap: https://www.freshcrate.ai/sitemap.xml

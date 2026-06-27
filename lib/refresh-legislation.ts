@@ -1,14 +1,13 @@
 import type Database from "better-sqlite3";
 import type { LegislationItem } from "@/lib/legislation";
 import { ingestUkParliament } from "@/lib/ingest-uk-parliament";
-import { ingestUsCongress } from "@/lib/ingest-us-congress";
 import { ingestUsFederalRegister } from "@/lib/ingest-us-federal-register";
 import { ingestEurLex } from "@/lib/ingest-eur-lex";
 
 export interface RefreshLegislationOptions {
   dryRun?: boolean;
   signal?: AbortSignal;
-  sources?: Array<"uk-parliament" | "us-congress" | "us-federal-register" | "eu-eur-lex">;
+  sources?: Array<"uk-parliament" | "us-federal-register" | "eu-eur-lex">;
 }
 
 export interface SourceResult {
@@ -25,7 +24,7 @@ export interface RefreshLegislationResult {
   sources: SourceResult[];
 }
 
-const ALL_SOURCES = ["uk-parliament", "us-congress", "us-federal-register", "eu-eur-lex"] as const;
+const ALL_SOURCES = ["uk-parliament", "us-federal-register", "eu-eur-lex"] as const;
 
 const UPSERT_SQL = `
   INSERT INTO legislation_items (
@@ -74,8 +73,6 @@ async function runIngest(source: string, signal: AbortSignal | undefined): Promi
   switch (source) {
     case "uk-parliament":
       return ingestUkParliament({ signal });
-    case "us-congress":
-      return ingestUsCongress({ signal });
     case "us-federal-register":
       return ingestUsFederalRegister({ signal });
     case "eu-eur-lex":

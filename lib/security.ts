@@ -198,12 +198,15 @@ function mapKevCve(item: any): SecurityCve {
   };
 }
 
-async function fetchJson(url: string, fetchImpl: FetchLike): Promise<any | null> {
+async function fetchJson(url: string, fetchImpl: FetchLike, opts: { noStore?: boolean } = {}): Promise<any | null> {
   try {
     const res = await fetchImpl(url, {
       headers: { "User-Agent": "freshcrate-security/0.1 (+https://www.freshcrate.ai)" },
       signal: AbortSignal.timeout(SECURITY_FETCH_TIMEOUT_MS),
-      next: { revalidate: NEWS_REVALIDATE_SECONDS },
+      // NVD's 14-day CVE window is ~8.7MB, over Next's 2MB data-cache cap, so
+      // caching it only logs "items over 2MB can not be cached" then refetches.
+      // The built snapshot is persisted to disk + unstable_cache'd separately.
+      ...(opts.noStore ? { cache: "no-store" as const } : { next: { revalidate: NEWS_REVALIDATE_SECONDS } }),
     });
     if (!res.ok) return null;
     return res.json();
@@ -236,7 +239,7 @@ export async function fetchRecentCves(fetchImpl: FetchLike = fetch, kev: Securit
   const end = new Date();
   const start = daysAgo(14);
   const url = `${SOURCES[0].url}?pubStartDate=${encodeURIComponent(isoDate(start))}&pubEndDate=${encodeURIComponent(isoDate(end))}`;
-  const data = await fetchJson(url, fetchImpl);
+  const data = await fetchJson(url, fetchImpl, { noStore: true });
   const kevIndex = new Map(kev.map((item) => [item.id, item]));
   const vulns = Array.isArray(data?.vulnerabilities) ? data.vulnerabilities : [];
   return vulns

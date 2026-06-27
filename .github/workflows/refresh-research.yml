@@ -2,8 +2,9 @@ name: Refresh research snapshot
 
 on:
   schedule:
-    # Hourly at :17 to stay clear of the 06:00 release-refresh cron.
-    - cron: '17 * * * *'
+    # Every 6h at :17 — arXiv announces ~daily, so hourly was wasteful and the
+    # serialized 8-query chain (3s arXiv-politeness delay each) ran ~21s a pop.
+    - cron: '17 */6 * * *'
   workflow_dispatch:
 
 jobs:
