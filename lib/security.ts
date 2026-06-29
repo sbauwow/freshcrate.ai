@@ -209,7 +209,8 @@ async function fetchJson(url: string, fetchImpl: FetchLike, opts: { noStore?: bo
       ...(opts.noStore ? { cache: "no-store" as const } : { next: { revalidate: NEWS_REVALIDATE_SECONDS } }),
     });
     if (!res.ok) return null;
-    return res.json();
+    // `await` here is intentional: without it, a body-read AbortError escapes the try/catch
+    return await res.json();
   } catch {
     return null;
   }
@@ -223,7 +224,7 @@ async function fetchText(url: string, fetchImpl: FetchLike): Promise<string | nu
       next: { revalidate: NEWS_REVALIDATE_SECONDS },
     });
     if (!res.ok) return null;
-    return res.text();
+    return await res.text();
   } catch {
     return null;
   }
