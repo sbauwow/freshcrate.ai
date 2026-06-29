@@ -39,18 +39,12 @@ export function runMigrations(db: Database.Database): void {
     return;
   }
 
-  // Get already-applied migrations
-  const applied = new Set(
-    db
-      .prepare("SELECT name FROM _migrations")
-      .all()
-      .map((row: any) => row.name)
-  );
-
+  const isApplied = db.prepare("SELECT 1 FROM _migrations WHERE name = ?");
   let count = 0;
 
   for (const file of files) {
-    if (applied.has(file)) continue;
+    // Query per-file so that tracking fixes applied earlier in the loop are seen.
+    if (isApplied.get(file)) continue;
 
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
 
