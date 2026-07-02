@@ -20,7 +20,39 @@ import { registerFreshcrateTools } from "@/mcp/register";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// The endpoint is keyless by design, so throttle per IP instead. In-memory is
+// enough: the app runs as a single long-lived Railway process.
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_REQUESTS = 60;
+const rateSlots = new Map<string, { count: number; windowStart: number }>();
+
+function isRateLimited(req: Request): boolean {
+  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+  const now = Date.now();
+
+  if (rateSlots.size > 10_000) {
+    for (const [key, slot] of rateSlots) {
+      if (now - slot.windowStart >= RATE_WINDOW_MS) rateSlots.delete(key);
+    }
+  }
+
+  const slot = rateSlots.get(ip);
+  if (!slot || now - slot.windowStart >= RATE_WINDOW_MS) {
+    rateSlots.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  slot.count += 1;
+  return slot.count > RATE_MAX_REQUESTS;
+}
+
 async function handle(req: Request): Promise<Response> {
+  if (isRateLimited(req)) {
+    return Response.json(
+      { jsonrpc: "2.0", error: { code: -32000, message: "Rate limit exceeded — max 60 requests/minute" }, id: null },
+      { status: 429, headers: { "retry-after": "60" } },
+    );
+  }
+
   const server = new McpServer({ name: "freshcrate", version: "0.1.0" });
   registerFreshcrateTools(server, { allowWrites: false });
 

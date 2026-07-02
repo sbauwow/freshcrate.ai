@@ -23,6 +23,7 @@ import {
   searchProjects,
   getStats,
   submitProject,
+  type ProjectWithRelease,
 } from "../lib/queries";
 import { CATEGORIES, categorize } from "../lib/categories";
 import { verifyAndStore } from "../lib/verify";
@@ -176,8 +177,8 @@ export function registerFreshcrateTools(server: McpServer, opts: RegisterOptions
       const { owner, repo } = parsed;
       try {
         const [repoData, releaseData] = await Promise.all([
-          ghFetch(`https://api.github.com/repos/${owner}/${repo}`),
-          ghFetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`),
+          ghFetch<GitHubRepo>(`https://api.github.com/repos/${owner}/${repo}`),
+          ghFetch<GitHubRelease>(`https://api.github.com/repos/${owner}/${repo}/releases/latest`),
         ]);
         if (!repoData) return errorText(`Repository ${owner}/${repo} not found.`);
 
@@ -189,7 +190,7 @@ export function registerFreshcrateTools(server: McpServer, opts: RegisterOptions
           changes = (releaseData.body || "").slice(0, 500).replace(/\r?\n/g, " ");
           releaseDate = releaseData.published_at || releaseDate;
         } else {
-          const tags = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/tags?per_page=1`);
+          const tags = await ghFetch<Array<{ name: string }>>(`https://api.github.com/repos/${owner}/${repo}/tags?per_page=1`);
           if (tags?.[0]) version = tags[0].name;
         }
 
@@ -278,7 +279,7 @@ function errorText(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
 }
 
-function formatPackage(p: any) {
+function formatPackage(p: ProjectWithRelease) {
   return {
     name: p.name,
     short_desc: p.short_desc,
@@ -303,7 +304,28 @@ function parseRepo(input: string): { owner: string; repo: string } | null {
   return null;
 }
 
-async function ghFetch(url: string): Promise<any> {
+interface GitHubRepo {
+  name: string;
+  description: string | null;
+  homepage: string | null;
+  html_url: string;
+  license: { spdx_id: string | null } | null;
+  topics?: string[];
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  updated_at: string;
+  pushed_at: string;
+  open_issues_count: number;
+}
+
+interface GitHubRelease {
+  tag_name?: string;
+  body?: string | null;
+  published_at?: string | null;
+}
+
+async function ghFetch<T>(url: string): Promise<T | null> {
   const token = process.env.GITHUB_TOKEN || "";
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
