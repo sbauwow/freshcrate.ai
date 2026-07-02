@@ -1,7 +1,6 @@
 import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
 import { _setDb, _resetDb } from "@/lib/db";
+import { runMigrations } from "@/lib/migrate";
 
 /**
  * Create a fresh in-memory SQLite database with the full schema applied.
@@ -11,17 +10,7 @@ export function createTestDb(): Database.Database {
   const db = new Database(":memory:");
   db.pragma("foreign_keys = ON");
 
-  // Apply all migration SQL files in order
-  const migrationsDir = path.join(process.cwd(), "migrations");
-  const files = fs
-    .readdirSync(migrationsDir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-
-  for (const file of files) {
-    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
-    db.exec(sql);
-  }
+  runMigrations(db);
 
   // Wire it into the singleton so lib/queries.ts uses this DB
   _setDb(db);

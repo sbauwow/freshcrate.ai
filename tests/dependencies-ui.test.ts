@@ -20,10 +20,13 @@ describe("dependency visibility ui", () => {
 
   it("surfaces dependency scan status on project detail pages", () => {
     const page = fs.readFileSync(path.join(process.cwd(), "app", "projects", "[name]", "page.tsx"), "utf-8");
-    expect(page).toContain("Dependency Scan");
-    expect(page).toContain("Open dependency risk map");
-    expect(page).toContain("Audit score");
-    expect(page).toContain("Language source");
+    // Section copy is centralized in the i18n catalog; the page renders it via getCopy().
+    const i18n = fs.readFileSync(path.join(process.cwd(), "lib", "i18n.ts"), "utf-8");
+    expect(i18n).toContain("Dependency Scan");
+    expect(i18n).toContain("Open dependency risk map");
+    expect(i18n).toContain("Audit score");
+    expect(i18n).toContain("Language source");
+    expect(page).toContain("dependencyScan");
   });
 
   it("documents the dependency audit api summary", () => {

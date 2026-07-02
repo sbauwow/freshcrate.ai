@@ -29,6 +29,7 @@ describe("geo analytics", () => {
           "accept-language": "en-US,en;q=0.9",
           "sec-fetch-mode": "navigate",
           "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="24"',
+          cookie: "fc_sid=33333333-3333-4333-8333-333333333333",
           "cf-ipcountry": "US",
           "x-vercel-ip-country-region": "TX",
           "x-vercel-ip-city": "Austin",
