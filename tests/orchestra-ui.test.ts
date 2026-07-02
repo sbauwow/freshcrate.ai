@@ -5,8 +5,10 @@ import * as path from "path";
 describe("orchestra page metadata and framing", () => {
   it("positions orchestra as agent-ecosystem orchestration guidance", () => {
     const page = fs.readFileSync(path.join(process.cwd(), "app", "orchestra", "page.tsx"), "utf8");
+    // On-page heading copy is centralized in the i18n catalog.
+    const i18n = fs.readFileSync(path.join(process.cwd(), "lib", "i18n.ts"), "utf8");
     expect(page).toContain("orchestration patterns for the agent ecosystem");
-    expect(page).toContain("patterns for coordinating the agent ecosystem");
+    expect(i18n).toContain("patterns for coordinating the agent ecosystem");
     expect(page).toContain("delegation, supervision, review gates, artifact spines");
     expect(page).toContain("freshcrate orchestra");
   });

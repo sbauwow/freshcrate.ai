@@ -11,7 +11,7 @@ describe("long-form locale coverage", () => {
     expect(i18n).toContain("orchestraPage");
     expect(i18n).toContain("legislationPage");
     expect(i18n).toContain("learnPage");
-    expect(i18n).toContain("欢迎中国 AI 实验室");
+    expect(i18n).toContain("欢迎来自全球 AI 团队");
     expect(i18n).toContain("AI 法规与治理");
   });
 

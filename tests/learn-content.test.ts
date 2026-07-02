@@ -15,7 +15,8 @@ describe("learn content", () => {
 
   it("updates the learn landing page copy for the new crate count", () => {
     expect(getAllCrates()).toHaveLength(11);
-    const learnPage = fs.readFileSync(path.join(process.cwd(), "app", "learn", "page.tsx"), "utf8");
-    expect(learnPage).toContain("11 crates");
+    // Landing-page copy is centralized in the i18n catalog.
+    const i18n = fs.readFileSync(path.join(process.cwd(), "lib", "i18n.ts"), "utf8");
+    expect(i18n).toContain("11 crates");
   });
 });
