@@ -12,6 +12,7 @@ import { getHealthStatus } from "@/lib/health";
 import { getMCPManifest, MCP_LABELS } from "@/lib/mcp";
 import { getDependencyAuditSummary } from "@/lib/deps";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { resolveReadmeLinks } from "@/lib/readme-links";
 import { getCopy, LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import DepGraph from "@/app/components/dep-graph";
@@ -216,7 +217,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ name: 
             </h3>
             <div
               className="text-[11px] text-fm-text leading-relaxed prose prose-sm max-w-none overflow-x-auto"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(enriched.readme_html) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(resolveReadmeLinks(enriched.readme_html, project.repo_url)) }}
             />
           </div>
         )}

@@ -110,6 +110,21 @@ export function proxy(request: NextRequest) {
     }));
   }
 
+  // Scraper pools spoofing desktop Chrome were 81% of all requests
+  // (20k/9.5h on 2026-07-02), each one an uncached SSR render. Real
+  // Chrome ≥89 always sends sec-ch-ua or sec-fetch-* — nothing legitimate
+  // classifies as SpoofedChromeUA. Reject before rendering.
+  if (uaFamily === "SpoofedChromeUA") {
+    return new NextResponse("Too many requests.", {
+      status: 429,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "retry-after": "86400",
+        "x-fc-gate": "spoofed-ua",
+      },
+    });
+  }
+
   // Cheap crawler throttle on /search: bots were 68% of /search hits and
   // each query is uncached + hits FTS. Real users keep through; LLM agents
   // (ai_agent) are allowed since those are human-driven prompts.
