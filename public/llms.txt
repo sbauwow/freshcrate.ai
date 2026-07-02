@@ -34,6 +34,30 @@ permitted. Each project page has a Markdown alternate at `<page>.md`.
 - https://www.freshcrate.ai/projects/agentops.md
 - https://www.freshcrate.ai/projects/qdrant.md
 
+## MCP server (recommended for agents)
+
+freshcrate is itself an MCP server. Zero-install, read-only, no API key:
+
+- Endpoint (Streamable HTTP): https://www.freshcrate.ai/api/mcp
+- Setup guide: https://www.freshcrate.ai/mcp
+- Claude Code: `claude mcp add --transport http freshcrate https://www.freshcrate.ai/api/mcp`
+- Tools: search_packages, get_package, list_categories, browse_category,
+  get_latest_releases, get_stats
+
+## Guides
+
+- Best MCP servers for Claude Code: https://www.freshcrate.ai/learn/best-mcp-servers-for-claude-code
+- Best open-source agent frameworks: https://www.freshcrate.ai/learn/best-open-source-ai-agent-frameworks
+- Agent stack map: https://www.freshcrate.ai/learn/ai-agent-stack-map
+- Multi-agent orchestration patterns: https://www.freshcrate.ai/orchestra
+- AI legislation tracker: https://www.freshcrate.ai/legislation
+
+## Feeds
+
+- Latest releases (Atom): https://www.freshcrate.ai/feed.xml
+- Per-category: https://www.freshcrate.ai/feed/<category>.xml
+- Newly verified projects: https://www.freshcrate.ai/feed/verified.xml
+
 ## Sitemap
 
 - https://www.freshcrate.ai/sitemap.xml
