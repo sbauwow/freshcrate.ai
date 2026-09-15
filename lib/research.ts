@@ -47,6 +47,17 @@ export interface ResearchSections {
   toolUse: Paper[];
 }
 
+type ArxivOutcome = "ok" | "rate_limited" | "failed";
+
+export interface ArxivFetchStats {
+  ok: number;
+  rate_limited: number;
+  failed: number;
+  skipped: number;
+  papers: number;
+  carried_sections?: string[];
+}
+
 export interface ResearchSnapshot {
   papers: Paper[];
   categorized_papers: {
@@ -64,6 +75,12 @@ export interface ResearchSnapshot {
   trending_datasets: TrendingDataset[];
   trending_spaces: TrendingSpace[];
   fetched_at: string;
+  /**
+   * How the arXiv half of the last build went. Optional so snapshots written
+   * before this field existed still parse. Without it an arXiv outage is
+   * invisible: every section just returns [] and the snapshot still "succeeds".
+   */
+  arxiv_health?: ArxivFetchStats;
 }
 
 export interface ResearchSnapshotStore {
@@ -79,6 +96,13 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ARXIV_REVALIDATE_SECONDS = 3600;
 const ARXIV_INTER_REQUEST_DELAY_MS = 3000;
 const ARXIV_MAX_ATTEMPTS = 2;
+// arXiv rate-limits per source IP, and Railway's egress is shared with other
+// tenants, so a 429 here is usually somebody else's traffic — freshcrate only
+// asks 8 times per refresh. Once a run has been refused this many times in a
+// row, stop asking: every further section would burn a fetch timeout plus a
+// retry delay only to return [], which is what pushed a refresh from 21s to
+// ~2min and tripped Railway's edge into 502-ing the cron.
+const ARXIV_CIRCUIT_BREAK_AFTER = 3;
 const ARXIV_USER_AGENT = "freshcrate.ai/0.1 (+https://www.freshcrate.ai)";
 // Per-request socket cap so a hung upstream can't block the chain unbounded.
 const ARXIV_FETCH_TIMEOUT_MS = 8000;
@@ -162,9 +186,15 @@ function withDeadline<T>(promise: Promise<T>, ms: number, label: string): Promis
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
-async function fetchArxiv(query: string, max: number, fetchImpl: FetchLike = fetch): Promise<Paper[]> {
+async function fetchArxiv(
+  query: string,
+  max: number,
+  fetchImpl: FetchLike = fetch
+): Promise<{ papers: Paper[]; outcome: ArxivOutcome }> {
   const encoded = encodeURIComponent(query);
   const url = `https://export.arxiv.org/api/query?search_query=${encoded}&sortBy=submittedDate&sortOrder=descending&max_results=${max}`;
+
+  let outcome: ArxivOutcome = "failed";
 
   for (let attempt = 1; attempt <= ARXIV_MAX_ATTEMPTS; attempt += 1) {
     try {
@@ -177,14 +207,24 @@ async function fetchArxiv(query: string, max: number, fetchImpl: FetchLike = fet
       });
 
       if (res.ok) {
-        return parseArxivXml(await res.text());
+        return { papers: parseArxivXml(await res.text()), outcome: "ok" };
       }
 
+      outcome = res.status === 429 ? "rate_limited" : "failed";
+      console.warn(
+        `[research] arXiv HTTP ${res.status} (attempt ${attempt}/${ARXIV_MAX_ATTEMPTS}) for query: ${query}`
+      );
+
       if (res.status !== 429 && res.status < 500) {
-        return [];
+        return { papers: [], outcome };
       }
-    } catch {
-      // fall through to retry
+    } catch (err) {
+      outcome = "failed";
+      console.warn(
+        `[research] arXiv fetch failed (attempt ${attempt}/${ARXIV_MAX_ATTEMPTS}) for query: ${query} — ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     }
 
     if (attempt < ARXIV_MAX_ATTEMPTS) {
@@ -192,10 +232,12 @@ async function fetchArxiv(query: string, max: number, fetchImpl: FetchLike = fet
     }
   }
 
-  return [];
+  return { papers: [], outcome };
 }
 
-export async function fetchArxivSections(fetchImpl: FetchLike = fetch): Promise<ResearchSections> {
+export async function fetchArxivSections(
+  fetchImpl: FetchLike = fetch
+): Promise<{ sections: ResearchSections; stats: ArxivFetchStats }> {
   const sections: ResearchSections = {
     agentResearch: [],
     llmModels: [],
@@ -206,15 +248,40 @@ export async function fetchArxivSections(fetchImpl: FetchLike = fetch): Promise<
     benchmarks: [],
     toolUse: [],
   };
+  const stats: ArxivFetchStats = { ok: 0, rate_limited: 0, failed: 0, skipped: 0, papers: 0 };
+
+  let consecutiveMisses = 0;
 
   for (const [index, section] of ARXIV_SECTION_QUERIES.entries()) {
-    sections[section.key] = await fetchArxiv(section.query, section.max, fetchImpl);
+    if (consecutiveMisses >= ARXIV_CIRCUIT_BREAK_AFTER) {
+      stats.skipped += 1;
+      continue;
+    }
+
+    const { papers, outcome } = await fetchArxiv(section.query, section.max, fetchImpl);
+    sections[section.key] = papers;
+    stats.papers += papers.length;
+
+    if (outcome === "ok") {
+      stats.ok += 1;
+      consecutiveMisses = 0;
+    } else {
+      stats[outcome] += 1;
+      consecutiveMisses += 1;
+    }
+
     if (index < ARXIV_SECTION_QUERIES.length - 1) {
       await delay(ARXIV_INTER_REQUEST_DELAY_MS);
     }
   }
 
-  return sections;
+  if (stats.skipped > 0) {
+    console.warn(
+      `[research] arXiv circuit breaker tripped after ${ARXIV_CIRCUIT_BREAK_AFTER} consecutive misses — skipped ${stats.skipped} section(s) (${stats.rate_limited} rate-limited, ${stats.failed} failed)`
+    );
+  }
+
+  return { sections, stats };
 }
 
 export async function fetchHFPapers(fetchImpl: FetchLike = fetch): Promise<Paper[]> {
@@ -335,6 +402,65 @@ const fileSnapshotStore: ResearchSnapshotStore = {
   write: writeSnapshotFile,
 };
 
+const ARXIV_CATEGORY_KEYS = [
+  "agent_research",
+  "llm_models",
+  "machine_learning",
+  "rag",
+  "code_gen",
+  "safety",
+  "benchmarks",
+  "tool_use",
+] as const;
+
+// A carried-forward paper keeps the date it was published with, but "new"
+// is relative to now — recompute it so a stale badge can't outlive the window.
+function withFreshNewFlag(paper: Paper): Paper {
+  return { ...paper, is_new: isNew(paper.date) };
+}
+
+/**
+ * arXiv refuses this deployment's (shared, Railway-owned) egress IP often
+ * enough that a build can come back with most sections empty. Overwriting the
+ * stored snapshot with those blanks is exactly what silently emptied
+ * /research — the page kept rendering all 8 headings with nothing under 7 of
+ * them. Carry the last good papers forward per category instead, so a
+ * category only goes empty when arXiv actually answered and had nothing.
+ */
+export function mergeArxivSections(
+  fresh: ResearchSnapshot,
+  previous: ResearchSnapshot | null
+): ResearchSnapshot {
+  if (!previous) return fresh;
+
+  const categorized = { ...fresh.categorized_papers };
+  const carried: string[] = [];
+
+  for (const key of ARXIV_CATEGORY_KEYS) {
+    const prior = previous.categorized_papers?.[key] ?? [];
+    if (categorized[key].length === 0 && prior.length > 0) {
+      categorized[key] = prior.map(withFreshNewFlag);
+      carried.push(key);
+    }
+  }
+
+  if (carried.length === 0) return fresh;
+
+  console.warn(`[research] carried ${carried.length} arXiv section(s) forward: ${carried.join(", ")}`);
+
+  return {
+    ...fresh,
+    categorized_papers: categorized,
+    // Mirrors buildResearchSnapshot: the headline list is HF papers plus the
+    // agent-research section, so it has to be rebuilt from the merged data.
+    papers: [...fresh.hf_papers, ...categorized.agent_research],
+    arxiv_health: {
+      ...(fresh.arxiv_health ?? { ok: 0, rate_limited: 0, failed: 0, skipped: 0, papers: 0 }),
+      carried_sections: carried,
+    },
+  };
+}
+
 function snapshotHasContent(s: ResearchSnapshot): boolean {
   return (
     s.papers.length > 0 ||
@@ -353,18 +479,19 @@ export async function getResearchSnapshotWithFallback(
   store: ResearchSnapshotStore = fileSnapshotStore
 ): Promise<ResearchSnapshot> {
   try {
-    const snapshot = await withDeadline(
+    const built = await withDeadline(
       buildResearchSnapshot(fetchImpl),
       SNAPSHOT_BUILD_DEADLINE_MS,
       "research snapshot build"
     );
-    if (!snapshotHasContent(snapshot)) {
-      const stale = await store.read();
-      if (stale) {
-        return stale;
+    const previous = await store.read();
+    if (!snapshotHasContent(built)) {
+      if (previous) {
+        return previous;
       }
     }
 
+    const snapshot = mergeArxivSections(built, previous);
     await store.write(snapshot);
     return snapshot;
   } catch (error) {
@@ -384,24 +511,42 @@ export async function getResearchSnapshotWithFallback(
 export async function refreshResearchSnapshot(
   fetchImpl: FetchLike = fetch,
   store: ResearchSnapshotStore = fileSnapshotStore
-): Promise<{ written: boolean; fetched_at: string; counts: Record<string, number> }> {
-  const snapshot = await buildResearchSnapshot(fetchImpl);
+): Promise<{
+  written: boolean;
+  fetched_at: string;
+  counts: Record<string, number>;
+  arxiv: ArxivFetchStats;
+}> {
+  const built = await buildResearchSnapshot(fetchImpl);
+  const previous = await store.read();
+  const snapshot = mergeArxivSections(built, previous);
+  const arxiv: ArxivFetchStats = snapshot.arxiv_health ?? {
+    ok: 0,
+    rate_limited: 0,
+    failed: 0,
+    skipped: 0,
+    papers: 0,
+  };
   const counts = {
     papers: snapshot.papers.length,
     hf_papers: snapshot.hf_papers.length,
     trending_models: snapshot.trending_models.length,
     trending_datasets: snapshot.trending_datasets.length,
     trending_spaces: snapshot.trending_spaces.length,
+    arxiv_papers: ARXIV_CATEGORY_KEYS.reduce(
+      (n, key) => n + snapshot.categorized_papers[key].length,
+      0
+    ),
   };
   if (!snapshotHasContent(snapshot)) {
-    return { written: false, fetched_at: snapshot.fetched_at, counts };
+    return { written: false, fetched_at: snapshot.fetched_at, counts, arxiv };
   }
   await store.write(snapshot);
-  return { written: true, fetched_at: snapshot.fetched_at, counts };
+  return { written: true, fetched_at: snapshot.fetched_at, counts, arxiv };
 }
 
 export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promise<ResearchSnapshot> {
-  const [arxivSections, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
+  const [arxiv, hfPapers, trendingModels, trendingDatasets, trendingSpaces] = await Promise.all([
     fetchArxivSections(fetchImpl),
     fetchHFPapers(fetchImpl),
     fetchHFModels(fetchImpl),
@@ -418,7 +563,7 @@ export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promi
     safety,
     benchmarks,
     toolUse,
-  } = arxivSections;
+  } = arxiv.sections;
 
   return {
     papers: [...hfPapers, ...agentResearch],
@@ -437,6 +582,7 @@ export async function buildResearchSnapshot(fetchImpl: FetchLike = fetch): Promi
     trending_datasets: trendingDatasets,
     trending_spaces: trendingSpaces,
     fetched_at: new Date().toISOString(),
+    arxiv_health: arxiv.stats,
   };
 }
 

@@ -97,4 +97,77 @@ describe("research snapshot helpers", () => {
 
     expect(snapshot).toEqual(staleSnapshot);
   });
+
+  it("carries the last good arXiv sections forward when arXiv rate-limits the refresh", async () => {
+    vi.useFakeTimers();
+
+    const priorPaper = {
+      title: "Prior arXiv Paper",
+      url: "http://arxiv.org/abs/2604.99999v1",
+      source: "arXiv",
+      date: "2026-04-28",
+    };
+    const previous = {
+      papers: [priorPaper],
+      categorized_papers: {
+        agent_research: [priorPaper],
+        llm_models: [priorPaper],
+        machine_learning: [],
+        rag: [],
+        code_gen: [],
+        safety: [],
+        benchmarks: [],
+        tool_use: [],
+      },
+      hf_papers: [],
+      trending_models: [],
+      trending_datasets: [],
+      trending_spaces: [],
+      fetched_at: "2026-04-28T00:00:00.000Z",
+    };
+
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("export.arxiv.org")) {
+        return Promise.resolve(new Response("Rate exceeded.", { status: 429 }));
+      }
+      if (url.includes("daily_papers")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([
+              {
+                title: "HF Paper",
+                paper: { id: "2604.55555", title: "HF Paper", authors: [{ name: "HF Author" }] },
+                publishedAt: "2026-04-28T00:00:00Z",
+              },
+            ]),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("[]", { status: 200 }));
+    });
+
+    const write = vi.fn();
+    const { refreshResearchSnapshot } = await import("@/lib/research");
+    const resultPromise = refreshResearchSnapshot(fetchMock as typeof fetch, {
+      read: vi.fn().mockResolvedValue(previous),
+      write,
+    });
+    await vi.runAllTimersAsync();
+    const result = await resultPromise;
+
+    expect(result.written).toBe(true);
+    expect(result.arxiv).toMatchObject({ ok: 0, rate_limited: 3, skipped: 5 });
+    expect(result.arxiv.carried_sections).toEqual(["agent_research", "llm_models"]);
+
+    const persisted = write.mock.calls[0][0];
+    expect(persisted.categorized_papers.agent_research).toHaveLength(1);
+    expect(persisted.categorized_papers.machine_learning).toEqual([]);
+    // headline list is rebuilt from the merged sections, not the empty build
+    expect(persisted.papers.map((p: { title: string }) => p.title)).toEqual([
+      "HF Paper",
+      "Prior arXiv Paper",
+    ]);
+  });
 });

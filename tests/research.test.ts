@@ -53,10 +53,11 @@ describe("research helpers", () => {
     firstResolve?.(new Response(sampleXml, { status: 200 }));
     await vi.runAllTimersAsync();
 
-    const sections = await promise;
+    const { sections, stats } = await promise;
     expect(calls).toHaveLength(8);
     expect(sections.agentResearch).toHaveLength(1);
     expect(sections.llmModels).toHaveLength(1);
+    expect(stats).toMatchObject({ ok: 8, rate_limited: 0, failed: 0, skipped: 0 });
   });
 
   it("retries arXiv after 429 and still returns papers", async () => {
@@ -77,9 +78,25 @@ describe("research helpers", () => {
 
     const promise = fetchArxivSections(fetchMock as typeof fetch);
     await vi.runAllTimersAsync();
-    const sections = await promise;
+    const { sections } = await promise;
 
     expect(firstAttempts).toBe(2);
     expect(sections.agentResearch).toHaveLength(1);
+  });
+
+  it("stops asking arXiv once it has been rate-limited three sections running", async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("Rate exceeded.", { status: 429 })));
+
+    const promise = fetchArxivSections(fetchMock as unknown as typeof fetch);
+    await vi.runAllTimersAsync();
+    const { sections, stats } = await promise;
+
+    // 3 sections tried, 2 attempts each, then the breaker trips and the
+    // remaining 5 sections are skipped without a fetch or a politeness delay.
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(stats).toMatchObject({ ok: 0, rate_limited: 3, failed: 0, skipped: 5, papers: 0 });
+    expect(sections.toolUse).toEqual([]);
   });
 });
