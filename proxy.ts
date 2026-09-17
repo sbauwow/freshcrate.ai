@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { classifyTraffic } from "@/lib/traffic-classification";
+import { LOCALE_COOKIE, normalizeLocale } from "@/lib/i18n";
+import { THEME_COOKIE, normalizeTheme } from "@/lib/theme";
 
 /**
  * Next.js Proxy (Edge runtime) — runs on every non-static request.
@@ -61,6 +63,86 @@ export function scopedRedirectTarget(path: string): string | null {
   return m ? `/projects/${encodeURIComponent(m[1])}` : null;
 }
 
+// ---------------------------------------------------------------------------
+// Conditional GET for deploy-static nav pages
+// ---------------------------------------------------------------------------
+// Every page here is dynamically rendered (the root layout calls headers() via
+// recordPageRequest), so Next.js sends `cache-control: no-store` with no ETag
+// and nothing can ever revalidate. Crawlers without URL dedup therefore re-pull
+// full bodies forever: on 2026-09-17 GPTBot fetched each nav page ~3,486 times
+// in 14h, ~48% of a 93k-request day, all byte-identical.
+//
+// The routes below render from code + lib/i18n only — no DB reads, no
+// per-request state — so their HTML is byte-identical for a given
+// (deploy, locale, theme) until we ship again. Verified byte-stable against
+// prod on 2026-09-17. Anything DB-backed (/, /browse, /stats, /security,
+// /dependencies, /legislation, /compare, /languages, /mcp, /research) is
+// deliberately excluded: its HTML changes between deploys as the catalog
+// refreshes, and a deploy-scoped ETag would pin a stale 304 for days.
+const STATIC_NAV_ROUTES = new Set([
+  "/api",
+  "/learn",
+  "/submit",
+  "/agent-edition",
+  "/orchestra",
+  "/methodology",
+  "/resources",
+  "/privacy",
+  "/terms",
+]);
+
+// Changes on every deploy, which is exactly the invalidation boundary for the
+// routes above. Railway sets both at build and at run; "dev" keeps local
+// `next dev` from emitting a stale tag across restarts-with-edits.
+const DEPLOY_ID =
+  process.env.RAILWAY_DEPLOYMENT_ID ||
+  process.env.RAILWAY_GIT_COMMIT_SHA ||
+  "dev";
+
+// `private` on purpose: the HTML varies by the fc_lang/fc_theme cookies, and no
+// shared cache sits in front of us (Railway's edge does not cache), so there is
+// nothing to gain from `public` and a mis-keyed intermediary to lose. max-age=0
+// + must-revalidate is what turns the next fetch into a conditional GET.
+const STATIC_NAV_CACHE_CONTROL = "private, max-age=0, must-revalidate";
+
+// Only used on the 304, which we construct ourselves. On a 200 pass-through
+// Next overwrites whatever Vary middleware sets with its own
+// `rsc, next-router-*, Accept-Encoding` — so Cookie cannot be added there, and
+// this restates Next's list rather than replacing it.
+//
+// Losing Cookie on the 200 is harmless: `max-age=0, must-revalidate` turns
+// every subsequent fetch into a conditional GET, and the tag encodes locale and
+// theme, so a reader who flips language revalidates with the old tag, misses,
+// and gets fresh HTML instead of a wrongly-cached body.
+const STATIC_NAV_VARY =
+  "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding, Cookie";
+
+/**
+ * Weak ETag for a deploy-static route. The root layout renders `lang`,
+ * `data-theme` and all nav copy from the fc_lang/fc_theme cookies, so the tag
+ * must vary on both or a zh-CN reader would get a 304 against English HTML.
+ * Weak is correct: we only promise semantic equivalence, never byte ranges.
+ */
+export function staticNavEtag(request: NextRequest, path: string): string {
+  const locale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
+  const theme = normalizeTheme(request.cookies.get(THEME_COOKIE)?.value);
+  return `W/"${DEPLOY_ID}-${locale}-${theme}-${path}"`;
+}
+
+/**
+ * RFC 9110 §13.1.2 If-None-Match. `*` matches any current representation, and
+ * the list is compared with the weak comparison function — so the W/ prefix is
+ * stripped from both sides before matching.
+ */
+export function ifNoneMatchSatisfied(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  const trimmed = header.trim();
+  if (trimmed === "*") return true;
+  const weak = (t: string) => t.trim().replace(/^W\//, "");
+  const target = weak(etag);
+  return trimmed.split(",").some((candidate) => weak(candidate) === target);
+}
+
 export function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const path = url.pathname;
@@ -118,10 +200,41 @@ export function proxy(request: NextRequest) {
 
   const reqId = crypto.randomUUID().slice(0, 8);
 
+  // Conditional GET on the deploy-static nav pages. Answering here skips the
+  // render entirely, which also skips recordPageRequest() in the root layout —
+  // so a 304 leaves no `request_log` row and the `request_in` line below is the
+  // only trace. That is why `status` is stamped into the log payload.
+  // A client-side <Link> navigation asks for this same pathname but receives an
+  // RSC flight payload rather than HTML, and our tag — keyed on
+  // (deploy, locale, theme, path) — cannot tell the two apart. There is
+  // deliberately no guard for it, because Next leaves middleware nothing to
+  // guard on: it strips the `RSC` / `Next-Router-*` request headers AND the
+  // `_rsc` query param before middleware runs (verified against a local
+  // `next start`, 2026-09-17 — middleware saw `?keep=yes` for a request sent as
+  // `?_rsc=1a2b3&keep=yes`). Any `headers.get("rsc")` or `searchParams.has("_rsc")`
+  // check here is dead code that only appears to work under vitest, which builds
+  // NextRequest directly and strips nothing.
+  //
+  // Serving a 304 to those requests is still correct. Validators are per-URL:
+  // a prefetch of `/learn?_rsc=<hash>` is a different cache entry from `/learn`,
+  // so a browser never replays the HTML's tag against it, and on the bare URL
+  // Next's own `Vary: rsc, next-router-*` (which it owns on the 200, and we
+  // leave alone) keeps the two variants apart. The flight payload for these
+  // pages is deploy-static for exactly the same reason the HTML is, so an
+  // unchanged body is an honest 304 either way.
+  const isConditionalCandidate =
+    (request.method === "GET" || request.method === "HEAD") &&
+    STATIC_NAV_ROUTES.has(path);
+  const etag = isConditionalCandidate ? staticNavEtag(request, path) : null;
+  const notModified =
+    !!etag && ifNoneMatchSatisfied(request.headers.get("if-none-match"), etag);
+
   // Suppress entry log for traffic that has a paired completion log elsewhere
   // (see header comment). The remaining `request_in` lines are the ones where
   // an unpaired entry is the only available signal.
-  const willBeacon = surface === "page" && trafficType === "browser_shaped";
+  // A 304 delivers no HTML, so the beacon can never fire for one — log it even
+  // for browser_shaped traffic or the request disappears from every surface.
+  const willBeacon = surface === "page" && trafficType === "browser_shaped" && !notModified;
   if (!willBeacon) {
     console.log(JSON.stringify({
       ts: new Date().toISOString(),
@@ -139,6 +252,7 @@ export function proxy(request: NextRequest) {
       prefetch: isPrefetch ? 1 : 0,
       referrer: referrer || undefined,
       query,
+      status: notModified ? 304 : undefined,
     }));
   }
 
@@ -153,6 +267,21 @@ export function proxy(request: NextRequest) {
         "content-type": "text/plain; charset=utf-8",
         "retry-after": "86400",
         "x-fc-gate": "spoofed-ua",
+      },
+    });
+  }
+
+  // Placed after the spoofed-UA gate so a rejected client can't skip it with a
+  // stale If-None-Match. A 304 carries no body, so the ~10-80 KB re-transfer
+  // collapses to headers.
+  if (notModified && etag) {
+    return new NextResponse(null, {
+      status: 304,
+      headers: {
+        etag,
+        "cache-control": STATIC_NAV_CACHE_CONTROL,
+        vary: STATIC_NAV_VARY,
+        "x-fc-gate": "static-nav-304",
       },
     });
   }
@@ -189,6 +318,17 @@ export function proxy(request: NextRequest) {
   // /projects/<name>.md. Mirrors the alternates.types metadata on the page.
   if (surface === "page" && !path.endsWith(".md") && /^\/projects\/[^/]+$/.test(path)) {
     response.headers.set("Link", `<${path}.md>; rel="alternate"; type="text/markdown"`);
+  }
+
+  // Hand the client something to revalidate against next time. Without the
+  // cache-control override Next's dynamic-render default (`no-store`) tells
+  // well-behaved clients not to keep the ETag at all, and the 304 branch above
+  // would never be reached.
+  // Vary is deliberately not set here — Next replaces it on a 200 with its own
+  // router list, which is the one that matters. See STATIC_NAV_VARY.
+  if (etag) {
+    response.headers.set("ETag", etag);
+    response.headers.set("Cache-Control", STATIC_NAV_CACHE_CONTROL);
   }
   return response;
 }

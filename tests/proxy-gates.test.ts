@@ -118,3 +118,100 @@ describe("proxy spoofed-chrome gate", () => {
     expect(res.status).not.toBe(429);
   });
 });
+
+describe("deploy-static nav conditional GET", () => {
+  const GPTBOT = { "user-agent": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.2; +https://openai.com/gptbot" };
+  const url = (p: string) => `https://www.freshcrate.ai${p}`;
+
+  function tagFor(path: string, headers: Record<string, string> = GPTBOT) {
+    const res = proxy(new NextRequest(url(path), { headers }));
+    return res.headers.get("etag");
+  }
+
+  it("stamps an ETag and a revalidating Cache-Control on deploy-static routes", () => {
+    const res = proxy(new NextRequest(url("/learn"), { headers: GPTBOT }));
+    expect(res.headers.get("etag")).toMatch(/^W\/"/);
+    expect(res.headers.get("cache-control")).toBe("private, max-age=0, must-revalidate");
+    // Vary is intentionally NOT set on the 200: Next overwrites it with its own
+    // router list downstream, which is what keeps HTML and RSC payloads apart.
+    expect(res.headers.get("vary")).toBeNull();
+  });
+
+  it("leaves DB-backed routes untouched so a deploy-scoped tag can't pin stale data", () => {
+    for (const path of ["/", "/browse", "/stats", "/security", "/mcp", "/legislation"]) {
+      const res = proxy(new NextRequest(url(path), { headers: GPTBOT }));
+      expect(res.headers.get("etag")).toBeNull();
+      expect(res.headers.get("cache-control")).toBeNull();
+    }
+  });
+
+  it("304s a matching If-None-Match with no body", async () => {
+    const etag = tagFor("/api")!;
+    const res = proxy(
+      new NextRequest(url("/api"), { headers: { ...GPTBOT, "if-none-match": etag } }),
+    );
+    expect(res.status).toBe(304);
+    expect(res.headers.get("x-fc-gate")).toBe("static-nav-304");
+    expect(res.headers.get("etag")).toBe(etag);
+    expect(await res.text()).toBe("");
+  });
+
+  it("matches weakly, across a list, and on '*'", () => {
+    const etag = tagFor("/api")!;
+    const strong = etag.replace(/^W\//, "");
+    for (const inm of [strong, `"other", ${etag}`, "*"]) {
+      const res = proxy(new NextRequest(url("/api"), { headers: { ...GPTBOT, "if-none-match": inm } }));
+      expect(res.status).toBe(304);
+    }
+  });
+
+  it("does not 304 a tag from another page, locale, or theme", () => {
+    const enModern = tagFor("/api", { ...GPTBOT, cookie: "fc_lang=en; fc_theme=modern" })!;
+    expect(tagFor("/learn", { ...GPTBOT, cookie: "fc_lang=en; fc_theme=modern" })).not.toBe(enModern);
+    expect(tagFor("/api", { ...GPTBOT, cookie: "fc_lang=zh-CN; fc_theme=modern" })).not.toBe(enModern);
+    expect(tagFor("/api", { ...GPTBOT, cookie: "fc_lang=en; fc_theme=retro" })).not.toBe(enModern);
+
+    // A zh-CN reader holding the English tag must get fresh HTML, not a 304.
+    const res = proxy(
+      new NextRequest(url("/api"), {
+        headers: { ...GPTBOT, cookie: "fc_lang=zh-CN", "if-none-match": enModern },
+      }),
+    );
+    expect(res.status).not.toBe(304);
+  });
+
+  // Deliberately NOT tested here: "an RSC navigation must not 304". Next strips
+  // both the `RSC` header and the `_rsc` query param before middleware runs, so
+  // such a test can only pass under vitest — which strips nothing — while the
+  // guard it covers does nothing in production. Correctness for RSC requests
+  // comes from per-URL validators plus Next's own Vary; see proxy.ts.
+
+  it("keys the tag on the deploy, so shipping invalidates every static route", () => {
+    // Same process, so DEPLOY_ID is fixed — assert the shape that carries it
+    // rather than restarting with a different env.
+    expect(tagFor("/terms")).toContain("-/terms");
+    expect(tagFor("/terms")).toMatch(/^W\/"[^-]+-en-retro-/);
+  });
+
+  it("sets the full Vary, including Cookie, on the 304 it constructs itself", () => {
+    const res = proxy(
+      new NextRequest(url("/api"), { headers: { ...GPTBOT, "if-none-match": tagFor("/api")! } }),
+    );
+    expect(res.status).toBe(304);
+    expect(res.headers.get("vary")).toContain("rsc");
+    expect(res.headers.get("vary")).toContain("Cookie");
+  });
+
+  it("still rejects a spoofed UA that presents a valid tag", () => {
+    const res = proxy(
+      new NextRequest(url("/api"), {
+        headers: {
+          "user-agent": "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
+          accept: "text/html",
+          "if-none-match": tagFor("/api")!,
+        },
+      }),
+    );
+    expect(res.status).toBe(429);
+  });
+});
