@@ -229,8 +229,9 @@ describe("workbench hosted install script", () => {
     const published = getAgentEditionPublishedImageArtifact({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "iso-autoinstall-headless" });
     expect(published.artifact_path).toBe("output/iso-autoinstall-headless/freshcrate-solo-builder-core-stable.iso");
     expect(published.github_release_tag).toBe("agent-edition-iso-latest");
-    expect(published.github_download_urls?.artifact).toContain("releases/download/agent-edition-iso-latest/");
-    expect(published.github_download_urls?.artifact).toContain(".iso");
+    expect(published.github_artifact_split).toBe(true);
+    expect(published.github_download_urls?.artifact).toBe("https://github.com/sbauwow/freshcrate.ai/releases/tag/agent-edition-iso-latest");
+    expect(published.github_download_urls?.checksum).toContain("releases/download/agent-edition-iso-latest/");
 
     const resolved = resolveAgentEditionImageArtifactPath({ bundle: "solo-builder-core", mode: "headless", channel: "stable", image: "iso-autoinstall-headless" }, "artifact");
     expect(resolved.fileName).toBe("freshcrate-solo-builder-core-stable.iso");

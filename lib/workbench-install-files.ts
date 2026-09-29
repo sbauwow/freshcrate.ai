@@ -38,9 +38,12 @@ export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; 
       ? "agent-edition-iso-latest"
       : null;
   const githubReleasePageUrl = githubReleaseTag ? `https://github.com/sbauwow/freshcrate.ai/releases/tag/${githubReleaseTag}` : null;
+  const githubArtifactSplit = githubReleaseTag !== null && isStableISO;
   const githubDownloadUrls = githubReleaseTag
     ? {
-        artifact: `https://github.com/sbauwow/freshcrate.ai/releases/download/${githubReleaseTag}/${path.basename(manifest.packer.expected_artifact)}.zip`,
+        artifact: githubArtifactSplit
+          ? githubReleasePageUrl!
+          : `https://github.com/sbauwow/freshcrate.ai/releases/download/${githubReleaseTag}/${path.basename(manifest.packer.expected_artifact)}.zip`,
         checksum: `https://github.com/sbauwow/freshcrate.ai/releases/download/${githubReleaseTag}/${path.basename(manifest.packer.checksum_file)}`,
         metadata: `https://github.com/sbauwow/freshcrate.ai/releases/download/${githubReleaseTag}/${path.basename(`${manifest.packer.expected_artifact}.json`)}`,
       }
@@ -63,6 +66,7 @@ export function getAgentEditionPublishedImageArtifact(input: { bundle?: string; 
     github_release_tag: githubReleaseTag,
     github_release_page_url: githubReleasePageUrl,
     github_download_urls: githubDownloadUrls,
+    github_artifact_split: githubArtifactSplit,
     download_urls: {
       artifact: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&target=${manifest.commands.target}&image=${manifest.image.id}&kind=artifact`,
       checksum: `/api/workbench/image-artifact?bundle=${manifest.bundle.id}&mode=${manifest.commands.mode}&channel=${manifest.channel.id}&target=${manifest.commands.target}&image=${manifest.image.id}&kind=checksum`,

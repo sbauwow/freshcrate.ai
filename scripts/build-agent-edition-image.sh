@@ -97,12 +97,19 @@ PACKER_ARGS=(
 
 if [[ "$IMAGE" == "vm-qcow2-headless" ]]; then
   DEFAULT_ROOTFS_DIR="output/ubuntu-24.04-rootfs/${BUNDLE}/${CHANNEL}/rootfs"
+  ROOTFS_ARCH_ARGS=()
+  if [[ "$TARGET" == "ubuntu-24.04-arm64" ]]; then
+    # arm64 packages live on ports.ubuntu.com, not archive.ubuntu.com, and the
+    # rootfs must not collide with an amd64 one at the default path.
+    DEFAULT_ROOTFS_DIR="output/ubuntu-24.04-rootfs-arm64/${BUNDLE}/${CHANNEL}/rootfs"
+    ROOTFS_ARCH_ARGS=(--arch arm64 --mirror http://ports.ubuntu.com/ubuntu-ports --output-dir "$(dirname "$DEFAULT_ROOTFS_DIR")")
+  fi
   if [[ -z "$ROOTFS_DIR" ]]; then
     ROOTFS_DIR="$DEFAULT_ROOTFS_DIR"
   fi
 
   if [[ ! -d "$ROOTFS_DIR" ]]; then
-    ROOTFS_BUILD_ARGS=(--bundle "$BUNDLE" --channel "$CHANNEL")
+    ROOTFS_BUILD_ARGS=(--bundle "$BUNDLE" --channel "$CHANNEL" "${ROOTFS_ARCH_ARGS[@]}")
     if [[ -z "$ROOTFS_DIR" || "$ROOTFS_DIR" == "$DEFAULT_ROOTFS_DIR" ]]; then
       DEFAULT_ROOTFS_PARENT="$(dirname "$DEFAULT_ROOTFS_DIR")"
       if ! sudo -n true >/dev/null 2>&1 && [[ -e "$DEFAULT_ROOTFS_PARENT" && ! -w "$DEFAULT_ROOTFS_PARENT" ]]; then
