@@ -52,8 +52,27 @@ jobs:
       - name: Install qemu tooling
         run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 qemu-utils ovmf xorriso mmdebstrap debootstrap
 
+      - name: Enable KVM when the runner exposes it
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+            echo "PKR_VAR_accelerator=kvm" >> "$GITHUB_ENV"
+            echo "KVM enabled"
+          else
+            echo "no /dev/kvm; building under TCG"
+          fi
+
       - name: Build vm-qcow2-headless
         run: bash scripts/build-agent-edition-image.sh --image vm-qcow2-headless --bundle solo-builder-core --mode headless --channel stable
+
+      - name: Upload VM serial log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: packer-serial-log-x86_64
+          path: output/packer-serial-*.log
+          if-no-files-found: ignore
 
       - name: Inspect vm-qcow2-headless output
         run: find output/vm-qcow2-headless -maxdepth 3 -type f | sort
