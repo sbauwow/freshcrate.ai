@@ -112,6 +112,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "salt"
+    destination = "/tmp"
+  }
+
+  provisioner "file" {
     source      = "${var.rootfs_dir}/opt/freshcrate/scripts/bootstrap-agent-edition.sh"
     destination = "/tmp/rootfs-bootstrap-agent-edition.sh"
   }
@@ -144,6 +149,7 @@ build {
       "sudo mv /tmp/bootstrap-salt-local.sh /opt/freshcrate/scripts/bootstrap-salt-local.sh",
       "sudo mv /tmp/verify-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
       "sudo mv /tmp/bootstrap-common.sh /opt/freshcrate/scripts/lib/bootstrap-common.sh",
+      "sudo rm -rf /opt/freshcrate/salt && sudo mv /tmp/salt /opt/freshcrate/salt",
       "sudo mv /tmp/rootfs-bootstrap-agent-edition.sh /opt/freshcrate/rootfs-contract/bootstrap-agent-edition.sh",
       "sudo mv /tmp/rootfs-verify-agent-edition.sh /opt/freshcrate/rootfs-contract/verify-agent-edition.sh",
       "sudo mv /tmp/rootfs-bootstrap-common.sh /opt/freshcrate/rootfs-contract/bootstrap-common.sh",

@@ -13,6 +13,8 @@ on:
       - scripts/package-agent-edition-image.sh
       - scripts/provision-agent-edition-image.sh
       - scripts/bootstrap-agent-edition.sh
+      - scripts/bootstrap-salt-local.sh
+      - salt/**
       - scripts/verify-agent-edition.sh
       - scripts/lib/bootstrap-common.sh
       - lib/workbench-install.ts

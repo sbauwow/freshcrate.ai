@@ -27,11 +27,16 @@ STATUS="skipped"
 DETAIL="salt-call unavailable"
 
 mkdir -p "${FRESHCRATE_HOME}/receipts"
-rm -rf "$SALT_ROOT"
-mkdir -p "$SALT_STATE_ROOT" "$SALT_PILLAR_ROOT"
-
-if [[ -d "$REPO_SALT_DIR" ]]; then
-  cp -a "$REPO_SALT_DIR"/. "$SALT_ROOT"/
+# Inside a built image the scripts live in /opt/freshcrate/scripts, so the
+# "repo" salt dir IS $SALT_ROOT — use it in place instead of wiping it.
+if [[ -d "$REPO_SALT_DIR" && "$(realpath -m "$REPO_SALT_DIR")" == "$(realpath -m "$SALT_ROOT")" ]]; then
+  mkdir -p "$SALT_STATE_ROOT" "$SALT_PILLAR_ROOT"
+else
+  rm -rf "$SALT_ROOT"
+  mkdir -p "$SALT_STATE_ROOT" "$SALT_PILLAR_ROOT"
+  if [[ -d "$REPO_SALT_DIR" ]]; then
+    cp -a "$REPO_SALT_DIR"/. "$SALT_ROOT"/
+  fi
 fi
 
 if ! command -v salt-call >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
