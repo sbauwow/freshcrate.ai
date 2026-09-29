@@ -193,11 +193,24 @@ export default async function AgentEditionPage({
                 Autoinstall ISO with freshcrate bootstrap baked in. Boot it on bare metal or a VM and verification runs on first boot.
               </p>
               <div className="flex flex-wrap gap-3 text-[10px]">
-                <TrackedLink event="install" eventTarget={`install:iso@agent-edition:${targetMeta.label}`} href={isoDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download ISO</TrackedLink>
+                <TrackedLink event="install" eventTarget={`install:iso@agent-edition:${targetMeta.label}`} href={isoDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">{iso.github_artifact_split ? "Download ISO (split zip)" : "Download ISO"}</TrackedLink>
                 {isoTorrentUrl ? <TrackedLink event="install" eventTarget={`install:iso-torrent@agent-edition:${targetMeta.label}`} href={isoTorrentUrl} className="text-fm-link hover:text-fm-link-hover">torrent</TrackedLink> : null}
                 <TrackedLink event="click" eventTarget={`checksum:iso@agent-edition:${targetMeta.label}`} href={isoChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</TrackedLink>
-                <span className="text-fm-text-light">Status: {iso.available ? "built" : "pending first publish"}</span>
+                <span className="text-fm-text-light">Status: {iso.available || iso.github_release_tag ? "published" : "pending first publish"}</span>
               </div>
+
+              {iso.github_artifact_split ? (
+                <div>
+                  <div className="font-bold text-fm-green text-[11px] mb-1">Reassemble the ISO</div>
+                  <p className="text-fm-text-light text-[10px] mb-1">
+                    The ISO is over GitHub&rsquo;s 2 GiB file limit, so the release ships it as a zip split into <code className="font-mono">.part-NN</code> files. Download every part plus the <code className="font-mono">.sha256</code> into one folder, then:
+                  </p>
+                  <div className="bg-fm-bg border border-fm-border rounded p-2 font-mono text-[10px] space-y-1">
+                    <div>cat {isoBaseName}.zip.part-* &gt; {isoBaseName}.zip</div>
+                    <div>unzip {isoBaseName}.zip</div>
+                  </div>
+                </div>
+              ) : null}
 
               <div>
                 <div className="font-bold text-fm-green text-[11px] mb-1">Linux — write ISO to USB</div>
@@ -241,7 +254,7 @@ export default async function AgentEditionPage({
           <div className="flex flex-wrap gap-3 text-[10px]">
             <TrackedLink event="install" eventTarget={`install:qcow2@agent-edition:${targetMeta.label}`} href={qcowDownloadUrl} className="text-fm-link hover:text-fm-link-hover font-bold">Download QCOW2</TrackedLink>
             <TrackedLink event="click" eventTarget={`checksum:qcow2@agent-edition:${targetMeta.label}`} href={qcowChecksumUrl} className="text-fm-link hover:text-fm-link-hover">sha256</TrackedLink>
-            <span className="text-fm-text-light">Status: {qcow.available ? "built" : "pending first publish"}</span>
+            <span className="text-fm-text-light">Status: {qcow.available || qcow.github_release_tag ? "published" : "pending first publish"}</span>
           </div>
         </div>
       </section>

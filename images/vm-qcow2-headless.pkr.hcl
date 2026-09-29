@@ -27,6 +27,7 @@ locals {
       iso_url            = "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.img"
       output_directory   = "output/vm-qcow2-headless"
       vm_name_suffix     = "x86_64"
+      qemu_cpu           = ""
       qemu_binary        = "qemu-system-x86_64"
       machine_type       = "pc"
       efi_boot           = false
@@ -37,6 +38,9 @@ locals {
       iso_url            = "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
       output_directory   = "output/vm-qcow2-headless-arm64"
       vm_name_suffix     = "arm64"
+      # Without -cpu, qemu's `virt` board defaults to a 32-bit cortex-a15 and
+      # the 64-bit cloud image never boots. `max` works under TCG and KVM.
+      qemu_cpu           = "max"
       qemu_binary        = "qemu-system-aarch64"
       # `virt` is the only sensible aarch64 board for cloud images.
       machine_type       = "virt"
@@ -68,10 +72,14 @@ source "qemu" "agent_edition" {
   efi_boot           = local.target_config.efi_boot
   efi_firmware_code  = local.target_config.efi_firmware_code
   efi_firmware_vars  = local.target_config.efi_firmware_vars
-  qemuargs           = [["-serial", "file:${local.target_config.output_directory}/packer-serial.log"]]
+  # Serial log sits outside output_directory, which packer deletes on failure.
+  qemuargs = concat(
+    [["-serial", "file:output/packer-serial-${local.target_config.vm_name_suffix}.log"]],
+    local.target_config.qemu_cpu != "" ? [["-cpu", local.target_config.qemu_cpu]] : [],
+  )
   ssh_username       = "ubuntu"
   ssh_password       = "freshcrate"
-  ssh_timeout        = "20m"
+  ssh_timeout        = "45m"
   vm_name            = "freshcrate-${var.bundle}-${var.channel}-${local.target_config.vm_name_suffix}.qcow2"
 }
 
@@ -112,6 +120,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "salt"
+    destination = "/tmp"
+  }
+
+  provisioner "file" {
     source      = "${var.rootfs_dir}/opt/freshcrate/scripts/bootstrap-agent-edition.sh"
     destination = "/tmp/rootfs-bootstrap-agent-edition.sh"
   }
@@ -144,6 +157,7 @@ build {
       "sudo mv /tmp/bootstrap-salt-local.sh /opt/freshcrate/scripts/bootstrap-salt-local.sh",
       "sudo mv /tmp/verify-agent-edition.sh /opt/freshcrate/scripts/verify-agent-edition.sh",
       "sudo mv /tmp/bootstrap-common.sh /opt/freshcrate/scripts/lib/bootstrap-common.sh",
+      "sudo rm -rf /opt/freshcrate/salt && sudo mv /tmp/salt /opt/freshcrate/salt",
       "sudo mv /tmp/rootfs-bootstrap-agent-edition.sh /opt/freshcrate/rootfs-contract/bootstrap-agent-edition.sh",
       "sudo mv /tmp/rootfs-verify-agent-edition.sh /opt/freshcrate/rootfs-contract/verify-agent-edition.sh",
       "sudo mv /tmp/rootfs-bootstrap-common.sh /opt/freshcrate/rootfs-contract/bootstrap-common.sh",

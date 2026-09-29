@@ -27,7 +27,8 @@ describe("qcow2 image lane", () => {
     expect(template).toContain('cpus               = 2');
     expect(template).toContain('memory             = 2048');
     expect(template).toContain('skip_compaction    = true');
-    expect(template).toContain('qemuargs           = [["-serial", "file:${local.target_config.output_directory}/packer-serial.log"]]');
+    expect(template).toContain('"file:output/packer-serial-${local.target_config.vm_name_suffix}.log"');
+    expect(template).toContain('qemu_cpu           = "max"');
     expect(template).toContain('vm_name            = "freshcrate-${var.bundle}-${var.channel}-${local.target_config.vm_name_suffix}.qcow2"');
     expect(template).toContain("while sudo test ! -f /var/lib/cloud/instance/boot-finished");
     expect(template).toContain('sudo cloud-init status --wait || true');
