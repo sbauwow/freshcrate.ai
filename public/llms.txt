@@ -22,11 +22,17 @@ permitted. Each project page has a Markdown alternate at `<page>.md`.
 
 ## Example queries
 
-- https://www.freshcrate.ai/search?q=mcp
-- https://www.freshcrate.ai/search?q=agent+orchestrator
-- https://www.freshcrate.ai/search?q=vector+database
+Routes below are crawlable index pages (robots.txt disallows /search —
+point AI agents at these instead of the search UI):
+
+- https://www.freshcrate.ai/browse
+- https://www.freshcrate.ai/tag/mcp
 - https://www.freshcrate.ai/tag/claude-code
 - https://www.freshcrate.ai/tag/llm-agent
+- https://www.freshcrate.ai/tag/rag
+
+For live search, agents should call the JSON API:
+`GET https://www.freshcrate.ai/api/search?q=<url-encoded query>`
 
 ## Per-project Markdown examples
 

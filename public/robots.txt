@@ -77,6 +77,15 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /search
 
+# Claude's web-search retrieval crawler (distinct from ClaudeBot/Claude-User):
+# the bot that fetches pages to answer live Claude queries. Without an explicit
+# allow block it can fall back to the * rules, which are stricter than intent.
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
 User-agent: anthropic-ai
 Allow: /
 Disallow: /admin/
@@ -102,6 +111,53 @@ Disallow: /api/
 Disallow: /search
 
 User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
+# Additional AI retrieval/assistant crawlers observed in request logs or
+# documented by their vendors. Same rules as every other named AI block.
+
+# Amazon's crawler; feeds Alexa answers and Amazon's assistant surfaces.
+User-agent: Amazonbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
+# You.com assistant retrieval (already visiting ~2.6k req/3d).
+User-agent: YouBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
+# DuckDuckGo DuckAssist — DDG is a top human referrer; DuckAssist powers its
+# AI answers.
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
+# Apple retrieval (Siri / Apple Intelligence suggestions).
+User-agent: Applebot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /search
+
+# ByteDance training crawler — permitted to match the site's open-to-training
+# posture (GPTBot, Google-Extended, CCBot are already allowed). Already
+# visiting (~1.1k req/3d).
+User-agent: Bytespider
 Allow: /
 Disallow: /admin/
 Disallow: /api/
