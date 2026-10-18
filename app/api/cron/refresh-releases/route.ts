@@ -21,6 +21,10 @@ async function handle(req: NextRequest) {
   const limit = parseInt(url.searchParams.get("limit") || "500", 10);
   const concurrency = parseInt(url.searchParams.get("concurrency") || "5", 10);
   const dryRun = url.searchParams.get("dry") === "1";
+  const shard = parseInt(url.searchParams.get("shard") || "0", 10);
+  const shards = parseInt(url.searchParams.get("shards") || "1", 10);
+  // Return before maxDuration so a slow GitHub day yields a partial result, not a killed request.
+  const budgetMs = parseInt(url.searchParams.get("budget_ms") || "240000", 10);
 
   try {
     const result = await refreshReleases(getDb(), {
@@ -28,6 +32,9 @@ async function handle(req: NextRequest) {
       concurrency,
       token: process.env.GITHUB_TOKEN,
       dryRun,
+      shard,
+      shards,
+      budgetMs,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {

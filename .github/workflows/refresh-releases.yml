@@ -17,7 +17,7 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - name: Hit refresh endpoint
         env:
@@ -35,16 +35,23 @@ jobs:
             echo "::error::REFRESH_URL secret is not set in repo settings"
             exit 1
           fi
-          status=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            --max-time 300 \
-            "${REFRESH_URL}?limit=${LIMIT}&dry=${DRY}")
-          echo "HTTP status: $status"
-          echo "Response body:"
-          cat /tmp/body
-          echo
-          if [ "$status" != "200" ]; then
-            echo "::error::Refresh endpoint returned HTTP $status"
-            exit 1
-          fi
-          python3 -m json.tool < /tmp/body
+          # One call per id-partition so each stays far under the 300s maxDuration
+          # (a single full-catalog call hit 206-269s and timed out on 10-11 and 10-17).
+          SHARDS=4
+          failed=0
+          for shard in $(seq 0 $((SHARDS - 1))); do
+            echo "::group::Shard $shard/$SHARDS"
+            status=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              --max-time 300 \
+              "${REFRESH_URL}?limit=${LIMIT}&dry=${DRY}&shard=${shard}&shards=${SHARDS}" || true)
+            echo "HTTP status: $status"
+            cat /tmp/body 2>/dev/null || true
+            echo
+            echo "::endgroup::"
+            if [ "$status" != "200" ]; then
+              echo "::error::Shard $shard returned HTTP $status"
+              failed=1
+            fi
+          done
+          exit $failed

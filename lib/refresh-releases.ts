@@ -5,6 +5,11 @@ export interface RefreshOptions {
   concurrency?: number;
   token?: string;
   dryRun?: boolean;
+  /** Partition the catalog by `id % shards`; process only partition `shard`. */
+  shard?: number;
+  shards?: number;
+  /** Stop starting new projects once this many ms have elapsed. */
+  budgetMs?: number;
 }
 
 export interface RefreshResult {
@@ -13,6 +18,8 @@ export interface RefreshResult {
   unchanged: number;
   skipped: number;
   hasMore: boolean;
+  /** True when the time budget ran out before every selected project was processed. */
+  budgetExhausted: boolean;
   durationMs: number;
 }
 
@@ -90,20 +97,23 @@ export async function refreshReleases(
   const concurrency = Math.max(1, opts.concurrency ?? 5);
   const token = opts.token;
   const dryRun = opts.dryRun ?? false;
+  const shards = Math.max(1, opts.shards ?? 1);
+  const shard = Math.min(Math.max(0, opts.shard ?? 0), shards - 1);
+  const budgetMs = opts.budgetMs ?? Infinity;
   const start = Date.now();
 
   const projects = db.prepare(`
     SELECT p.id, p.name, p.repo_url,
       (SELECT MAX(created_at) FROM releases WHERE project_id = p.id) as latest_release_at
     FROM projects p
-    WHERE p.repo_url LIKE '%github.com%'
+    WHERE p.repo_url LIKE '%github.com%' AND p.id % ? = ?
     ORDER BY latest_release_at ASC
     LIMIT ?
-  `).all(limit) as ProjectRow[];
+  `).all(shards, shard, limit) as ProjectRow[];
 
   const totalGh = (db.prepare(
-    "SELECT COUNT(*) as c FROM projects WHERE repo_url LIKE '%github.com%'"
-  ).get() as { c: number }).c;
+    "SELECT COUNT(*) as c FROM projects WHERE repo_url LIKE '%github.com%' AND id % ? = ?"
+  ).get(shards, shard) as { c: number }).c;
 
   const latestReleaseStmt = db.prepare(
     "SELECT id, version, created_at FROM releases WHERE project_id = ? ORDER BY created_at DESC LIMIT 1"
@@ -182,8 +192,10 @@ export async function refreshReleases(
   }
 
   let cursor = 0;
+  let budgetExhausted = false;
   async function worker(): Promise<void> {
     while (cursor < projects.length) {
+      if (Date.now() - start >= budgetMs) { budgetExhausted = true; return; }
       const idx = cursor++;
       await processProject(projects[idx]);
     }
@@ -192,7 +204,8 @@ export async function refreshReleases(
 
   return {
     ...counters,
-    hasMore: projects.length === limit && totalGh > limit,
+    hasMore: budgetExhausted || (projects.length === limit && totalGh > limit),
+    budgetExhausted,
     durationMs: Date.now() - start,
   };
 }
