@@ -10,6 +10,8 @@ export interface RefreshOptions {
   shards?: number;
   /** Stop starting new projects once this many ms have elapsed. */
   budgetMs?: number;
+  /** Return this long after the budget even if some projects are still in flight. */
+  graceMs?: number;
 }
 
 export interface RefreshResult {
@@ -20,6 +22,8 @@ export interface RefreshResult {
   hasMore: boolean;
   /** True when the time budget ran out before every selected project was processed. */
   budgetExhausted: boolean;
+  /** Projects still in flight when the hard deadline returned the result. */
+  stuck: number;
   durationMs: number;
 }
 
@@ -47,6 +51,9 @@ interface GithubRepo {
   default_branch?: string;
 }
 
+const GH_TIMEOUT_MS = 10000;
+const DEFAULT_GRACE_MS = 25000;
+
 const SYNTHETIC_VERSION_RE = /^[^@\s]+@\d{4}-\d{2}-\d{2}$/;
 const isSynthetic = (v: string | undefined) => SYNTHETIC_VERSION_RE.test(v || "");
 
@@ -71,14 +78,24 @@ async function ghFetch<T>(endpoint: string, token?: string): Promise<T | null> {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`https://api.github.com${endpoint}`, {
-    headers,
-    signal: AbortSignal.timeout(10000),
-  });
-
-  if (res.status === 404) return null;
-  if (!res.ok) return null;
-  return (await res.json()) as T;
+  // A plain timer instead of AbortSignal.timeout: on 10-20 handlers hung for hours
+  // past that 10s signal. Non-OK bodies are cancelled so they don't pin sockets.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GH_TIMEOUT_MS);
+  try {
+    const res = await fetch(`https://api.github.com${endpoint}`, {
+      headers,
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      return null;
+    }
+    return (await res.json()) as T;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -193,19 +210,45 @@ export async function refreshReleases(
 
   let cursor = 0;
   let budgetExhausted = false;
+  const inFlight = new Set<string>();
   async function worker(): Promise<void> {
     while (cursor < projects.length) {
       if (Date.now() - start >= budgetMs) { budgetExhausted = true; return; }
-      const idx = cursor++;
-      await processProject(projects[idx]);
+      const project = projects[cursor++];
+      inFlight.add(project.repo_url);
+      try {
+        await processProject(project);
+      } finally {
+        inFlight.delete(project.repo_url);
+      }
     }
   }
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  const workers = Promise.all(Array.from({ length: concurrency }, () => worker()));
+
+  // Hard deadline: a promise that never settles must not hold the response open
+  // (10-20: 9 of 12 shard calls hung until the client gave up, never logging).
+  let stuck = 0;
+  if (Number.isFinite(budgetMs)) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<"deadline">((resolve) => {
+      timer = setTimeout(() => resolve("deadline"), budgetMs + (opts.graceMs ?? DEFAULT_GRACE_MS));
+    });
+    const outcome = await Promise.race([workers.then(() => "done" as const), deadline]);
+    clearTimeout(timer);
+    if (outcome === "deadline") {
+      budgetExhausted = true;
+      stuck = inFlight.size;
+      console.warn(`[refresh-releases] hard deadline hit, ${stuck} stuck: ${[...inFlight].join(" ")}`);
+    }
+  } else {
+    await workers;
+  }
 
   return {
     ...counters,
     hasMore: budgetExhausted || (projects.length === limit && totalGh > limit),
     budgetExhausted,
+    stuck,
     durationMs: Date.now() - start,
   };
 }

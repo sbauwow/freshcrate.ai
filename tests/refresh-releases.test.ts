@@ -90,4 +90,27 @@ describe("refreshReleases time budget", () => {
     expect(result.budgetExhausted).toBe(false);
     expect(result.checked).toBe(3);
   });
+
+  it("returns at the hard deadline when a fetch never settles", async () => {
+    seed(db, 5);
+    // Ignores the abort signal, like the 10-20 prod hang.
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const t0 = Date.now();
+    const result = await refreshReleases(db, { limit: 100, concurrency: 2, budgetMs: 50, graceMs: 50, dryRun: true });
+
+    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(result.budgetExhausted).toBe(true);
+    expect(result.hasMore).toBe(true);
+    expect(result.stuck).toBe(2);
+  });
+
+  it("skips a project whose GitHub call fails instead of hanging", async () => {
+    seed(db, 2);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("rate limited", { status: 403 })));
+    const result = await refreshReleases(db, { limit: 100, budgetMs: 60_000, dryRun: true });
+    expect(result.skipped).toBe(2);
+    expect(result.stuck).toBe(0);
+  });
 });
