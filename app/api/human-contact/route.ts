@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { log } from "@/lib/logger";
 import { logRequest } from "@/lib/request-log";
+import { getDb } from "@/lib/db";
 
 const bodySchema = z.object({
   tab: z.enum(["suggest", "report"]),
@@ -81,27 +82,39 @@ export async function POST(request: NextRequest) {
       return res;
     }
 
+    // Store first: a submission must never be lost because email is down
+    // or unconfigured. Email delivery is best-effort on top of storage.
+    const payload = parsed.data;
+    const db = getDb();
+    const insert = db
+      .prepare(
+        `INSERT INTO contact_messages (tab, type, url, message, page, email_status)
+         VALUES (?, ?, ?, ?, ?, 'pending')`
+      )
+      .run(
+        payload.tab,
+        payload.type || "",
+        payload.url,
+        payload.message || "",
+        payload.page || ""
+      );
+    const messageId = insert.lastInsertRowid as number;
+
     const to = process.env.HUMAN_CONTACT_EMAIL || process.env.ADMIN_EMAIL || "contact@freshcrate.ai";
-    const email = buildEmail(parsed.data);
+    const email = buildEmail(payload);
 
     const send = await sendWithResend(to, email.subject, email.text);
+    const emailStatus = send.ok ? "sent" : send.reason === "missing_resend_key" ? "not_configured" : "error";
+
+    db.prepare("UPDATE contact_messages SET email_status = ? WHERE id = ?").run(emailStatus, messageId);
+
     if (!send.ok) {
-      log.error("human_contact_send_failed", { reason: send.reason, status: (send as { status?: number }).status });
-      const res = NextResponse.json(
-        { error: "Contact inbox is not configured yet. Set RESEND_API_KEY and HUMAN_CONTACT_EMAIL." },
-        { status: 503 }
-      );
-      logRequest(request, 503, start);
-      return res;
+      log.error("human_contact_send_failed", { messageId, reason: send.reason, status: (send as { status?: number }).status });
+    } else {
+      log.info("human_contact_sent", { messageId, tab: payload.tab, type: payload.type, to });
     }
 
-    log.info("human_contact_sent", {
-      tab: parsed.data.tab,
-      type: parsed.data.type,
-      to,
-    });
-
-    const res = NextResponse.json({ ok: true }, { status: 202 });
+    const res = NextResponse.json({ ok: true, stored: true, emailed: send.ok }, { status: 202 });
     logRequest(request, 202, start);
     return res;
   } catch (err) {
