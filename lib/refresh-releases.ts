@@ -57,7 +57,7 @@ const DEFAULT_GRACE_MS = 25000;
 const SYNTHETIC_VERSION_RE = /^[^@\s]+@\d{4}-\d{2}-\d{2}$/;
 const isSynthetic = (v: string | undefined) => SYNTHETIC_VERSION_RE.test(v || "");
 
-function parseGithubUrl(url: string): { owner: string; repo: string } | null {
+export function parseGithubUrl(url: string): { owner: string; repo: string } | null {
   if (!url) return null;
   const m = url.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/|$)/);
   return m ? { owner: m[1], repo: m[2] } : null;
@@ -71,7 +71,7 @@ function urgencyFromAge(dateStr: string): string {
   return "Low";
 }
 
-async function ghFetch<T>(endpoint: string, token?: string): Promise<T | null> {
+export async function ghFetch<T>(endpoint: string, token?: string): Promise<T | null> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "freshcrate-refresh-releases",
