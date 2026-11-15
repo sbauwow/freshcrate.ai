@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 import { cleanAuthor } from "@/lib/author-slug";
-import { getLatestReleases, getCategories, getAuthors, getTags } from "@/lib/queries";
+import { getLatestReleases, getCategories, getAuthors, getTags, listModels } from "@/lib/queries";
 import { getAllCrates } from "@/lib/learn-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -38,6 +38,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Models index + per-model pages
+  const modelPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/models`, changeFrequency: "daily" as const, priority: 0.8 },
+    ...listModels({ sort: "downloads", limit: 500 }).models.map((m) => ({
+      url: `${baseUrl}/models/${encodeURIComponent(m.repo_id)}`,
+      lastModified: m.last_modified || undefined,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    })),
+  ];
+
   // Category pages
   const categories = getCategories();
   const categoryPages: MetadataRoute.Sitemap = categories.map((c) => ({
@@ -74,5 +85,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...projectPages, ...categoryPages, ...cratePages, ...authorPages, ...tagPages];
+  return [...staticPages, ...projectPages, ...modelPages, ...categoryPages, ...cratePages, ...authorPages, ...tagPages];
 }

@@ -86,6 +86,8 @@ export default async function RootLayout({
               <span className="text-fm-border">|</span>
               <Link href="/browse" className="text-fm-text hover:text-fm-link no-underline">{t.nav.browse}</Link>
               <span className="text-fm-border">|</span>
+              <Link href="/models" className="text-fm-text hover:text-fm-link no-underline">{t.nav.models}</Link>
+              <span className="text-fm-border">|</span>
               <Link href="/research" className="text-fm-text hover:text-fm-link no-underline">{t.nav.research}</Link>
               <span className="text-fm-border">|</span>
               <Link href="/security" className="text-fm-text hover:text-fm-link no-underline">{t.nav.security}</Link>

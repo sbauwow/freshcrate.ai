@@ -811,3 +811,154 @@ export function updateProjectGithubData(
     WHERE id = ?
   `).run(data.stars, data.forks, data.language, data.readme_html, now, now, projectId);
 }
+
+// --- Hugging Face models ---
+
+export interface ModelRow {
+  id: number;
+  repo_id: string;
+  author: string;
+  model_name: string;
+  short_desc: string;
+  pipeline_tag: string;
+  license: string;
+  downloads: number;
+  likes: number;
+  trending_score: number;
+  gated: number;
+  size_mb: number | null;
+  hf_url: string;
+  last_modified: string;
+}
+
+export type ModelSort = "downloads" | "trending" | "likes" | "updated";
+
+export interface ListModelsOptions {
+  sort?: ModelSort;
+  license?: string;
+  pipeline?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ModelTorrentRow {
+  id: number;
+  info_hash: string;
+  display_name: string;
+  total_bytes: number;
+  file_count: number;
+  magnet: string;
+  created_at: string;
+}
+
+const MODEL_COLUMNS = `
+  id, repo_id, author, model_name, short_desc, pipeline_tag, license,
+  downloads, likes, trending_score, gated, size_mb, hf_url, last_modified
+`;
+
+/**
+ * @description Fetches HF models with optional license/pipeline filters, sort mode, and pagination.
+ * @param options - Optional sort (default: downloads desc), license/pipeline filters, limit (default 25), offset (default 0)
+ * @returns Object with the page of models and the total count matching the same filters
+ */
+export function listModels(options: ListModelsOptions = {}): { models: ModelRow[]; total: number } {
+  const db = getDb();
+
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (options.license) {
+    where.push("license = ?");
+    params.push(options.license);
+  }
+
+  if (options.pipeline) {
+    where.push("pipeline_tag = ?");
+    params.push(options.pipeline);
+  }
+
+  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+
+  const orderBy: Record<ModelSort, string> = {
+    downloads: "downloads DESC, repo_id ASC",
+    trending: "trending_score DESC, downloads DESC, repo_id ASC",
+    likes: "likes DESC, downloads DESC, repo_id ASC",
+    updated: "last_modified DESC, repo_id ASC",
+  };
+
+  const sort: ModelSort = options.sort ?? "downloads";
+  const sortSql = orderBy[sort] ?? orderBy.downloads;
+
+  const limit = options.limit ?? 25;
+  const offset = options.offset ?? 0;
+
+  const models = db.prepare(`
+    SELECT ${MODEL_COLUMNS}
+    FROM models
+    ${whereSql}
+    ORDER BY ${sortSql}
+    LIMIT ? OFFSET ?
+  `).all(...params, limit, offset) as ModelRow[];
+
+  const total = (db.prepare(`
+    SELECT COUNT(*) as c FROM models ${whereSql}
+  `).get(...params) as { c: number }).c;
+
+  return { models, total };
+}
+
+/**
+ * @description Finds a model by its canonical repo id ('author/name', case-sensitive as stored).
+ * @param repoId - The canonical Hugging Face repo id
+ * @returns The model row, or null if not found
+ */
+export function getModel(repoId: string): ModelRow | null {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT ${MODEL_COLUMNS}
+    FROM models
+    WHERE repo_id = ?
+  `).get(repoId) as ModelRow | undefined;
+  return row ?? null;
+}
+
+/**
+ * @description Gets torrent manifest info for a model, if one has been built.
+ * @param modelId - The model ID
+ * @returns The torrent row, or null when no torrent exists yet
+ */
+export function getModelTorrent(modelId: number): ModelTorrentRow | null {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT id, info_hash, display_name, total_bytes, file_count, magnet, created_at
+    FROM model_torrents
+    WHERE model_id = ?
+  `).get(modelId) as ModelTorrentRow | undefined;
+  return row ?? null;
+}
+
+/**
+ * @description Gets distinct licenses and pipeline tags with model counts for filter UIs.
+ * @returns License and pipeline facets, each sorted by count descending
+ */
+export function getModelFilterOptions(): {
+  licenses: { license: string; count: number }[];
+  pipelines: { pipeline_tag: string; count: number }[];
+} {
+  const db = getDb();
+  const licenses = db.prepare(`
+    SELECT license, COUNT(*) as count
+    FROM models
+    WHERE license IS NOT NULL AND license != ''
+    GROUP BY license
+    ORDER BY count DESC, license ASC
+  `).all() as { license: string; count: number }[];
+  const pipelines = db.prepare(`
+    SELECT pipeline_tag, COUNT(*) as count
+    FROM models
+    WHERE pipeline_tag IS NOT NULL AND pipeline_tag != ''
+    GROUP BY pipeline_tag
+    ORDER BY count DESC, pipeline_tag ASC
+  `).all() as { pipeline_tag: string; count: number }[];
+  return { licenses, pipelines };
+}

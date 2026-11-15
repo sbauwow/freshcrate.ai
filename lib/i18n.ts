@@ -16,6 +16,7 @@ export const copy = {
     nav: {
       home: "home",
       browse: "browse",
+      models: "models",
       research: "research",
       security: "security",
       agentEdition: "agent edition",
@@ -331,6 +332,7 @@ export const copy = {
     nav: {
       home: "首页",
       browse: "浏览",
+      models: "模型",
       research: "研究",
       security: "安全",
       agentEdition: "Agent Edition",
