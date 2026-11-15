@@ -28,7 +28,12 @@
  * not fire. Per-page fetch errors are logged distinctly but do not flip the
  * exit code — the deadline is the only failure signal here.
  *
- * Runs as a daily cron: .github/workflows/refresh-models.yml.
+ * PROD DATA PATH: production data lives in the Railway /data volume, which
+ * this script never touches. Prod refreshes go through the server endpoint —
+ * .github/workflows/refresh-models.yml POSTs to /api/cron/refresh-models on
+ * the Railway app (the same pattern as refresh-releases). This script is a
+ * LOCAL-ONLY tool: it reads/writes the local dev DB under ./data, so running
+ * it here never affects freshcrate.ai production data.
  */
 
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -107,8 +112,10 @@ async function main() {
     );
   };
 
+  // First arg is the DB: undefined = the lib opens the app default DB, which
+  // locally means the dev DB under ./data (prod path is the Railway endpoint).
   const outcome = await raceWithDeadline(
-    refreshModels({ pages: PAGES, token: HF_TOKEN || undefined, onProgress }),
+    refreshModels(undefined, { pages: PAGES, token: HF_TOKEN || undefined, onProgress }),
     DEADLINE_MS
   );
 

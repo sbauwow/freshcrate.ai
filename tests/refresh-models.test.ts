@@ -91,7 +91,7 @@ describe("refreshModels", () => {
       })
     );
 
-    const r1 = await refreshModels({ pages: 1, sleep: instantSleep });
+    const r1 = await refreshModels(db, { pages: 1, sleep: instantSleep });
     expect(r1.errors).toEqual([]);
     expect(r1.fetched).toBe(3); // 2 downloads-page entries + 1 trending entry seen
     expect(r1.upserted).toBe(2); // org/a seen twice counts once
@@ -139,7 +139,7 @@ describe("refreshModels", () => {
       }
     ).created_at;
 
-    const r2 = await refreshModels({ pages: 1, sleep: instantSleep });
+    const r2 = await refreshModels(db, { pages: 1, sleep: instantSleep });
     expect(r2.errors).toEqual([]);
     expect(r2.upserted).toBe(2);
 
@@ -166,7 +166,7 @@ describe("refreshModels", () => {
       })
     );
 
-    const r = await refreshModels({ pages: 1, sleep: instantSleep });
+    const r = await refreshModels(db, { pages: 1, sleep: instantSleep });
     expect(r.errors).toEqual([]);
 
     const rows = db
@@ -192,7 +192,7 @@ describe("refreshModels", () => {
       })
     );
 
-    const r = await refreshModels({ pages: 1, sleep: instantSleep });
+    const r = await refreshModels(db, { pages: 1, sleep: instantSleep });
     expect(r.errors).toEqual([]);
 
     const rows = db
@@ -218,7 +218,7 @@ describe("refreshModels", () => {
       })
     );
 
-    const r = await refreshModels({ pages: 1, sleep: instantSleep });
+    const r = await refreshModels(db, { pages: 1, sleep: instantSleep });
     expect(r.errors).toEqual([]);
 
     const rows = db
@@ -242,7 +242,7 @@ describe("refreshModels", () => {
       sleeps.push(ms);
     };
 
-    const r = await refreshModels({ pages: 1, sleep });
+    const r = await refreshModels(db, { pages: 1, sleep });
     expect(r.errors).toEqual([]);
     expect(r.fetched).toBe(2);
     expect(sleeps).toEqual([60000]);
@@ -262,7 +262,7 @@ describe("refreshModels", () => {
       })
     );
 
-    const r = await refreshModels({ pages: 2, sleep: instantSleep });
+    const r = await refreshModels(db, { pages: 2, sleep: instantSleep });
     expect(r.errors).toHaveLength(1);
     expect(r.errors[0]).toMatch(/^downloads page 2: /);
     expect(r.fetched).toBe(2); // page 1 + trending still processed
@@ -280,7 +280,7 @@ describe("refreshModels", () => {
       })
     );
 
-    await refreshModels({ pages: 1, token: "hf_test_token", sleep: instantSleep });
+    await refreshModels(db, { pages: 1, token: "hf_test_token", sleep: instantSleep });
     expect(calls.length).toBeGreaterThan(0);
     expect(calls.every((c) => c.authorization === "Bearer hf_test_token")).toBe(true);
   });

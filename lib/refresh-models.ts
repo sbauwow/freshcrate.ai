@@ -1,3 +1,4 @@
+import type Database from "better-sqlite3";
 import { getDb } from "@/lib/db";
 import { hfFetchWithStatus, HUB_ORIGIN } from "@/lib/hub-fetch";
 
@@ -6,6 +7,10 @@ export interface RefreshOptions {
   pages?: number;
   /** Optional Hugging Face token sent as a Bearer header. */
   token?: string;
+  /** Skip DB writes (the endpoint's ?dry=1); pages are still fetched and counted. */
+  dryRun?: boolean;
+  /** Stop starting new pages once this many ms have elapsed. Default: no budget. */
+  budgetMs?: number;
   /** Injectable sleep for tests (default real timer). */
   sleep?: (ms: number) => Promise<void>;
   /** Progress snapshot ({fetched, upserted, errors}) after each page settles. */
@@ -18,6 +23,8 @@ export interface RefreshResult {
   /** Distinct repo_ids touched (a repo on two pages counts once). */
   upserted: number;
   errors: string[];
+  /** True when the time budget ran out before every selected page was processed. */
+  budgetExhausted: boolean;
 }
 
 interface HfModel {
@@ -53,16 +60,30 @@ function splitRepoId(id: string): { author: string; model_name: string } {
  * plus one trending page for freshness. Upserts never touch short_desc
  * (the HF list API has no description) or created_at; updated_at is set
  * explicitly on both insert and update.
+ *
+ * Mirrors refreshReleases' contract: the caller passes the DB explicitly
+ * (the cron route passes getDb(); tests pass an in-memory DB) — omitted,
+ * it falls back to the app singleton. budgetMs mirrors refresh-releases:
+ * the check runs between work items so the endpoint returns a partial
+ * result before its maxDuration, instead of being killed mid-request.
  */
-export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshResult> {
-  const db = getDb();
+export async function refreshModels(
+  db?: Database.Database,
+  opts: RefreshOptions = {}
+): Promise<RefreshResult> {
+  const database = db ?? getDb();
   const pages = Math.max(1, opts.pages ?? 3);
+  const dryRun = opts.dryRun ?? false;
+  const budgetMs = opts.budgetMs ?? Infinity;
+  const start = Date.now();
+  const outOfBudget = () => Date.now() - start >= budgetMs;
   const sleep = opts.sleep ?? DEFAULT_SLEEP;
   const errors: string[] = [];
   let fetched = 0;
+  let budgetExhausted = false;
   const upsertedIds = new Set<string>();
 
-  const upsertStmt = db.prepare(`
+  const upsertStmt = database.prepare(`
     INSERT INTO models (
       repo_id, author, model_name, pipeline_tag, license,
       downloads, likes, trending_score, gated, last_modified, hf_url, updated_at
@@ -79,22 +100,26 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
       updated_at = datetime('now')
   `);
 
-  const upsertPage = db.transaction((entries: HfModel[]) => {
+  // In dry-run the ids are still counted (what WOULD be upserted) but no
+  // rows are written — the endpoint's ?dry=1 is a read-only rehearsal.
+  const upsertPage = database.transaction((entries: HfModel[]) => {
     for (const m of entries) {
       const { author, model_name } = splitRepoId(m.id);
-      upsertStmt.run(
-        m.id,
-        author,
-        model_name,
-        m.pipeline_tag ?? "",
-        licenseFromTags(m.tags),
-        m.downloads ?? 0,
-        m.likes ?? 0,
-        m.trendingScore ?? 0,
-        m.gated ? 1 : 0,
-        m.lastModified ?? "",
-        `${HUB_ORIGIN}/${m.id}`
-      );
+      if (!dryRun) {
+        upsertStmt.run(
+          m.id,
+          author,
+          model_name,
+          m.pipeline_tag ?? "",
+          licenseFromTags(m.tags),
+          m.downloads ?? 0,
+          m.likes ?? 0,
+          m.trendingScore ?? 0,
+          m.gated ? 1 : 0,
+          m.lastModified ?? "",
+          `${HUB_ORIGIN}/${m.id}`
+        );
+      }
       upsertedIds.add(m.id);
     }
   });
@@ -106,6 +131,11 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
       const res = await hfFetchWithStatus<HfModel[]>(endpoint, opts.token);
       if (res.data) return { status: res.status, data: res.data };
       if (res.status === 429 && attempt < RATE_LIMIT_MAX_RETRIES) {
+        if (outOfBudget()) {
+          // Out of budget: surface the 429 as a page error rather than
+          // burning another 60s sleep inside the response window.
+          return { status: res.status, data: null };
+        }
         await sleep(RATE_LIMIT_SLEEP_MS);
         continue;
       }
@@ -121,10 +151,16 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
     fetched,
     upserted: upsertedIds.size,
     errors: [...errors],
+    budgetExhausted,
   });
   const report = () => opts.onProgress?.(snapshot());
 
   for (let page = 1; page <= pages; page++) {
+    if (outOfBudget()) {
+      budgetExhausted = true;
+      report();
+      break;
+    }
     const offset = (page - 1) * PAGE_SIZE;
     const res = await fetchPage(
       `/api/models?sort=downloads&direction=-1&limit=${PAGE_SIZE}&offset=${offset}`
@@ -143,21 +179,28 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
     report();
   }
 
-  const trending = await fetchPage(
-    `/api/models?sort=trendingScore&direction=-1&limit=${TRENDING_LIMIT}`
-  );
-  if (!trending.data) {
-    errors.push(`trending page: ${failureMsg(trending.status)}`);
-    report();
-  } else {
-    fetched += trending.data.length;
-    try {
-      upsertPage(trending.data);
-    } catch (e) {
-      errors.push(`trending page: ${e instanceof Error ? e.message : String(e)}`);
+  if (!budgetExhausted) {
+    if (outOfBudget()) {
+      budgetExhausted = true;
+      report();
+    } else {
+      const trending = await fetchPage(
+        `/api/models?sort=trendingScore&direction=-1&limit=${TRENDING_LIMIT}`
+      );
+      if (!trending.data) {
+        errors.push(`trending page: ${failureMsg(trending.status)}`);
+        report();
+      } else {
+        fetched += trending.data.length;
+        try {
+          upsertPage(trending.data);
+        } catch (e) {
+          errors.push(`trending page: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        report();
+      }
     }
-    report();
   }
 
-  return { fetched, upserted: upsertedIds.size, errors };
+  return { fetched, upserted: upsertedIds.size, errors, budgetExhausted };
 }
