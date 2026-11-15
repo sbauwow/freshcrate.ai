@@ -146,6 +146,7 @@ export const GET = withRequestLog(async () => {
   const projects = (db.prepare("SELECT COUNT(*) as c FROM projects").get() as { c: number }).c;
   const releases = (db.prepare("SELECT COUNT(*) as c FROM releases").get() as { c: number }).c;
   const tags = (db.prepare("SELECT COUNT(*) as c FROM tags").get() as { c: number }).c;
+  const models = (db.prepare("SELECT COUNT(*) as c FROM models").get() as { c: number }).c;
   const verified = (db.prepare("SELECT COUNT(*) as c FROM projects WHERE verified = 1").get() as { c: number }).c;
 
   // API keys
@@ -285,6 +286,7 @@ export const GET = withRequestLog(async () => {
       projects,
       releases,
       tags,
+      models,
       verified,
       avg_releases_per_project: releases > 0 ? Math.round(releases / projects * 10) / 10 : 0,
     },
