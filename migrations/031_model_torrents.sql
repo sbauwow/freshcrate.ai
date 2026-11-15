@@ -1,4 +1,4 @@
--- Torrent manifests for HF models (one v1-bitINFOHash torrent per model)
+-- Torrent manifests for HF models (one torrent per model, keyed by BitTorrent v1 info-hash)
 
 CREATE TABLE IF NOT EXISTS model_torrents (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

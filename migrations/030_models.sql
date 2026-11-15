@@ -3,24 +3,26 @@
 CREATE TABLE IF NOT EXISTS models (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   repo_id TEXT NOT NULL UNIQUE,
-  author TEXT DEFAULT '',
-  model_name TEXT DEFAULT '',
-  short_desc TEXT DEFAULT '',
-  pipeline_tag TEXT DEFAULT '',
-  license TEXT DEFAULT 'unknown',
-  downloads INTEGER DEFAULT 0,
-  likes INTEGER DEFAULT 0,
-  trending_score INTEGER DEFAULT 0,
-  gated INTEGER DEFAULT 0,
+  author TEXT NOT NULL DEFAULT '',
+  model_name TEXT NOT NULL DEFAULT '',
+  short_desc TEXT NOT NULL DEFAULT '',
+  pipeline_tag TEXT NOT NULL DEFAULT '',
+  license TEXT NOT NULL DEFAULT 'unknown',
+  downloads INTEGER NOT NULL DEFAULT 0,
+  likes INTEGER NOT NULL DEFAULT 0,
+  trending_score INTEGER NOT NULL DEFAULT 0,
+  gated INTEGER NOT NULL DEFAULT 0,
   size_mb INTEGER,
-  hf_url TEXT DEFAULT '',
-  last_modified TEXT DEFAULT '',
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  hf_url TEXT NOT NULL DEFAULT '',
+  last_modified TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_models_downloads ON models(downloads DESC);
 CREATE INDEX IF NOT EXISTS idx_models_trending ON models(trending_score DESC);
+CREATE INDEX IF NOT EXISTS idx_models_license ON models(license);
+CREATE INDEX IF NOT EXISTS idx_models_pipeline_tag ON models(pipeline_tag);
 
 -- FTS5 full-text search on models
 

@@ -91,6 +91,40 @@ describe("migration 030: models + models_fts", () => {
     expect(() => insertModel({ repo_id: "acme/dupe" })).toThrow(/UNIQUE/);
   });
 
+  it("makes catalog columns NOT NULL with defaults and keeps size_mb nullable", () => {
+    const cols = db.prepare("PRAGMA table_info(models)").all() as Array<{
+      name: string;
+      notnull: number;
+    }>;
+    const notNullByName = Object.fromEntries(cols.map((c) => [c.name, c.notnull]));
+
+    for (const required of [
+      "repo_id",
+      "author",
+      "model_name",
+      "short_desc",
+      "pipeline_tag",
+      "license",
+      "hf_url",
+      "last_modified",
+      "downloads",
+      "likes",
+      "trending_score",
+      "gated",
+    ]) {
+      expect(notNullByName[required], `${required} must be NOT NULL`).toBe(1);
+    }
+    expect(notNullByName.size_mb, "size_mb must stay nullable").toBe(0);
+  });
+
+  it("has browse-filter indexes on license and pipeline_tag", () => {
+    const indexes = db.prepare("PRAGMA index_list(models)").all() as Array<{ name: string }>;
+    const names = indexes.map((i) => i.name);
+
+    expect(names).toContain("idx_models_license");
+    expect(names).toContain("idx_models_pipeline_tag");
+  });
+
   it("inserting a model makes it findable via models_fts MATCH", () => {
     insertModel({ repo_id: "acme/whisper-tiny", short_desc: "tiny speech recognition model" });
 
@@ -121,6 +155,20 @@ describe("migration 030: models + models_fts", () => {
       .all("codellama") as unknown[];
     expect(newHits).toHaveLength(1);
   });
+
+  it("deleting a model removes its tokens from models_fts (no ghost hits)", () => {
+    const id = insertModel({
+      repo_id: "acme/ghost-model",
+      short_desc: "phantom tokenizer experiment",
+    });
+
+    db.prepare("DELETE FROM models WHERE id = ?").run(id);
+
+    const ghostHits = db
+      .prepare("SELECT rowid FROM models_fts WHERE models_fts MATCH ?")
+      .all("phantom OR ghost") as unknown[];
+    expect(ghostHits).toHaveLength(0);
+  });
 });
 
 describe("migration 031: model_torrents", () => {
@@ -147,15 +195,18 @@ describe("migration 031: model_torrents", () => {
   });
 
   it("enforces info_hash uniqueness", () => {
-    const modelId = insertModel();
+    const firstId = insertModel({ repo_id: "acme/first" });
+    const secondId = insertModel({ repo_id: "acme/second" });
     const insertTorrent = db.prepare(
       `INSERT INTO model_torrents (model_id, info_hash, display_name, metainfo)
        VALUES (?, ?, ?, ?)`
     );
 
-    insertTorrent.run(modelId, "a".repeat(40), "whisper-tiny.gguf", Buffer.from("d8:announce"));
+    insertTorrent.run(firstId, "a".repeat(40), "first.gguf", Buffer.from("d8:announce"));
+    // Same info_hash on a second, valid model row: only the info_hash UNIQUE
+    // constraint can fire here (model_id is a real, distinct row).
     expect(() =>
-      insertTorrent.run(modelId + 1, "a".repeat(40), "other.gguf", Buffer.from("d8:announce"))
+      insertTorrent.run(secondId, "a".repeat(40), "second.gguf", Buffer.from("d8:announce"))
     ).toThrow(/UNIQUE/);
   });
 
