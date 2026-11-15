@@ -1,7 +1,7 @@
 {
   "name": "freshcrate",
   "version": "0.1.0",
-  "description": "The open source package directory for AI agents \u2014 discover, search, and publish agent tools, MCP servers, frameworks, and libraries",
+  "description": "The open source package directory for AI agents — discover, search, and publish agent tools, MCP servers, frameworks, and libraries",
   "author": "freshcrate contributors",
   "license": "MIT",
   "repository": {
@@ -84,6 +84,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.2.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vite": "^8.0.8",
     "vitest": "^4.1.4"

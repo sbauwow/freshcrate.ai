@@ -8,6 +8,8 @@ export interface RefreshOptions {
   token?: string;
   /** Injectable sleep for tests (default real timer). */
   sleep?: (ms: number) => Promise<void>;
+  /** Progress snapshot ({fetched, upserted, errors}) after each page settles. */
+  onProgress?: (progress: RefreshResult) => void;
 }
 
 export interface RefreshResult {
@@ -113,6 +115,15 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
 
   const failureMsg = (status: number) => (status === 0 ? "network error" : `HTTP ${status}`);
 
+  // Emit the current snapshot so a deadline-racing caller can report partials
+  // (each page is committed in its own transaction, so these are durable).
+  const snapshot = (): RefreshResult => ({
+    fetched,
+    upserted: upsertedIds.size,
+    errors: [...errors],
+  });
+  const report = () => opts.onProgress?.(snapshot());
+
   for (let page = 1; page <= pages; page++) {
     const offset = (page - 1) * PAGE_SIZE;
     const res = await fetchPage(
@@ -120,6 +131,7 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
     );
     if (!res.data) {
       errors.push(`downloads page ${page}: ${failureMsg(res.status)}`);
+      report();
       continue;
     }
     fetched += res.data.length;
@@ -128,6 +140,7 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
     } catch (e) {
       errors.push(`downloads page ${page}: ${e instanceof Error ? e.message : String(e)}`);
     }
+    report();
   }
 
   const trending = await fetchPage(
@@ -135,6 +148,7 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
   );
   if (!trending.data) {
     errors.push(`trending page: ${failureMsg(trending.status)}`);
+    report();
   } else {
     fetched += trending.data.length;
     try {
@@ -142,6 +156,7 @@ export async function refreshModels(opts: RefreshOptions = {}): Promise<RefreshR
     } catch (e) {
       errors.push(`trending page: ${e instanceof Error ? e.message : String(e)}`);
     }
+    report();
   }
 
   return { fetched, upserted: upsertedIds.size, errors };

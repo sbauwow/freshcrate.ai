@@ -1,0 +1,54 @@
+name: Refresh HF model data
+
+on:
+  schedule:
+    # Daily at 09:00 UTC — offset from releases (06:00) and legislation
+    # (07:00); research runs at :17 every 6h and security at :37 every 3h,
+    # scan-deps is weekly Monday 08:00.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Downloads pages to pull (1000 entries each)'
+        required: false
+        default: '3'
+      dry_run:
+        description: 'Dry run (print config, fetch nothing)'
+        required: false
+        default: 'false'
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # The script races a 9-minute hard deadline; npm ci plus margin fits well
+    # under this cap.
+    timeout-minutes: 15
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh HF models
+        env:
+          # Optional — anonymous HF calls get tighter rate limits without it.
+          # Unlike refresh-releases' CRON_SECRET this must NOT fail the job
+          # when unset; the script treats an empty value as no token.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          REFRESH_MODELS_PAGES: ${{ github.event.inputs.pages || '3' }}
+          DRY: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          ARGS=""
+          if [ "$DRY" = "1" ]; then
+            ARGS="--dry-run"
+            echo "Dry run requested — printing what would run"
+          fi
+          npx tsx scripts/refresh-models.mjs $ARGS
