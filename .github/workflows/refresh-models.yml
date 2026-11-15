@@ -13,42 +13,55 @@ on:
         required: false
         default: '3'
       dry_run:
-        description: 'Dry run (print config, fetch nothing)'
+        description: 'Dry run (fetch and count, no DB writes)'
         required: false
         default: 'false'
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # The script races a 9-minute hard deadline; npm ci plus margin fits well
-    # under this cap.
-    timeout-minutes: 15
+    # One endpoint call (4 hub requests happen server-side); 3 attempts x a
+    # 200s curl cap plus backoff sleeps fits well under this cap.
+    timeout-minutes: 20
     steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Refresh HF models
+      - name: Hit refresh endpoint
         env:
-          # Optional — anonymous HF calls get tighter rate limits without it.
-          # Unlike refresh-releases' CRON_SECRET this must NOT fail the job
-          # when unset; the script treats an empty value as no token.
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          REFRESH_MODELS_PAGES: ${{ github.event.inputs.pages || '3' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REFRESH_URL: ${{ secrets.REFRESH_URL || 'https://freshcrateai-production.up.railway.app/api/cron/refresh-models' }}
+          PAGES: ${{ github.event.inputs.pages || '3' }}
           DRY: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
         run: |
           set -euo pipefail
-          ARGS=""
-          if [ "$DRY" = "1" ]; then
-            ARGS="--dry-run"
-            echo "Dry run requested — printing what would run"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret is not set in repo settings"
+            exit 1
           fi
-          npx tsx scripts/refresh-models.mjs $ARGS
+          # The refresh runs SERVER-SIDE against the Railway prod DB: the app
+          # endpoint calls refreshModels(getDb(), ...) exactly like
+          # /api/cron/refresh-releases. The runner never checks out the repo
+          # or touches a local SQLite file. HF_TOKEN lives as a Railway
+          # variable (softer Hub rate limits); the runner needs nothing but
+          # CRON_SECRET. One call covers the whole catalog — no shards.
+          # budget_ms returns a partial result before the app's 300s
+          # maxDuration. Retry 000/5xx (Railway edge drops seen on 10-20).
+          ATTEMPTS=3
+          BUDGET_MS=150000
+          failed=0
+          status=000
+          for attempt in $(seq 1 $ATTEMPTS); do
+            rm -f /tmp/body
+            status=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              --connect-timeout 15 --max-time 200 \
+              "${REFRESH_URL}?pages=${PAGES}&dry=${DRY}&budget_ms=${BUDGET_MS}" || true)
+            echo "Attempt $attempt/$ATTEMPTS HTTP status: $status"
+            cat /tmp/body 2>/dev/null || true
+            echo
+            case "$status" in 000|5??) ;; *) break ;; esac
+            [ "$attempt" -lt "$ATTEMPTS" ] && sleep 20
+          done
+          if [ "$status" != "200" ]; then
+            echo "::error::refresh-models returned HTTP $status after $attempt attempt(s)"
+            failed=1
+          fi
+          exit $failed
