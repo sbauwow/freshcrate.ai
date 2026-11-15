@@ -29,13 +29,13 @@ function modelsHref(parts: { sort?: ModelSort; license?: string; pipeline?: stri
 }
 
 function formatNumber(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString();
 }
 
 function formatLastModified(lastModified: string): string {
   if (!lastModified) return "—";
   const d = new Date(lastModified);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US");
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 }
 
 export default async function ModelsPage({
