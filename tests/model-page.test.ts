@@ -1,9 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import Database from "better-sqlite3";
 import { createTestDb, _resetDb } from "./setup";
 import { getModel, getModelTorrent } from "@/lib/queries";
+import ModelPage, { generateMetadata, decodeRepoId } from "@/app/models/[repoId]/page";
+
+// ModelPage reads the locale cookie via next/headers; there is no request scope
+// under vitest, so stub cookies() (no locale cookie set -> English copy).
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
 
 let db: Database.Database;
 
@@ -172,12 +179,41 @@ describe("model pages house structure", () => {
     expect(detailPage).toContain("getModelTorrent(");
   });
 
-  it("browse page: empty state, trending section, filters, and pagination", () => {
-    expect(browsePage).toContain("No models indexed yet");
-    expect(browsePage).toContain("Trending now");
+  it("browse page: empty state, trending section, filters, and pagination (locale-routed)", () => {
+    expect(browsePage).toContain("emptyNotIndexedTitle");
+    expect(browsePage).toContain("trendingNow");
     expect(browsePage).toContain("license");
     expect(browsePage).toContain("pipeline");
-    expect(browsePage).toContain("Next");
+    expect(browsePage).toContain("t.next");
+  });
+
+  it("routes all /models pages copy through the modelsPage locale section", () => {
+    expect(browsePage).toContain("getCopy(locale).modelsPage");
+    expect(detailPage).toContain("getCopy(locale).modelsPage");
+    const i18n = fs.readFileSync(path.join(process.cwd(), "lib", "i18n.ts"), "utf-8");
+    expect(i18n).toContain("modelsPage");
+  });
+});
+
+describe("malformed repoId guard", () => {
+  it("decodeRepoId('a%2') falls back to the raw segment instead of throwing URIError", () => {
+    expect(() => decodeURIComponent("a%2")).toThrow(URIError);
+    expect(decodeRepoId("a%2")).toBe("a%2");
+  });
+
+  it("a page render with repoId 'a%2' hits notFound(), not a 500", async () => {
+    insertModel({ repo_id: "acme/whisper-tiny" });
+    const params = Promise.resolve({ repoId: "a%2" });
+    // notFound() throws the Next.js 404 sentinel; a URIError escaping the decode
+    // guard would surface as an unhandled 500 instead.
+    await expect(ModelPage({ params })).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK/);
+    await expect(ModelPage({ params })).rejects.not.toThrow(/URI malformed/);
+  });
+
+  it("generateMetadata survives repoId 'a%2' and marks it noindex", async () => {
+    const md = await generateMetadata({ params: Promise.resolve({ repoId: "a%2" }) });
+    expect((md.robots as { index?: boolean }).index).toBe(false);
+    expect(String(md.title)).toContain("Model not found");
   });
 });
 
