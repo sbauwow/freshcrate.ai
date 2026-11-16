@@ -938,6 +938,24 @@ export function getModelTorrent(modelId: number): ModelTorrentRow | null {
 }
 
 /**
+ * @description Fetches the raw .torrent metainfo bytes for a model (the download
+ * endpoint needs the BLOB; getModelTorrent deliberately omits it).
+ * @param modelId - The model ID
+ * @returns { display_name, metainfo } or null when no torrent exists
+ */
+export function getModelTorrentMetainfo(
+  modelId: number
+): { display_name: string; metainfo: Buffer } | null {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT display_name, metainfo
+    FROM model_torrents
+    WHERE model_id = ?
+  `).get(modelId) as { display_name: string; metainfo: Buffer } | undefined;
+  return row ?? null;
+}
+
+/**
  * @description Gets distinct licenses and pipeline tags with model counts for filter UIs.
  * @returns License and pipeline facets, each sorted by count descending
  */
