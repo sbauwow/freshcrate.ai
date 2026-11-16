@@ -49,6 +49,16 @@ function streamResponse(buf: Buffer): Response {
   return new Response(stream, { status: 200 });
 }
 
+/** 200 response whose body never yields a byte and never closes: the
+ * builder's reader.read() hangs forever unless the per-model timeout
+ * un-wedges the job. */
+function neverSettlingResponse(): Response {
+  return new Response(
+    new ReadableStream<Uint8Array>({ pull: () => new Promise<never>(() => {}) }),
+    { status: 200 }
+  );
+}
+
 interface HubRoute {
   status: number;
   data: unknown;
@@ -262,6 +272,27 @@ describe("buildTorrentsForModels", () => {
     ]);
     const rows = db.prepare("SELECT COUNT(*) AS c FROM model_torrents").get() as { c: number };
     expect(rows.c).toBe(0);
+  });
+
+  it("rejects detail-gated='manual' (string case) like 'auto'/boolean", async () => {
+    seedModel(db, { repo_id: "org/manual-gated", license: "mit", downloads: 10 });
+    mockHub({
+      [detailEndpoint("org/manual-gated")]: {
+        status: 200,
+        data: { id: "org/manual-gated", gated: "manual" },
+      },
+      [treeEndpoint("org/manual-gated")]: { status: 200, data: [treeEntry("m.safetensors", 100)] },
+    });
+
+    const result = await buildTorrentsForModels(db, {});
+
+    expect(result.built).toBe(0);
+    expect(result.skipped).toEqual([
+      { repo_id: "org/manual-gated", reason: expect.stringMatching(/gated/i) },
+    ]);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM model_torrents").get() as { c: number }).c
+    ).toBe(0);
   });
 
   it("records a skip when detail or tree fetches fail and keeps the job going", async () => {
@@ -505,5 +536,90 @@ describe("buildTorrentsForModels", () => {
     expect(
       (db.prepare("SELECT model_id FROM model_torrents").get() as { model_id: number }).model_id
     ).toBe(modelId);
+  });
+
+  it("tripwire: the tree fetch keeps the recursive=true query param", async () => {
+    // lib/hub-fetch's redirect-following relies on HF echoing query params
+    // into Location; if the job drops ?recursive=true the tree silently
+    // degrades to the repo root (no weight files -> every model skipped).
+    seedModel(db, { repo_id: "org/tree-param", license: "mit", downloads: 1 });
+    const calls = mockHub({
+      [detailEndpoint("org/tree-param")]: detailOk(),
+      [treeEndpoint("org/tree-param")]: {
+        status: 200,
+        data: [treeEntry("t.safetensors", 64)],
+      },
+    });
+    mockResolve({ [resolveUrl("org/tree-param", "t.safetensors")]: patternBuf(64, 22) });
+
+    const result = await buildTorrentsForModels(db, {});
+
+    expect(result.built).toBe(1);
+    expect(calls.map((c) => c.endpoint)).toContain(
+      "/api/models/org/tree-param/tree/main?recursive=true"
+    );
+  });
+
+  it("times out a never-settling weight stream and keeps building the next model", async () => {
+    seedModel(db, { repo_id: "org/wedge", license: "mit", downloads: 30 });
+    seedModel(db, { repo_id: "org/after", license: "mit", downloads: 20 });
+    mockHub({
+      [detailEndpoint("org/wedge")]: detailOk(),
+      [treeEndpoint("org/wedge")]: { status: 200, data: [treeEntry("w.safetensors", 1000)] },
+      [detailEndpoint("org/after")]: detailOk(),
+      [treeEndpoint("org/after")]: { status: 200, data: [treeEntry("a.safetensors", 1000)] },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL) => {
+        const u = url.toString();
+        if (u === resolveUrl("org/wedge", "w.safetensors")) return neverSettlingResponse();
+        if (u === resolveUrl("org/after", "a.safetensors")) {
+          return streamResponse(patternBuf(1000, 21));
+        }
+        return new Response("nope", { status: 404 });
+      })
+    );
+
+    const result = await buildTorrentsForModels(db, { perModelTimeoutMs: 50 });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatch(/^org\/wedge: build timed out after \d+ms/);
+    expect(result.built).toBe(1);
+    expect(result.budgetExhausted).toBe(false);
+    const built = db
+      .prepare("SELECT m.repo_id FROM model_torrents t JOIN models m ON m.id = t.model_id")
+      .all() as Array<{ repo_id: string }>;
+    expect(built.map((r) => r.repo_id)).toEqual(["org/after"]);
+  });
+
+  it("caps the per-model timeout at the remaining budget (min rule)", async () => {
+    seedModel(db, { repo_id: "org/capped", license: "mit", downloads: 10 });
+    mockHub({
+      [detailEndpoint("org/capped")]: detailOk(),
+      [treeEndpoint("org/capped")]: { status: 200, data: [treeEntry("c.safetensors", 64)] },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => neverSettlingResponse())
+    );
+
+    const t0 = Date.now();
+    const result = await buildTorrentsForModels(db, {
+      perModelTimeoutMs: 600000, // way above the budget...
+      budgetMs: 120, // ...so the min() must cap the deadline at ~120ms
+    });
+    const elapsed = Date.now() - t0;
+
+    const match = result.errors[0]?.match(/timed out after (\d+)ms/);
+    expect(match).not.toBeNull();
+    const reportedMs = Number(match![1]);
+    expect(reportedMs).toBeGreaterThan(0);
+    expect(reportedMs).toBeLessThanOrEqual(120); // capped, NOT the 600000 default
+    expect(elapsed).toBeLessThan(5000); // whole test would hang minutes otherwise
+    expect(result.built).toBe(0);
+    expect(
+      (db.prepare("SELECT COUNT(*) AS c FROM model_torrents").get() as { c: number }).c
+    ).toBe(0);
   });
 });

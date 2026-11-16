@@ -146,6 +146,52 @@ describe("api/cron/build-model-torrents route", () => {
     await new Promise((r) => setTimeout(r, 0));
   });
 
+  it("answers queued:0 'already running' for an overlapping detached trigger and resets after", async () => {
+    let resolveBuild!: (v: Awaited<ReturnType<typeof buildTorrentsForModels>>) => void;
+    buildMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveBuild = resolve;
+      })
+    );
+
+    const first = await GET(req("", "GET", "Bearer test-cron-secret"));
+    expect((await first.json()).queued).toBe(1);
+
+    // Overlapping trigger while the first build is still in flight: the
+    // single-flight guard must not start a second multi-GB build.
+    const second = await GET(req("", "GET", "Bearer test-cron-secret"));
+    expect(await second.json()).toEqual({
+      ok: true,
+      mode: "queued",
+      queued: 0,
+      reason: "already running",
+    });
+    expect(buildMock).toHaveBeenCalledTimes(1);
+
+    // The guard must reset once the in-flight build settles...
+    resolveBuild({
+      selected: 1,
+      built: 1,
+      wouldBuild: [],
+      skipped: [],
+      errors: [],
+      budgetExhausted: false,
+      dryRun: false,
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    // ...and a dry run (read-only) is never blocked by the guard.
+    const dry = await GET(req("?dry=1", "GET", "Bearer test-cron-secret"));
+    expect((await dry.json()).mode).toBe("sync");
+
+    // ...so the next detached trigger queues normally again. (The dry run
+    // above shares the same mock, so the count is 3: first + dry + third.)
+    const third = await GET(req("", "GET", "Bearer test-cron-secret"));
+    expect((await third.json()).queued).toBe(1);
+    expect(buildMock).toHaveBeenCalledTimes(3);
+    await new Promise((r) => setTimeout(r, 0));
+  });
+
   it("passes the test DB, defaults and preselected candidates to the job", async () => {
     const res = await GET(req("", "GET", "Bearer test-cron-secret"));
 

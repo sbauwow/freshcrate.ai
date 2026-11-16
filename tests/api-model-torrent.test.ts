@@ -111,6 +111,17 @@ describe("api/models/[repoId]/torrent route", () => {
     expect((await res.json()).error).toMatch(/not found/i);
   });
 
+  it("returns 404 (not 500) for a malformed percent-escape in the repo segment", async () => {
+    // decodeURIComponent throws URIError on truncated/bad escapes ("%2", "%ZZ");
+    // decodeRepoId falls back to the raw segment, which then misses the lookup.
+    for (const raw of ["ghost%2Ftruncated%2", "ghost%2Fbad%ZZ"]) {
+      const res = await GET(reqFor("ghost/none"), ctxFor(raw));
+
+      expect(res.status).toBe(404);
+      expect((await res.json()).error).toMatch(/not found/i);
+    }
+  });
+
   it("returns 404 for an allowlisted model with no torrent built yet", async () => {
     await seedModel({ repo_id: "org/unbuilt", license: "mit" });
 

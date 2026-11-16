@@ -31,7 +31,9 @@ import { isTorrentable, TORRENTABLE_LICENSES } from "@/lib/model-torrent-policy"
  * logged so it can never crash the container) and answers {queued: N}
  * immediately. ?sync=1 opts into a blocking run for small dev batches, and
  * ?dry=1 always runs inline because its whole point is the would-build
- * list in the response. budgetMs bounds a run either way.
+ * list in the response. budgetMs bounds a run either way, and each model's
+ * build is additionally raced against min(perModelTimeoutMs, remaining
+ * budget) so one stalled weight stream cannot wedge the whole loop.
  *
  * This job never touches the local filesystem; local SQLite use is dev-only
  * (scripts/build-model-torrents.mjs). Prod data path is the Railway endpoint.
@@ -45,6 +47,8 @@ const WEIGHT_EXTENSIONS = [".safetensors", ".bin", ".gguf", ".ckpt", ".onnx", ".
 const DEFAULT_LIMIT = 10;
 const DEFAULT_MAX_MODEL_MB = 20000;
 const DEFAULT_BUDGET_MS = 240000;
+/** Hard cap on one model's build; min()'d with the remaining run budget. */
+const DEFAULT_PER_MODEL_TIMEOUT_MS = 600000;
 
 export interface TorrentCandidate {
   id: number;
@@ -89,6 +93,12 @@ export interface BuildTorrentsOptions {
   maxModelMb?: number;
   /** Stop starting new models once this many ms have elapsed. Default 240000. */
   budgetMs?: number;
+  /**
+   * Hard deadline for ONE model's build (stalled-stream guard): the build is
+   * raced against min(perModelTimeoutMs, remaining budget) and a timeout is
+   * recorded as that model's error so the loop moves on. Default 600000.
+   */
+  perModelTimeoutMs?: number;
   /** Optional Hugging Face token sent as a Bearer header. */
   token?: string;
   /** Select + policy-check only; no content downloads, no DB writes. */
@@ -163,16 +173,20 @@ function weightUrl(repoId: string, filePath: string): string {
  * response.body to buildModelTorrent. The stream is consumed exactly once
  * per call (a fresh fetch per call keeps builds retryable). Non-200 (e.g.
  * a gated file's 403) aborts this model's build with the status recorded.
+ * `signal` is the per-model deadline AbortSignal: if the model build times
+ * out, an in-flight weight stream is torn down instead of holding the
+ * socket until undici's default idle timeout.
  */
 function makeContentSource(
   repoId: string,
   filePath: string,
-  token?: string
+  token?: string,
+  signal?: AbortSignal
 ): TorrentFileInput["content"] {
   return async () => {
     const headers: Record<string, string> = { Accept: "application/x-binary" };
     if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(weightUrl(repoId, filePath), { headers, cache: "no-store" });
+    const res = await fetch(weightUrl(repoId, filePath), { headers, cache: "no-store", signal });
     if (!res.ok || !res.body) {
       await res.body?.cancel().catch(() => {});
       throw new Error(`weight fetch failed for "${filePath}" (HTTP ${res.status})`);
@@ -253,7 +267,8 @@ export async function buildTorrentsForModels(
   );
 
   for (const candidate of candidates) {
-    if (now() - start >= budgetMs) {
+    const elapsedMs = now() - start;
+    if (elapsedMs >= budgetMs) {
       result.budgetExhausted = true;
       report();
       break;
@@ -340,19 +355,39 @@ export async function buildTorrentsForModels(
     }
 
     // (c)+(d) Stream the weights through the metainfo builder and persist.
+    // The budget is only checked BETWEEN models, so a stalled weight stream
+    // (silent TCP stall, hung CDN response) must not wedge the loop until
+    // undici's default idle timeout: race each build against a per-model
+    // deadline of min(perModelTimeoutMs, remaining budget) measured from the
+    // loop's budget check. The weight fetches carry the same deadline as an
+    // AbortSignal so the dead socket is torn down when it fires.
+    const timeoutMs = Math.min(
+      Math.max(1, opts.perModelTimeoutMs ?? DEFAULT_PER_MODEL_TIMEOUT_MS),
+      Math.max(1, budgetMs - elapsedMs)
+    );
+    const signal = AbortSignal.timeout(timeoutMs);
+    const files: TorrentFileInput[] = weightFiles.map((file) => ({
+      path: file.path,
+      size: file.size,
+      url: weightUrl(repo_id, file.path),
+      content: makeContentSource(repo_id, file.path, opts.token, signal),
+    }));
+    let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const files: TorrentFileInput[] = weightFiles.map((file) => ({
-        path: file.path,
-        size: file.size,
-        url: weightUrl(repo_id, file.path),
-        content: makeContentSource(repo_id, file.path, opts.token),
-      }));
-      const built = await buildModelTorrent({
-        repoId: repo_id,
-        displayName: candidate.model_name || repo_id,
-        files,
-        comment: `freshcrate.ai model torrent for ${repo_id} (web seeds: huggingface.co)`,
-      });
+      const built = await Promise.race([
+        buildModelTorrent({
+          repoId: repo_id,
+          displayName: candidate.model_name || repo_id,
+          files,
+          comment: `freshcrate.ai model torrent for ${repo_id} (web seeds: huggingface.co)`,
+        }),
+        new Promise<never>((_, reject) => {
+          timeoutTimer = setTimeout(
+            () => reject(new Error(`build timed out after ${timeoutMs}ms (stalled weight stream?)`)),
+            timeoutMs
+          );
+        }),
+      ]);
       const displayName = candidate.model_name || repo_id;
       persist(candidate.id, {
         infoHash: built.infoHash,
@@ -365,6 +400,8 @@ export async function buildTorrentsForModels(
       result.built += 1;
     } catch (err) {
       result.errors.push(`${repo_id}: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
     }
     report();
   }

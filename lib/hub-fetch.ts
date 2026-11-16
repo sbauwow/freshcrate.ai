@@ -13,6 +13,11 @@ export interface HfFetchResult<T> {
  * Status-aware fetch of a Hugging Face Hub API endpoint. Lets callers
  * distinguish e.g. 429 rate limiting from a plain miss; `hfFetch` is the
  * null-on-failure convenience wrapper.
+ *
+ * NOTE: fetch() follows redirects transparently and only keeps the query
+ * string because HF echoes the endpoint's query params into the Location
+ * URL — keep params like ?recursive=true on the endpoint itself or
+ * recursive/paginated reads silently degrade to the first page.
  */
 export async function hfFetchWithStatus<T>(
   endpoint: string,

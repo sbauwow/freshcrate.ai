@@ -11,6 +11,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+// Single-flight guard for the DETACHED batch: overlapping triggers (scheduled
+// run + manual dispatch, retry double-fire) must not start two multi-GB
+// builds — the second trigger is answered immediately with queued: 0 and the
+// in-flight loop finishes alone. Reset in finally so a crash can never latch
+// the guard shut. Dry/sync runs bypass it (read-only / explicit dev opt-in).
+let detachedRunning = false;
+
 async function handle(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
@@ -56,11 +63,25 @@ async function handle(req: NextRequest) {
     // detached loop keeps streaming after the response is sent. The
     // catch-all is the container-crash guard: an unhandled rejection from
     // the background build must only log, never take the process down.
-    void buildTorrentsForModels(db, jobOpts).catch((err: unknown) => {
-      log.error("build-model-torrents background run failed", {
-        error: err instanceof Error ? err.message : String(err),
+    // finally resets the single-flight guard on any outcome.
+    if (detachedRunning) {
+      return NextResponse.json({
+        ok: true,
+        mode: "queued",
+        queued: 0,
+        reason: "already running",
       });
-    });
+    }
+    detachedRunning = true;
+    void buildTorrentsForModels(db, jobOpts)
+      .catch((err: unknown) => {
+        log.error("build-model-torrents background run failed", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      })
+      .finally(() => {
+        detachedRunning = false;
+      });
 
     return NextResponse.json({
       ok: true,
