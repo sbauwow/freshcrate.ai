@@ -2,6 +2,8 @@
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
+> **Status:** Implemented via subagent-driven waves (Tasks 1–12). All commits live on branch `plan/hf-models-and-torrents` — pending push, merge, deploy, and user steps (GitHub Actions secrets/cron enablement).
+
 **Goal:** Add HuggingFace model listings as a first-class content type on freshcrate.ai, and let visitors download open-licensed model weights via BitTorrent — without freshcrate ever hosting weight payloads.
 
 **Architecture:** Two new tables (`models`, `model_torrents`) fed by a daily GitHub-Actions refresh that mirrors the existing `refresh-releases` pipeline. Model pages live under `/models`. Torrent integration is **metainfo-only**: a scheduled job builds `.torrent` files whose web-seed URLs point at the HF CDN (`/resolve/main/` per file), so freshcrate serves KB-sized metainfo + magnet links while the swarm fetches bytes straight from HuggingFace. License policy gates which models are torrentable.
@@ -14,7 +16,7 @@
 
 ## Phase 1 — Model listings
 
-### Task 1: Migration `030_models.sql`
+### Task 1: Migration `030_models.sql` — ✅ complete
 
 **Objective:** Create the `models` table + its own FTS index with sync triggers (mirrors `002_fts5_search.sql` / `012_readme_text_fts.sql` pattern).
 
@@ -96,7 +98,7 @@ END;
 
 **Step 4:** `npx vitest run tests/migrations.test.ts` — PASS. **Step 5:** commit `feat: migration 030 models + models_fts`.
 
-### Task 2: Migration `031_model_torrents.sql`
+### Task 2: Migration `031_model_torrents.sql` — ✅ complete
 
 **Objective:** Torrent metainfo store. Metainfo bytes live in the DB (KBs each); weights never do.
 
@@ -124,7 +126,7 @@ CREATE TABLE IF NOT EXISTS model_torrents (
 
 **Step 5:** commit `feat: migration 031 model_torrents`.
 
-### Task 3: `lib/hub-fetch.ts` — HF Hub fetch helper
+### Task 3: `lib/hub-fetch.ts` — HF Hub fetch helper — ✅ complete
 
 **Objective:** Mirror `ghFetch` (exported from `lib/refresh-releases.ts`) for the Hub: timeout, null-on-failure, optional token.
 
@@ -146,7 +148,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 
 **Step 2:** fail → **Step 3:** implement `hfFetch<T>(endpoint: string, token?: string): Promise<T | null>` (AbortController 20s, `Accept: application/json`, `Authorization: Bearer` only when token provided). **Step 4:** pass. **Step 5:** commit `feat: hub fetch helper`.
 
-### Task 4: `lib/refresh-models.ts` — the refresh pipeline
+### Task 4: `lib/refresh-models.ts` — the refresh pipeline — ✅ complete
 
 **Objective:** Daily upsert from the Hub, mirroring `refreshReleases` shape (`RefreshOptions`/`RefreshResult`, worker pool).
 
@@ -162,7 +164,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 
 **Step 5:** commit `feat: model refresh pipeline`.
 
-### Task 5: Cron workflow `.github/workflows/refresh-models.yml`
+### Task 5: Cron workflow `.github/workflows/refresh-models.yml` — ✅ complete
 
 **Objective:** Daily refresh job, mirroring `refresh-releases.yml` (copy its structure: `schedule: cron`, `workflow_dispatch`, node setup, `HF_TOKEN` from secrets as optional env).
 
@@ -172,7 +174,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 
 **Commit:** `feat: daily hf model refresh cron`.
 
-### Task 6: `/models` index page + `/api/models` route
+### Task 6: `/models` index page + `/api/models` route — ✅ complete
 
 **Objective:** Public browse surface: SSR index (top by downloads + trending, license/pipeline filters) + JSON API.
 
@@ -186,7 +188,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 
 **Commit:** `feat: /models browse page + API`.
 
-### Task 7: Model detail page `/models/[repoId]/page.tsx`
+### Task 7: Model detail page `/models/[repoId]/page.tsx` — ✅ complete
 
 **Objective:** Detail page: stats (downloads/likes), license badge, pipeline tag, HF link, file-size summary when known, and the Torrent section (Task 12 fills it) or, for gated models, a "weights are auth-walled upstream — not redistributable" note. `generateMetadata` for SEO; `export const dynamic = "force-dynamic"` is NOT needed (SSR by default is fine), robots indexable.
 
@@ -194,7 +196,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 
 **Commit:** `feat: model detail page`.
 
-### Task 8: Metrics exposure
+### Task 8: Metrics exposure — ✅ complete
 
 **Objective:** Add `models` count to `/api/metrics` → `content` block (one line in the metrics route + one test), so future checks track listing growth without an ssh read.
 
@@ -210,7 +212,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 - **Hard exclusions**: `gated = 1`; license not in allowlist (covers Llama/Gemma/Qwen community licenses with redistribution conditions); models with no weight files (config-only).
 - **Payload rule**: freshcrate stores only metainfo; web seeds point at `https://huggingface.co/{repo_id}/resolve/main/{path}`. Takedown contact: `AGENTS.md` lists the abuse path — add a "report torrent" mailto on the model page footer (static string, no new infra).
 
-### Task 9: `npm i create-torrent parse-torrent` + `lib/bencode-helpers.test.ts`
+### Task 9: `npm i create-torrent parse-torrent` + `lib/bencode-helpers.test.ts` — ✅ complete
 
 **Objective:** Dependencies in (repo uses npm + lockfile — never yarn), plus a round-trip test that a generated torrent parses back with a stable v1 infohash and the HF web seeds intact.
 
@@ -254,7 +256,7 @@ export async function buildModelTorrent(input: {
 
 **Step 4:** pass → **Step 5:** commit `feat: torrent metainfo builder`.
 
-### Task 10: `scripts/build-model-torrents.mjs` — the batch builder
+### Task 10: `scripts/build-model-torrents.mjs` — the batch builder — ✅ complete
 
 **Objective:** Weekly batch: top `N` (default 50) allowlisted models by downloads → fetch file trees → build torrents → upsert `model_torrents`.
 
@@ -264,13 +266,13 @@ export async function buildModelTorrent(input: {
 
 **Commit:** `feat: weekly torrent build job` + workflow `build-model-torrents.yml` (weekly, `workflow_dispatch`).
 
-### Task 11: `/api/models/[repoId]/torrent` route
+### Task 11: `/api/models/[repoId]/torrent` route — ✅ complete
 
 **Objective:** Serve the `.torrent` bytes: `Content-Type: application/x-bittorrent`, `Content-Disposition: attachment; filename="<name>.torrent"`; 404 when not built; 403-with-reason JSON for gated models (so the UI can explain).
 
 **Files:** Create `app/api/models/[repoId]/torrent/route.ts`; Test: `tests/api-model-torrent.test.ts` (200 + headers for built, 404 for unbuilt, 403 gated). **Commit:** `feat: torrent download endpoint`.
 
-### Task 12: Model page torrent section + magnet link
+### Task 12: Model page torrent section + magnet link — ✅ complete (lands with the feat commit of this wave)
 
 **Objective:** On the detail page: "Download via BitTorrent" block — magnet link (primary), `.torrent` file link (secondary), total size + file count, "weights are fetched from HuggingFace via web seeds; freshcrate hosts no model weights" caption, report-torrent mailto. Gated models: explanatory note instead.
 
