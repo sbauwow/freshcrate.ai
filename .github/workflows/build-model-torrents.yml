@@ -1,0 +1,74 @@
+name: Build model torrents
+
+on:
+  schedule:
+    # Weekly, Saturday 04:00 UTC — clear of the daily refreshes (releases
+    # 06:00, legislation 07:00, models 09:00), research (xx:17 every 6h),
+    # security (xx:37 every 3h) and scan-deps (Monday 08:00).
+    - cron: '0 4 * * 6'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max models to build this run'
+        required: false
+        default: '10'
+      max_model_mb:
+        description: 'Skip models whose weights exceed this many MB'
+        required: false
+        default: '20000'
+      dry_run:
+        description: 'Dry run (select + policy-check, no downloads/hashing)'
+        required: false
+        default: 'false'
+
+jobs:
+  build-torrents:
+    runs-on: ubuntu-latest
+    # Fire-and-forget endpoint: the server answers {queued: N} immediately and
+    # streams/hash weights on its own (budget_ms caps the server-side run).
+    # A dry run answers synchronously with the would-build list; 3 attempts x
+    # a 200s curl cap plus backoff sleeps fits well under this job cap.
+    timeout-minutes: 20
+    steps:
+      - name: Hit build-model-torrents endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TORRENT_URL: ${{ secrets.REFRESH_URL || 'https://freshcrateai-production.up.railway.app/api/cron/build-model-torrents' }}
+          LIMIT: ${{ github.event.inputs.limit || '10' }}
+          MAX_MODEL_MB: ${{ github.event.inputs.max_model_mb || '20000' }}
+          DRY: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret is not set in repo settings"
+            exit 1
+          fi
+          # The build runs SERVER-SIDE against the Railway prod DB and streams
+          # weight bytes straight from the Hugging Face web seeds — the runner
+          # never checks out the repo, downloads weights, or touches a local
+          # SQLite file. HF_TOKEN lives as a Railway variable; the runner needs
+          # nothing but CRON_SECRET. Default (DRY=0) mode is fire-and-forget:
+          # the endpoint returns {queued: N} and the build continues on the
+          # server under its own budget_ms. DRY=1 answers synchronously with
+          # the would-build list. Retry 000/5xx (Railway edge drops on 10-20).
+          ATTEMPTS=3
+          BUDGET_MS=150000
+          failed=0
+          status=000
+          for attempt in $(seq 1 $ATTEMPTS); do
+            rm -f /tmp/body
+            status=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              --connect-timeout 15 --max-time 200 \
+              "${TORRENT_URL}?limit=${LIMIT}&max_model_mb=${MAX_MODEL_MB}&dry=${DRY}&budget_ms=${BUDGET_MS}" || true)
+            echo "Attempt $attempt/$ATTEMPTS HTTP status: $status"
+            cat /tmp/body 2>/dev/null || true
+            echo
+            case "$status" in 000|5??) ;; *) break ;; esac
+            [ "$attempt" -lt "$ATTEMPTS" ] && sleep 20
+          done
+          if [ "$status" != "200" ]; then
+            echo "::error::build-model-torrents returned HTTP $status after $attempt attempt(s)"
+            failed=1
+          fi
+          exit $failed
