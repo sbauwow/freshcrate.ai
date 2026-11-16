@@ -16,6 +16,25 @@ function formatDate(value: string): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US");
 }
 
+function fill(template: string, vars: Record<string, string>): string {
+  return Object.entries(vars).reduce(
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, value),
+    template
+  );
+}
+
+// Torrent totals are byte counts (model_torrents.total_bytes); keep the same
+// family as the stats row's MB display, escalating to GB for big repos.
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
+  const gb = bytes / 1024 ** 3;
+  if (gb >= 1) return `${gb.toFixed(1)} GB`;
+  return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+}
+
+// Report/takedown address — same channel as the terms page's DMCA/takedown section.
+const TORRENT_REPORT_EMAIL = "dmca@freshcrate.ai";
+
 // Model repo ids are 'author/name'. Links on this site encode the slash
 // (/models/author%2Fname); Next.js delivers the raw segment, so decode it
 // here like /author and /tag do, then look up the canonical repo id exactly.
@@ -100,7 +119,9 @@ export default async function ModelPage({
           </div>
         </div>
 
-        {/* Gated note — only for gated repos (the list API never surfaces them, but the branch must exist) */}
+        {/* Gated note — gated repos are never torrentable (auth-walled upstream,
+            not redistributable), so this note stands in place of the torrent box.
+            The list API never surfaces them, but the branch must exist. */}
         {m.gated === 1 && (
           <div id="gated-note" className="mb-6 border border-yellow-700/50 rounded p-3 bg-yellow-900/20">
             <p className="text-[11px] font-bold text-yellow-500 mb-1">{t.gatedTitle}</p>
@@ -131,15 +152,47 @@ export default async function ModelPage({
           </div>
         </div>
 
-        {/* Torrent section — PLACEHOLDER. Wave G fills this in: torrent presence is
-            already queried via getModelTorrent(m.id); render the magnet/manifest UI
-            inside this branch when model_torrents lands.
-            TODO(Wave G): replace this placeholder with the real torrent panel
-            (magnet link, file list from metainfo, build tool version). */}
-        {torrent && (
+        {/* Torrent box — only for a built torrent on a non-gated model. Gated
+            repos get the gated note above instead (never redistributable). */}
+        {torrent && !m.gated && (
           <div id="torrent-section" className="mb-6">
             <h3 className="text-[12px] font-bold text-fm-green border-b border-fm-border pb-1 mb-2">{t.torrentTitle}</h3>
-            {/* TODO(Wave G): render torrent details instead of nothing */}
+            <div className="bg-fm-surface/50 border border-fm-border rounded p-3 text-[11px]">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <TrackedLink
+                  event="install"
+                  eventTarget={`torrent:magnet@model:${m.repo_id}`}
+                  href={torrent.magnet}
+                  id="torrent-magnet"
+                  className="inline-block bg-fm-green text-white text-[11px] font-bold px-3 py-1 rounded hover:bg-fm-green-light"
+                >
+                  {t.torrentMagnet}
+                </TrackedLink>
+                <TrackedLink
+                  event="install"
+                  eventTarget={`torrent:file@model:${m.repo_id}`}
+                  href={`/api/models/${encodeURIComponent(m.repo_id)}/torrent`}
+                  id="torrent-file"
+                  className="text-fm-link hover:text-fm-link-hover hover:underline"
+                >
+                  {t.torrentFile}
+                </TrackedLink>
+              </div>
+              <p id="torrent-stats" className="text-fm-text mb-2">
+                {formatBytes(torrent.total_bytes)}{" · "}
+                {fill(t.torrentFiles, { count: formatNumber(torrent.file_count) })}
+              </p>
+              <p className="text-fm-text-light mb-2">{t.torrentCaption}</p>
+              <p className="text-[10px] text-fm-text-light">
+                <a
+                  id="torrent-report"
+                  href={`mailto:${TORRENT_REPORT_EMAIL}?subject=${encodeURIComponent(`torrent report: ${m.repo_id}`)}`}
+                  className="text-fm-link hover:underline"
+                >
+                  {t.torrentReport}
+                </a>
+              </p>
+            </div>
           </div>
         )}
 

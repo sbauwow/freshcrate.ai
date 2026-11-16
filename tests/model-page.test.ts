@@ -1,15 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import { renderToStaticMarkup } from "react-dom/server";
 import Database from "better-sqlite3";
 import { createTestDb, _resetDb } from "./setup";
 import { getModel, getModelTorrent } from "@/lib/queries";
+import { getCopy } from "@/lib/i18n";
 import ModelPage, { generateMetadata, decodeRepoId } from "@/app/models/[repoId]/page";
 
 // ModelPage reads the locale cookie via next/headers; there is no request scope
-// under vitest, so stub cookies() (no locale cookie set -> English copy).
+// under vitest, so stub cookies(). Tests set localeCookieValue to render either
+// locale (undefined -> no cookie -> English copy).
+let localeCookieValue: string | undefined;
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => undefined }),
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "fc_lang" && localeCookieValue ? { value: localeCookieValue } : undefined,
+  }),
 }));
 
 let db: Database.Database;
@@ -69,6 +76,29 @@ function insertModel(
     );
 
   return result.lastInsertRowid as number;
+}
+
+function insertTorrent(
+  modelId: number,
+  overrides: Partial<{ info_hash: string; total_bytes: number; file_count: number; magnet: string }> = {}
+): void {
+  db.prepare(
+    `INSERT INTO model_torrents (model_id, info_hash, display_name, total_bytes, file_count, metainfo, magnet)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    modelId,
+    overrides.info_hash ?? "a".repeat(40),
+    "whisper-tiny-torrent",
+    overrides.total_bytes ?? 16000000,
+    overrides.file_count ?? 3,
+    Buffer.from("bencoded"),
+    overrides.magnet ?? "magnet:?xt=urn:btih:" + "a".repeat(40)
+  );
+}
+
+async function renderPage(repoId: string): Promise<string> {
+  const element = await ModelPage({ params: Promise.resolve({ repoId }) });
+  return renderToStaticMarkup(element);
 }
 
 beforeEach(() => {
@@ -174,9 +204,23 @@ describe("model pages house structure", () => {
     expect(detailPage).toContain("gated");
   });
 
-  it("keeps a torrent section placeholder (Wave G fills it)", () => {
-    expect(detailPage).toContain("TODO(Wave G)");
-    expect(detailPage).toContain("getModelTorrent(");
+  it("renders the torrent box only when a torrent exists and the model is not gated", () => {
+    expect(detailPage).toContain("torrent && !m.gated");
+    expect(detailPage).toContain("torrent.magnet");
+    expect(detailPage).toContain("/api/models/${encodeURIComponent(m.repo_id)}/torrent");
+    expect(detailPage).toContain("formatBytes(");
+    expect(detailPage).toContain("mailto:");
+    // Wave G placeholder must be gone.
+    expect(detailPage).not.toContain("TODO(Wave G)");
+  });
+
+  it("routes torrent-box copy through the modelsPage locale section (no hardcoded strings)", () => {
+    expect(detailPage).toContain("t.torrentMagnet");
+    expect(detailPage).toContain("t.torrentFile");
+    expect(detailPage).toContain("t.torrentFiles");
+    expect(detailPage).toContain("t.torrentCaption");
+    expect(detailPage).toContain("t.torrentReport");
+    expect(detailPage).toContain("t.gatedBody");
   });
 
   it("browse page: empty state, trending section, filters, and pagination (locale-routed)", () => {
@@ -229,5 +273,96 @@ describe("robots + sitemap include models", () => {
     expect(sitemap).toContain("/models");
     expect(sitemap).toContain("listModels");
     expect(sitemap).toContain("encodeURIComponent(m.repo_id)");
+  });
+});
+
+describe("model page torrent box (Task 12)", () => {
+  afterEach(() => {
+    localeCookieValue = undefined;
+  });
+
+  it("built + permissive: renders magnet href, .torrent href, size/count, caption, and report mailto", async () => {
+    const modelId = insertModel({ repo_id: "acme/whisper-tiny", gated: 0, license: "apache-2.0" });
+    insertTorrent(modelId, { total_bytes: 16000000, file_count: 3 });
+
+    const html = await renderPage("acme%2Fwhisper-tiny");
+
+    // Primary magnet link + secondary .torrent file link (repoId encoded like internal links).
+    expect(html).toContain('href="magnet:?xt=urn:btih:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"');
+    expect(html).toContain('href="/api/models/acme%2Fwhisper-tiny/torrent"');
+    // Stats line: human-readable size + file count.
+    expect(html).toContain("15.3 MB");
+    expect(html).toContain("3 files");
+    // Caption + report mailto with the repo_id prefilled as subject.
+    expect(html).toContain("web seeds");
+    expect(html).toContain("freshcrate hosts no model weights");
+    expect(html).toContain("report this torrent");
+    expect(html).toContain("mailto:dmca@freshcrate.ai");
+    expect(html).toContain("subject=torrent%20report%3A%20acme%2Fwhisper-tiny");
+    expect(html).toContain('id="torrent-section"');
+  });
+
+  it("GB-scale totals render in GB", async () => {
+    const modelId = insertModel({ repo_id: "acme/big-model" });
+    insertTorrent(modelId, { total_bytes: 3221225472, file_count: 2 });
+
+    const html = await renderPage("acme%2Fbig-model");
+    expect(html).toContain("3.0 GB");
+    expect(html).toContain("2 files");
+  });
+
+  it("gated=1: renders the explanatory note instead of the box", async () => {
+    const modelId = insertModel({ repo_id: "acme/gated-model", gated: 1, license: "apache-2.0" });
+    insertTorrent(modelId); // torrent row exists but gated wins — no box
+
+    const html = await renderPage("acme%2Fgated-model");
+    expect(html).toContain("gated-note");
+    expect(html).toContain("auth-walled upstream");
+    expect(html).not.toContain("torrent-section");
+    expect(html).not.toContain("magnet:?xt=urn:btih:");
+    expect(html).not.toContain("/api/models/acme%2Fgated-model/torrent");
+  });
+
+  it("unbuilt + permissive: renders neither box nor note", async () => {
+    insertModel({ repo_id: "acme/whisper-tiny", gated: 0, license: "apache-2.0" });
+
+    const html = await renderPage("acme%2Fwhisper-tiny");
+    expect(html).not.toContain("torrent-section");
+    expect(html).not.toContain("magnet:?xt=urn:btih:");
+    expect(html).not.toContain("/api/models/acme%2Fwhisper-tiny/torrent");
+    expect(html).not.toContain("gated-note");
+  });
+
+  it("renders zh-CN copy for the torrent box and gated note", async () => {
+    const modelId = insertModel({ repo_id: "acme/whisper-tiny" });
+    insertTorrent(modelId);
+
+    localeCookieValue = "zh-CN";
+    const html = await renderPage("acme%2Fwhisper-tiny");
+    expect(html).toContain("磁力链接");
+    expect(html).toContain("3 个文件");
+    expect(html).toContain("不托管任何模型权重");
+    expect(html).toContain("报告此种子");
+  });
+});
+
+describe("modelsPage i18n parity", () => {
+  it("en and zh-CN modelsPage sections have identical key sets", () => {
+    const en = Object.keys(getCopy("en").modelsPage).sort();
+    const zh = Object.keys(getCopy("zh-CN").modelsPage).sort();
+    expect(zh).toEqual(en);
+  });
+
+  it("torrent-box keys exist in both locales", () => {
+    for (const locale of ["en", "zh-CN"] as const) {
+      const t = getCopy(locale).modelsPage;
+      expect(t.torrentMagnet).toBeTruthy();
+      expect(t.torrentFile).toBeTruthy();
+      expect(t.torrentFiles).toContain("{count}");
+      expect(t.torrentCaption).toBeTruthy();
+      expect(t.torrentReport).toBeTruthy();
+    }
+    expect(getCopy("en").modelsPage.gatedBody).toContain("not redistributable");
+    expect(getCopy("zh-CN").modelsPage.gatedBody).toContain("不可再分发");
   });
 });
