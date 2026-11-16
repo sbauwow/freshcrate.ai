@@ -22,7 +22,7 @@ jobs:
       - name: Hit refresh endpoint
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          REFRESH_URL: ${{ secrets.REFRESH_URL || 'https://freshcrateai-production.up.railway.app/api/cron/refresh-releases' }}
+          RELEASES_REFRESH_URL: ${{ secrets.RELEASES_REFRESH_URL || 'https://freshcrateai-production.up.railway.app/api/cron/refresh-releases' }}
           LIMIT: ${{ github.event.inputs.limit || '3200' }}
           DRY: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
         run: |
@@ -31,8 +31,8 @@ jobs:
             echo "::error::CRON_SECRET secret is not set in repo settings"
             exit 1
           fi
-          if [ -z "${REFRESH_URL:-}" ]; then
-            echo "::error::REFRESH_URL secret is not set in repo settings"
+          if [ -z "${RELEASES_REFRESH_URL:-}" ]; then
+            echo "::error::RELEASES_REFRESH_URL secret is not set in repo settings"
             exit 1
           fi
           # One call per id-partition so each stays far under the 300s maxDuration
@@ -51,7 +51,7 @@ jobs:
               status=$(curl -sS -o /tmp/body -w "%{http_code}" -X POST \
                 -H "Authorization: Bearer $CRON_SECRET" \
                 --connect-timeout 15 --max-time 200 \
-                "${REFRESH_URL}?limit=${LIMIT}&dry=${DRY}&shard=${shard}&shards=${SHARDS}&budget_ms=${BUDGET_MS}" || true)
+                "${RELEASES_REFRESH_URL}?limit=${LIMIT}&dry=${DRY}&shard=${shard}&shards=${SHARDS}&budget_ms=${BUDGET_MS}" || true)
               echo "Attempt $attempt/$ATTEMPTS HTTP status: $status"
               cat /tmp/body 2>/dev/null || true
               echo

@@ -26,7 +26,6 @@ jobs:
       - name: Hit scan-deps endpoint
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SCAN_URL: ${{ secrets.REFRESH_URL && format('{0}/../scan-deps', secrets.REFRESH_URL) || 'https://freshcrateai-production.up.railway.app/api/cron/scan-deps' }}
           LIMIT: ${{ github.event.inputs.limit || '200' }}
           ALL: ${{ github.event.inputs.all == 'true' && '1' || '0' }}
           NAME: ${{ github.event.inputs.name || '' }}

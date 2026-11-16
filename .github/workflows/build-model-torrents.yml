@@ -33,7 +33,11 @@ jobs:
       - name: Hit build-model-torrents endpoint
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          TORRENT_URL: ${{ secrets.REFRESH_URL || 'https://freshcrateai-production.up.railway.app/api/cron/build-model-torrents' }}
+          # Own endpoint, hardcoded by default (overridable via TORRENT_URL).
+          # NEVER wire the generic shared REFRESH_URL secret here: it holds
+          # the refresh-releases endpoint URL, so reusing it silently
+          # refreshed releases weekly instead of building torrents.
+          TORRENT_URL: ${{ secrets.TORRENT_URL || 'https://freshcrateai-production.up.railway.app/api/cron/build-model-torrents' }}
           LIMIT: ${{ github.event.inputs.limit || '10' }}
           MAX_MODEL_MB: ${{ github.event.inputs.max_model_mb || '20000' }}
           DRY: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
