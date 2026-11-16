@@ -210,7 +210,7 @@ it("returns parsed json on 200 and prefixes the hub origin", async () => {
 
 - **Allowlist licenses** for torrent generation: `mit, apache-2.0, bsd-2-clause, bsd-3-clause, wtfpl, cc-by-4.0, cc-by-sa-4.0, cc0-1.0, openrail, bigscience-openrail-m, artistic-2.0` — stored in `lib/model-torrent-policy.ts` as `TORRENTABLE_LICENSES`.
 - **Hard exclusions**: `gated = 1`; license not in allowlist (covers Llama/Gemma/Qwen community licenses with redistribution conditions); models with no weight files (config-only).
-- **Payload rule**: freshcrate stores only metainfo; web seeds point at `https://huggingface.co/{repo_id}/resolve/main/{path}`. Takedown contact: `AGENTS.md` lists the abuse path — add a "report torrent" mailto on the model page footer (static string, no new infra).
+- **Payload rule**: freshcrate stores only metainfo; web seeds point at `https://huggingface.co/{repo_id}/resolve/main/{path}`. Takedown contact: the site's public DMCA/takedown address `dmca@freshcrate.ai` (per `app/terms/page.tsx` terms page) — surfaced as the "report torrent" mailto on the model page.
 
 ### Task 9: `npm i create-torrent parse-torrent` + `lib/bencode-helpers.test.ts` — ✅ complete
 
@@ -299,4 +299,4 @@ export async function buildModelTorrent(input: {
 ## Baseline discipline
 
 - Full suite + `npx tsc --noEmit` diffed against the permanent red baseline; only NEW failures block.
-- Deploy = `railway up --detach`; verify via `/api/metrics` uptime reset + `migrations` count rising by the shipped migrations (30 → 32 after Phase 1; 30 → 33 if 031 ships with it).
+- Deploy = `railway up --detach`; verify via `/api/metrics` uptime reset + `migrations` count rising by the shipped migrations (30 → 32 — both 030_models and 031_model_torrents ship with this branch, there is no separate second bump).
